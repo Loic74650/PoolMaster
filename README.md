@@ -1,5 +1,5 @@
 
-	<h1>PoolMaster</h1>
+	<h4>PoolMaster</h4>
 	<h2>Arduino/Controllino-Maxi (ATmega2560) based Ph/ORP regulator for home pool sysem</h2>
 	<h4>No warranty, use at your own risk. (c) Loic74 <loic74650@gmail.com> 2018</h4> <br />
 	
