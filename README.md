@@ -1,7 +1,6 @@
-PoolMaster
-<h4>PoolMaster</h4>
+<h2>PoolMaster</h2>
 <h2>Arduino/Controllino-Maxi (ATmega2560) based Ph/ORP regulator for home pool sysem</h2>
-<h4>No warranty, use at your own risk. (c) Loic74 2018</h4> <br />
+No warranty, use at your own risk. (c) Loic74 2018 <br />
 	
 <h4>Compatibility</h4>
 	
@@ -14,9 +13,9 @@ PoolMaster
 - possibly the topic names on the MQTT broker to subscribe and publish to<br />
 - the Kp,Ki,Kd parameters for both PID loops in case your peristaltic pumps have a different throughput than 2Liters/hour. For instance, if twice more, divide the parameters by 2<br /></p>
 
-    <h4>Brief description</h4>
+<h4>Brief description</h4>
 	
-	<p>Three main metrics are measured and periodically reported over MQTT: water temperature, PH and ORP values<br />
+<p>Three main metrics are measured and periodically reported over MQTT: water temperature, PH and ORP values<br />
 Pumps states, tank-level states and other parmaters are also periodically reported<br />
 Two PID regulation loops are running in parallel: one for PH, one for ORP<br />
 PH is regulated by injecting Acid from a tank into the pool water (a relay starts/stops the Acid peristaltic pump)<br />
