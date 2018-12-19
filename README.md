@@ -115,6 +115,7 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see in c
 <p align="center"> <img src="/docs/TuileJeedom.jpg" width="602" title="Overview"> </p> <br />
 <p align="center"> <img src="/docs/VirtuelJeedom.jpg" width="602" title="Overview"> </p> <br />
 </p>
+
 </body>
 
 </html>
