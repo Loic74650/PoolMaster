@@ -92,7 +92,7 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see hard
 <li><a title="https://www.dfrobot.com/product-1621.html" href="https://www.dfrobot.com/product-1621.html">Galvanic isolator for the pH and Orp probes</a></li> 
 <li>Peristaltic pumps: SEKO PR 4</li>
 <li><a title="http://electrolyseur.fr/pool-terre.html" href="http://electrolyseur.fr/pool-terre.html">Water grounding</a></li>
-<li><a title="Water temperature probe (DS18B20)" href="Water temperature probe (DS18B20)">Water grounding</a></li>
+<li><a title="Water temperature probe (DS18B20)" href="Water temperature probe (DS18B20)">Water temperature probe (DS18B20)</a></li>
 </ul>
 </p><br />
 
