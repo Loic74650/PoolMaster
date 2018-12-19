@@ -63,14 +63,14 @@ IO: a variable of type BYTE where each individual bit is the state of a digital 
 </p>
 
 
-<p align="center"> <img src="/docs/PoolMaster.jpg" width="602" title="Overview"> </p> <br />
-<p align="center"> <img src="/docs/Web.jpg" width="602" title="Overview"> </p> <br />
+<p align="center"> <img src="/docs/PoolMaster.jpg" width="602" title="Overview"> </p> <br /><br />
+<p align="center"> <img src="/docs/Web.jpg" width="602" title="Overview"> </p> <br /><br />
 <p align="center"> <img src="/docs/WebXML.jpg" width="602" title="Overview"> </p> <br />
 
 
 <h4>MQTT API</h4>
 <p>
-Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see in code below) in Json format in order to launch actions on the Arduino:<br />
+Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see hardcoded in code) in Json format in order to launch actions on the Arduino:<br />
 <ul>
 <li>{"Mode":1} or {"Mode":0}         -> set "Mode" to manual (0) or Auto (1). In Auto, filtration starts/stops at set times of the day and pH and Orp are regulated</li> 
 <li>{"FiltPump":1} or {"FiltPump":0} -> manually start/stop the filtration pump</li>
