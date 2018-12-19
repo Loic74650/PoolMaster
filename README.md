@@ -1,5 +1,4 @@
 
-    <body>
 	<h1>PoolMaster</h1>
 	<h2>Arduino/Controllino-Maxi (ATmega2560) based Ph/ORP regulator for home pool sysem</h2>
 	<h4>No warranty, use at your own risk. (c) Loic74 <loic74650@gmail.com> 2018</h4> <br />
@@ -103,5 +102,3 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see hard
 <p align="center"> <img src="/docs/TuileJeedom.jpg" width="602" title="Overview"> </p> <br />
 <p align="center"> <img src="/docs/VirtuelJeedom.jpg" width="602" title="Overview"> </p> <br />
 </p>
-
-</body>
