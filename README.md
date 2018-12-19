@@ -21,10 +21,10 @@ Two PID regulation loops are running in parallel: one for PH, one for ORP<br />
 PH is regulated by injecting Acid from a tank into the pool water (a relay starts/stops the Acid peristaltic pump)<br />
 ORP is regulated by injecting Chlorine from a tank into the pool water (a relay starts/stops the Chlorine peristaltic pump)<br />
 Defined time-slots and water temperature are used to start/stop the filtration pump for a daily given amount of time (a relay starts/stops the filtration pump) <br />
-A lightweight webserver provides a simple dynamic webpage with a summary of all system parameters. An XML file with more info is available at http://Your_ARDUINO_LOCAL_IP/Info<br />
+A lightweight webserver provides a simple dynamic webpage with a summary of all system parameters. An XML file with more info is available at http://ARDUINO_LOCAL_IP/Info<br />
 Communication with the system is performed using the MQTT protocol over an Ethernet connection to the local network/MQTT broker.<br /><br />
 
-Every 30 seconds (by default), the system will publish on the "PoolTopic" (see in code below) the following payloads in Json format:<br /><br />
+Every 30 seconds (by default), the system will publish on the "PoolTopic" (hardcoded, see code) the following payloads in Json format:<br /><br />
 
 Temp: measured Water temperature value in °C<br />
 Ph: measured Ph value<br />
