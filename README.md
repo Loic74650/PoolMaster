@@ -1,15 +1,3 @@
-<!DOCTYPE html>
-
-<html>
-
-    <head>
-
-        <meta charset="utf-8" />
-
-        <title>PoolMaster</title>
-
-    </head>
-
 
     <body>
 	<h1>PoolMaster</h1>
@@ -117,5 +105,3 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see hard
 </p>
 
 </body>
-
-</html>
