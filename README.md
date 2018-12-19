@@ -1,11 +1,11 @@
-
-	<h4>PoolMaster</h4>
-	<h2>Arduino/Controllino-Maxi (ATmega2560) based Ph/ORP regulator for home pool sysem</h2>
-	<h4>No warranty, use at your own risk. (c) Loic74 2018</h4> <br />
+PoolMaster
+<h4>PoolMaster</h4>
+<h2>Arduino/Controllino-Maxi (ATmega2560) based Ph/ORP regulator for home pool sysem</h2>
+<h4>No warranty, use at your own risk. (c) Loic74 2018</h4> <br />
 	
-	<h4>Compatibility</h4>
+<h4>Compatibility</h4>
 	
-	<p>For this sketch to work on your setup you must change the following in your code:<br />
+<p>For this sketch to work on your setup you must change the following in your code:<br />
 - possibly the pinout definitions in case you are not using a CONTROLLINO MAXI board<br />
 - the code related to the RTC module in case your setup does not have one<br />
 - MAC address of DS18b20 water temperature sensor<br />
