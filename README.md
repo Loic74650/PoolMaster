@@ -45,7 +45,7 @@ pHErr: pH pump overtime error flag
 ChlErr: Chl pump overtime error flag
 
 <p align="center">
-  <img src="/docs/PoolMaster.jpg" width="350" title="Overview">
+  <img src="/docs/PoolMaster.jpg" width="602" title="Overview">
 </p>
    
 ***MQTT API***
