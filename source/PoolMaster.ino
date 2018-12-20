@@ -3,7 +3,7 @@ Arduino/Controllino-Maxi (ATmega2560) based Ph/ORP regulator for home pool sysem
 (c) Loic74 <loic74650@gmail.com> 2018
 
 ***Compatibility***
-For this sketch to work on your setup you must change the following in your code:
+For this sketch to work on your setup you must change the following in the code:
 - possibly the pinout definitions in case you are not using a CONTROLLINO MAXI board
 - the code related to the RTC module in case your setup does not have one
 - MAC address of DS18b20 water temperature sensor
@@ -32,7 +32,7 @@ OrpError/100: Orp PID regulation loop instantaneous error
 FiltUpTime: current running time of Filtration pump in seconds (reset every 24h)
 PhUpTime: current running time of Ph pump in seconds (reset every 24h)
 ChlUpTime: current running time of Chl pump in seconds (reset every 24h)
-IO: a variable of type BYTE where each individual bit is the state of a digital input on the Arduino. These are (LSB first):
+IO: a variable of type BYTE where each individual bit is the state of a digital input on the Arduino. These are:
 
 FiltPump: current state of Filtration Pump (0=on, 1=off)
 PhPump: current state of Ph Pump (0=on, 1=off)
@@ -67,15 +67,34 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see in c
 {"PubPeriod":30}                 -> set the periodicity (in seconds) at which the system info (pumps states, tank levels states, measured values, etc) will be published to the MQTT broker
 {"PumpsMaxUp":1800}              -> set the Max Uptime (in secs) for the Ph and Chl pumps over a 24h period. If over, PID regulation is stopped and a warning flag is raised
 {"Clear":1}                      -> reset the pH and Orp pumps overtime error flags in order to let the regulation loops continue. "Mode" also needs to be switched back to Auto (1) after an error flag was raised
+
+***Libraries***
+*https://github.com/256dpi/arduino-mqtt/releases
+https://github.com/CONTROLLINO-PLC/CONTROLLINO_Library
+https://github.com/PaulStoffregen/OneWire
+https://github.com/milesburton/Arduino-Temperature-Control-Library
+https://github.com/RobTillaart/Arduino/tree/master/libraries/RunningMedian
+https://github.com/prampec/arduino-softtimer
+https://github.com/bricofoy/yasm
+https://github.com/br3ttb/Arduino-PID-Library
+https://github.com/bblanchon/ArduinoJson
+
+***Revisions***
+1.0 -> Initial commit
+1.1 -> Changed relay-pins used for the pumps, added a 1hour delay before regulation starts in the morning, added the links to the necessary-library-repositories
+
+//TODO
+//Add Liquid Crystal display support
+//improve management of filtration time slots (split in half over a pivot midday?) + add frost mode
+//Bug does not display offline anymore if removing ethernet cable?
+
 */ 
-
-
 #include <SPI.h>
 #include <Ethernet.h>
 #include <MQTT.h>
 #include <SD.h>
 #include "OneWire.h"
-#include <DallasTemperatureLoic.h>
+#include <DallasTemperature.h>
 #include <Controllino.h>
 #include <EEPROM.h>
 #include <RunningMedian.h>
@@ -90,7 +109,7 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see in c
 #include <ArduinoJson.h>
 
 // Firmware revision
-String Firmw = "1.0";
+String Firmw = "1.1";
 
 //buffer used to capture HTTP requests
 String readString;
@@ -100,9 +119,9 @@ String readString;
 char Payload[PayloadBufferLength];
 
 //output relays pin definitions
-#define FILTRATION_PUMP CONTROLLINO_R0  //CONTROLLINO_RELAY_0 pin 22
-#define PH_PUMP    CONTROLLINO_R1       //CONTROLLINO_RELAY_1 pin 23
-#define CHL_PUMP   CONTROLLINO_R2       //CONTROLLINO_RELAY_2 pin 24
+#define FILTRATION_PUMP CONTROLLINO_R4  //CONTROLLINO_RELAY_4
+#define PH_PUMP    CONTROLLINO_R1       //CONTROLLINO_RELAY_1
+#define CHL_PUMP   CONTROLLINO_R5       //CONTROLLINO_RELAY_5
 
 //Digital input pins connected to Acid and Chl tank level reed switches
 #define CHL_LEVEL  CONTROLLINO_D1       //CONTROLLINO_D1 pin 3
@@ -137,8 +156,8 @@ unsigned int FiltrationStop;
 //TimeCounters, keep track of how long a pump has been running for over the last 24hours period
 //(in millisecs)
 unsigned long FiltrationPumpTimeCounter = 0;
-unsigned long PhPumpTimeCounter = 1780;
-unsigned long ChlPumpTimeCounter = 1780;
+unsigned long PhPumpTimeCounter = 0;
+unsigned long ChlPumpTimeCounter = 0;
 unsigned long FiltrationPumpTimeCounterStart = 0;
 unsigned long PhPumpTimeCounterStart = 0;
 unsigned long ChlPumpTimeCounterStart = 0;
@@ -243,25 +262,25 @@ RunningMedian samples_Ph = RunningMedian(15);
 RunningMedian samples_Orp = RunningMedian(15);
 
 //MAC Address of DS18b20 water temperature sensor
-DeviceAddress DS18b20_0 = { 0x28, 0x92, 0x25, 0x41, 0x0A, 0x00, 0x00, 0xEE }; "you must edit this line"
+DeviceAddress DS18b20_0 = { 0x28, 0x92, 0x25, 0x41, 0x0A, 0x00, 0x00, 0xEE };
 String sDS18b20_0 = "";
-                                                 
+                                                 
 // MAC address of Ethernet shield (in case of Controllino board, set an arbitrary MAC address)
-byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };  "you must edit this line"
+byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 String sArduinoMac = "";
-IPAddress ip(192, 168, 0, 21);   "you must edit this line" //IP address, needs to be adapted depending on local network topology
+IPAddress ip(192, 168, 0, 21);  //IP address, needs to be adapted depending on local network topology
 EthernetServer server(80);      //Create a server at port 80
 EthernetClient net;             //Ethernet client to connect to MQTT server
 
 //MQTT stuff including local broker/server IP address, login and pwd
 MQTTClient MQTTClient;
-const char* MqttServerIP = "192.168.0.20"; "you must edit this line"
+const char* MqttServerIP = "192.168.0.20";
 const char* MqttServerClientID = "ArduinoPool"; // /!\ choose a client ID which is unique to this Arduino board
-const char* MqttServerLogin = "admin"; "you must edit this line"
-const char* MqttServerPwd = "admin"; "you must edit this line"
-const char* PoolTopic = "Home/Pool"; "you must edit this line"
-const char* PoolTopicAPI = "Home/Pool/API"; "you must edit this line"
-const char* PoolTopicStatus = "Home/Pool/status"; "you must edit this line"
+const char* MqttServerLogin = "admin";
+const char* MqttServerPwd = "admin";
+const char* PoolTopic = "Home/Pool";
+const char* PoolTopicAPI = "Home/Pool/API";
+const char* PoolTopicStatus = "Home/Pool/status";
 
 //Json buffer
 DynamicJsonBuffer jsonBuffer;
@@ -290,10 +309,10 @@ void GenericCallback(Task* me);
 void PublishDataCallback(Task* me);
 
 Task t1(500, EthernetClientCallback);         //Check for Ethernet client every 0.5 secs
-Task t2(1000, OrpRegulationCallback);         //ORP regulation loop every secs
-Task t3(1100, PHRegulationCallback);          //PH regulation loop every secs
+Task t2(1000, OrpRegulationCallback);         //ORP regulation loop every 1 sec
+Task t3(1100, PHRegulationCallback);          //PH regulation loop every 1.1 sec
 Task t4(30000, PublishDataCallback);          //Publish data to MQTT broker every 30 secs
-Task t5(600, GenericCallback);                //Various things handled/updated in this loop every 0.5 secs
+Task t5(600, GenericCallback);                //Various things handled/updated in this loop every 0.6 secs
 
 
 void setup()
@@ -323,7 +342,7 @@ void setup()
     wdt_enable(WDTO_8S);
    
     //Restore variables stored into EEPROM
-      RestoreVariables();
+    RestoreVariables();
     
     // initialize Ethernet device   
     Ethernet.begin(mac, ip);  
@@ -392,13 +411,13 @@ void MQTTConnect()
     delay(1000);
   }
   
-  //String PoolTopicAPI = "Charmoisy/Pool/Api";
+  //String PoolTopicAPI = "Home/Pool/Api";
   //Topic to which send/publish API commands for the Pool controls
   MQTTClient.subscribe(PoolTopicAPI);
 
   //tell status topic we are online
   if(MQTTClient.publish(PoolTopicStatus,"online",true,LWMQTT_QOS1))
-      Serial<<F("published: Charmoisy/Pool/status - online")<<_endl;
+      Serial<<F("published: Home/Pool/status - online")<<_endl;
 }
 
 //MQTT callback
@@ -614,8 +633,9 @@ void messageReceived(String &topic, String &payload)
         else
         if(command.containsKey(F("Clear")))//"Clear" command which clears the UpTime errors of the Pumps
         {    
-          ChlPumpUpTimeLimit += ChlPumpUpTimeLimit;
-          PhPumpUpTimeLimit += PhPumpUpTimeLimit;
+          //add 30mins to the UpTimeLimit
+          ChlPumpUpTimeLimit += 1800;
+          PhPumpUpTimeLimit += 1800;
           PhUpTimeError = 0;
           ChlUpTimeError = 0;
         }
@@ -656,18 +676,19 @@ void GenericCallback(Task* me)
         FiltrationStop=FiltrationStopMax;
     }
 
-    //start/stop filtration pump as scheduled
+    //start filtration pump as scheduled
     if(AutoMode && (!digitalRead(FILTRATION_PUMP)) && (hour >= FiltrationStart) && (hour < FiltrationStop))
-    { 
         FiltrationPump(true);
-        
-        //Start PIDs
+
+    //start/stop PIDs, one hour after filtration started
+    if(AutoMode && (digitalRead(FILTRATION_PUMP)) && (hour >= FiltrationStart+1) && (hour < FiltrationStop) && (OrpPID.GetMode()==0))
+    { 
         SetPhPID(true);
         SetOrpPID(true);
     }
-    else
-    {  
-      if(AutoMode && digitalRead(FILTRATION_PUMP) && ((hour < FiltrationStart) || (hour >= FiltrationStop)))
+
+    //stop filtration pump as scheduled
+    if(AutoMode && digitalRead(FILTRATION_PUMP) && ((hour < FiltrationStart) || (hour >= FiltrationStop)))
       {
         FiltrationPump(false); 
                
@@ -675,7 +696,6 @@ void GenericCallback(Task* me)
         SetPhPID(false);
         SetOrpPID(false);
       }
-    }
 }
 
 //PublishData loop. Publishes system info/data to MQTT broker every XX secs (30 secs by default)
