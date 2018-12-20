@@ -34,7 +34,7 @@ OrpError/100: Orp PID regulation loop instantaneous error <br />
 FiltUpTime: current running time of Filtration pump in seconds (reset every 24h)<br />
 PhUpTime: current running time of Ph pump in seconds (reset every 24h)<br />
 ChlUpTime: current running time of Chl pump in seconds (reset every 24h)<br />
-IO: a variable of type BYTE where each individual bit is the state of a digital input on the Arduino. These are (LSB first):<br /><br />
+IO: a variable of type BYTE where each individual bit is the state of a digital input on the Arduino. These are :<br /><br />
 <ul>
 <li>FiltPump: current state of Filtration Pump (0=on, 1=off)</li>
 <li>PhPump: current state of Ph Pump (0=on, 1=off)</li>
