@@ -50,6 +50,7 @@ IO: a variable of type BYTE where each individual bit is the state of a digital 
 
 
 <p align="center"> <img src="/docs/PoolMaster.jpg" width="602" title="Overview"> </p> <br /><br />
+<p align="center"> <img src="/docs/PoolMasterBox_pf.jpg" width="602" title="Overview"> </p> <br /><br />
 <p align="center"> <img src="/docs/Web.jpg" width="602" title="Overview"> </p> <br /><br />
 <p align="center"> <img src="/docs/WebXML.jpg" width="602" title="Overview"> </p> <br />
 
