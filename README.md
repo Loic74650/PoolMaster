@@ -91,7 +91,7 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see hard
 <li><a title="https://www.controllino.biz/controllino-maxi/maxi-and-maxi-pure/" href="https://www.controllino.biz/controllino-maxi/maxi-and-maxi-pure/">CONTROLLINO MAXI (ATmega2560)</a></li>
 <li><a title="https://www.phidgets.com/docs/1130_User_Guide#Measuring_the_pH" href="https://www.phidgets.com/docs/1130_User_Guide#Measuring_the_pH">Phidgets PH/ORB amplifier modules</a></li> 
 <li><a title="https://www.dfrobot.com/product-1621.html" href="https://www.dfrobot.com/product-1621.html">Galvanic isolator for the pH and Orp probes</a></li> 
-<li>Peristaltic pumps</li>
+<li><a title="https://www.trattamento-acque.net/dosaggio/pompe-peristaltiche/pompe-a-portata-fissa/pompa-serie-mp2-p-detail.html" href="https://www.trattamento-acque.net/dosaggio/pompe-peristaltiche/pompe-a-portata-fissa/pompa-serie-mp2-p-detail.html">Peristaltic pumps</li>
 <li><a title="http://electrolyseur.fr/pool-terre.html" href="http://electrolyseur.fr/pool-terre.html">Water grounding</a></li>
 <li><a title="Water temperature probe (DS18B20)" href="Water temperature probe (DS18B20)">Water temperature probe (DS18B20)</a></li>
 </ul>
