@@ -32,20 +32,25 @@ OrpError/100: Orp PID regulation loop instantaneous error
 FiltUpTime: current running time of Filtration pump in seconds (reset every 24h)
 PhUpTime: current running time of Ph pump in seconds (reset every 24h)
 ChlUpTime: current running time of Chl pump in seconds (reset every 24h)
-IO: a variable of type BYTE where each individual bit is the state of a digital input on the Arduino. These are:
+IO & IO2: two variables of type BYTE where each individual bit is the state of a digital input on the Arduino. These are:
 
-FiltPump: current state of Filtration Pump (0=on, 1=off)
-PhPump: current state of Ph Pump (0=on, 1=off)
-ChlPump: current state of Chl Pump (0=on, 1=off)
+IO:
+FiltPump: current state of Filtration Pump (1=on, 0=off)
+PhPump: current state of Ph Pump (1=on, 0=off)
+ChlPump: current state of Chl Pump (1=on, 0=off)
 PhlLevel: current state of Acid tank level (0=empty, 1=ok)
 ChlLevel: current state of Chl tank level (0=empty, 1=ok)
 Mode: (0=manual, 1=auto). 
 pHErr: pH pump overtime error flag
 ChlErr: Chl pump overtime error flag
+
+IO2:
+pHPID: current state of pH PID regulation loop (1=on, 0=off)
+OrpPID: current state of Orp PID regulation loop (1=on, 0=off)
    
 ***MQTT API***
 Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see in code below) in Json format in order to launch actions on the Arduino:
-{"Mode":1} or {"Mode":0}         -> set "Mode" to manual (0) or Auto (1). In Auto, filtration starts/stops at set times of the day and pH and Orp are regulated 
+{"Mode":1} or {"Mode":0}         -> set "Mode" to manual (0) or Auto (1). In Auto, filtration starts/stops at set times of the day 
 {"FiltPump":1} or {"FiltPump":0} -> manually start/stop the filtration pump. 
 {"ChlPump":1} or {"ChlPump":0}   -> manually start/stop the Chl pump to add more Chlorine
 {"PhPump":1} or {"PhPump":0}     -> manually start/stop the Acid pump to lower the Ph
@@ -59,14 +64,14 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see in c
 {"WTempLow":10.0}                -> set the water low-temperature threshold below which there is no need to regulate Orp and Ph (ie. in winter)
 {"OrpPIDParams":[2857,0,0]}      -> respectively set Kp,Ki,Kd parameters of the Orp PID loop. In this example they are set to 2857, 0 and 0
 {"PhPIDParams":[1330000,0,0.0]}  -> respectively set Kp,Ki,Kd parameters of the Ph PID loop. In this example they are set to 1330000, 0 and 0.0
-{"OrpPIDWSize":600000}           -> set the window size of the Orp PID loop in msec, 10mins in this example
-{"PhPIDWSize":600000}            -> set the window size of the Ph PID loop in msec, 10mins in this example
+{"OrpPIDWSize":1800000}           -> set the window size of the Orp PID loop in msec, 30mins in this example
+{"PhPIDWSize":1800000}            -> set the window size of the Ph PID loop in msec, 30mins in this example
 {"Date":[1,1,1,18,13,32,0]}      -> set date/time of RTC module in the following format: (Day of the month, Day of the week, Month, Year, Hour, Minute, Seconds), in this example: Monday 1st January 2018 - 13h32mn00secs
 {"FiltT0":9}                     -> set the earliest hour (9:00 in this example) to run filtration pump. Filtration pump will not run beofre that hour
 {"FiltT1":20}                    -> set the latest hour (20:00 in this example) to run filtration pump. Filtration pump will not run after that hour
 {"PubPeriod":30}                 -> set the periodicity (in seconds) at which the system info (pumps states, tank levels states, measured values, etc) will be published to the MQTT broker
 {"PumpsMaxUp":1800}              -> set the Max Uptime (in secs) for the Ph and Chl pumps over a 24h period. If over, PID regulation is stopped and a warning flag is raised
-{"Clear":1}                      -> reset the pH and Orp pumps overtime error flags in order to let the regulation loops continue. "Mode" also needs to be switched back to Auto (1) after an error flag was raised
+{"Clear":1}                      -> reset the pH and Orp pumps overtime error flags in order to let the regulation loops continue. "Mode", "PhPID" and "OrpPID" commands need to be switched back On (1) after an error flag was raised
 
 ***Libraries***
 *https://github.com/256dpi/arduino-mqtt/releases
@@ -78,15 +83,7 @@ https://github.com/prampec/arduino-softtimer
 https://github.com/bricofoy/yasm
 https://github.com/br3ttb/Arduino-PID-Library
 https://github.com/bblanchon/ArduinoJson
-
-***Revisions***
-1.0 -> Initial commit
-1.1 -> Changed relay-pins used for the pumps, added a 1hour delay before regulation starts in the morning, added the links to the necessary-library-repositories
-
-//TODO
-//Add Liquid Crystal display support
-//improve management of filtration time slots (split in half over a pivot midday?) + add frost mode
-//Bug does not display offline anymore if removing ethernet cable?
+https://github.com/arduino-libraries/LiquidCrystal
 
 */ 
 #include <SPI.h>
@@ -102,6 +99,7 @@ https://github.com/bblanchon/ArduinoJson
 #include <yasm.h>
 #include <PID_v1.h>
 #include <Streaming.h>
+#include <LiquidCrystal.h>
 //#include <btn.h>
 //#include <LiquidCrystal_I2C.h>
 #include <avr/wdt.h> //watchdog timer
@@ -109,7 +107,13 @@ https://github.com/bblanchon/ArduinoJson
 #include <ArduinoJson.h>
 
 // Firmware revision
-String Firmw = "1.1";
+String Firmw = "1.2";
+
+//LCD init.
+//LCD connected on pin header 2 connector, not on screw terminal (/!\)
+//pin definitions, may vary in your setup
+const int rs = 9, en = 10, d4 = 11, d5 = 12, d6 = 13, d7 = 42;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 //buffer used to capture HTTP requests
 String readString;
@@ -190,8 +194,8 @@ double Orp_Kd = 0;
 double PhPIDOutput, OrpPIDOutput;
 
 //PID window sizes
-unsigned long PhPIDWindowSize =  600000;//10 mins
-unsigned long OrpPIDWindowSize = 600000;//10 mins
+unsigned long PhPIDWindowSize =  1800000;//30 mins
+unsigned long OrpPIDWindowSize = 1800000;//30 mins
 unsigned long PhPIDwindowStartTime;
 unsigned long OrpPIDwindowStartTime;
 
@@ -214,8 +218,9 @@ PID OrpPID(&OrpValue, &OrpPIDOutput, &Orp_SetPoint, Orp_Kp, Orp_Ki, Orp_Kd, DIRE
 //Filtration/regulation mode: auto (1) or manual (0)
 bool AutoMode = 0;
 
-//BitMap with GPIO states
+//BitMaps with GPIO states
 unsigned char BitMap = 0;
+unsigned char BitMap2 = 0;
 
 //MQTT publishing periodicity of system info, in msecs
 unsigned long PublishPeriod = 30000;
@@ -274,7 +279,7 @@ EthernetClient net;             //Ethernet client to connect to MQTT server
 
 //MQTT stuff including local broker/server IP address, login and pwd
 MQTTClient MQTTClient;
-const char* MqttServerIP = "192.168.0.20";
+const char* MqttServerIP = "192.168.0.41";
 const char* MqttServerClientID = "ArduinoPool"; // /!\ choose a client ID which is unique to this Arduino board
 const char* MqttServerLogin = "admin";
 const char* MqttServerPwd = "admin";
@@ -283,7 +288,8 @@ const char* PoolTopicAPI = "Home/Pool/API";
 const char* PoolTopicStatus = "Home/Pool/status";
 
 //Json buffer
-DynamicJsonBuffer jsonBuffer;
+//DynamicJsonBuffer jsonBuffer;
+StaticJsonDocument<200> jsonBuffer;
 
 //Date-Time variables for use with internal RTC (Real Time Clock) module
 unsigned char day, weekday, month, year, hour, minute, sec;
@@ -317,6 +323,10 @@ Task t5(600, GenericCallback);                //Various things handled/updated i
 
 void setup()
 {
+    // set up the LCD's number of columns and rows:
+    lcd.begin(20, 4);
+    lcd.clear();
+  
     //RTC Stuff (embedded battery operated clock)
     Controllino_RTC_init(0);
     Controllino_ReadTimeDate(&day,&weekday,&month,&year,&hour,&minute,&sec);
@@ -354,7 +364,7 @@ void setup()
     gettemp.next(gettemp_start);
 
     //Init MQTT
-    MQTTClient.setOptions(10,true,1000);
+    MQTTClient.setOptions(60,true,10000);
     MQTTClient.setWill(PoolTopicStatus,"offline",true,LWMQTT_QOS1);
     MQTTClient.begin(MqttServerIP, net);
     MQTTClient.onMessage(messageReceived);
@@ -370,11 +380,9 @@ void setup()
     OrpPID.SetTunings(Orp_Kp, Orp_Ki, Orp_Kd);
     OrpPID.SetOutputLimits(0, OrpPIDWindowSize);
 
-    //turn the PIDs on
-    PhPID.SetMode(AUTOMATIC);
-    Ph_RegulationOnOff = 1;
-    OrpPID.SetMode(AUTOMATIC);
-    Orp_RegulationOnOff = 1;
+    //let the PIDs off at start
+    SetPhPID(false);
+    SetOrpPID(false);
 
     //Initialize Filtration
     FiltrationDuration = 12;
@@ -431,17 +439,21 @@ void messageReceived(String &topic, String &payload)
   if(topic == TmpStrPool)
   {
       //Parse Json object and find which command it is
-      JsonObject& command = jsonBuffer.parseObject(payload);
-
-      // Test if parsing succeeds.
-      if (!command.success()) 
+      //JsonObject& command = jsonBuffer.parseObject(payload);
+      // Deserialize the JSON document
+      DeserializationError error = deserializeJson(jsonBuffer, payload);
+      if (error) 
       {
-        Serial<<F("Json parseObject() failed");
+        Serial.print(F("deserializeJson() failed: "));
+        Serial.println(error.c_str());
         return;
       }
       else
       {
         Serial<<F("Json parseObject() success - ")<<endl;
+        
+        // Get the root object in the document
+        JsonObject command = jsonBuffer.as<JsonObject>();
 
         //"Mode" command which sets regulation and filtration to manual or auto modes
         if (command.containsKey(F("Mode")))
@@ -451,16 +463,16 @@ void messageReceived(String &topic, String &payload)
               AutoMode = 0;
               
               //Stop PIDs
-              SetPhPID(false);
-              SetOrpPID(false);
+              //SetPhPID(false);
+              //SetOrpPID(false);
             }
             else
             {
               AutoMode = 1;
               
               //Start PIDs
-              SetPhPID(true);
-              SetOrpPID(true);           
+              //SetPhPID(true);
+              //SetOrpPID(true);           
             }
         }
         else 
@@ -680,22 +692,12 @@ void GenericCallback(Task* me)
     if(AutoMode && (!digitalRead(FILTRATION_PUMP)) && (hour >= FiltrationStart) && (hour < FiltrationStop))
         FiltrationPump(true);
 
-    //start/stop PIDs, one hour after filtration started
-    if(AutoMode && (digitalRead(FILTRATION_PUMP)) && (hour >= FiltrationStart+1) && (hour < FiltrationStop) && (OrpPID.GetMode()==0))
-    { 
-        SetPhPID(true);
-        SetOrpPID(true);
-    }
-
     //stop filtration pump as scheduled
     if(AutoMode && digitalRead(FILTRATION_PUMP) && ((hour < FiltrationStart) || (hour >= FiltrationStop)))
-      {
         FiltrationPump(false); 
-               
-        //Stop PIDs
-        SetPhPID(false);
-        SetOrpPID(false);
-      }
+
+    //Update LCD display
+    LCDUpdate();
 }
 
 //PublishData loop. Publishes system info/data to MQTT broker every XX secs (30 secs by default)
@@ -727,7 +729,8 @@ void PublishDataCallback(Task* me)
       p += sprintf(p, ",\"FilUpT\":%d",FiltrationPumpTimeCounter);
       p += sprintf(p, ",\"PhUpT\":%d",PhPumpTimeCounter);
       p += sprintf(p, ",\"ChlUpT\":%d",ChlPumpTimeCounter);
-      p += sprintf(p, ",\"IO\":%u}",BitMap);
+      p += sprintf(p, ",\"IO\":%u",BitMap);
+      p += sprintf(p, ",\"IO2\":%u}",BitMap2);
 
       //Payload length to send out
       int PayloadLength = strlen(Payload);
@@ -747,7 +750,8 @@ void PublishDataCallback(Task* me)
 void PHRegulationCallback(Task* me)
 {
   //Make sure filtration pump is running if regulating, otherwise stop regulation
-  if(AutoMode && digitalRead(FILTRATION_PUMP))
+/*  
+ if(AutoMode && digitalRead(FILTRATION_PUMP))
   {
     //if PID is not running, start it
     if(PhPID.GetMode() == 0) 
@@ -756,6 +760,12 @@ void PHRegulationCallback(Task* me)
       PhPID.SetMode(1);
       Ph_RegulationOnOff = 1;
     }
+*/
+
+ //do not compute PID if filtration pump is not running
+ //because if Ki was non-zero that would let the OutputError increase
+ if(digitalRead(FILTRATION_PUMP))
+  {
     PhPID.Compute(); 
   
    /************************************************
@@ -777,7 +787,7 @@ void PHRegulationCallback(Task* me)
 void OrpRegulationCallback(Task* me)
 {
   //Make sure filtration pump is running if regulating, otherwise stop regulation
-  if(AutoMode && digitalRead(FILTRATION_PUMP))
+/*  if(AutoMode && digitalRead(FILTRATION_PUMP))
   {
     //if PID is not running, start it
     if(OrpPID.GetMode() == 0) 
@@ -786,6 +796,11 @@ void OrpRegulationCallback(Task* me)
       OrpPID.SetMode(1);
       Orp_RegulationOnOff = 1;
     }
+    */
+  //do not compute PID if filtration pump is not running
+  //because if Ki was non-zero that would let the OutputError increase
+  if(digitalRead(FILTRATION_PUMP))
+  {
     OrpPID.Compute(); 
   
    /************************************************
@@ -813,7 +828,6 @@ void SetPhPID(bool Enable)
      PhPIDOutput = 0.0;
      PhPID.SetMode(1);
      Ph_RegulationOnOff = 1;
-
   }
   else
   {
@@ -851,6 +865,7 @@ void SetOrpPID(bool Enable)
 void EncodeBitmap()
 {
     BitMap = 0;
+    BitMap2 = 0;
     BitMap |= (digitalRead(FILTRATION_PUMP) & 1) << 7;
     BitMap |= (digitalRead(PH_PUMP) & 1) << 6;
     BitMap |= (digitalRead(CHL_PUMP) & 1) << 5;
@@ -859,6 +874,9 @@ void EncodeBitmap()
     BitMap |= (AutoMode & 1) << 2;
     BitMap |= (PhUpTimeError & 1) << 1;
     BitMap |= (ChlUpTimeError & 1) << 0;
+    
+    BitMap2 |= (PhPID.GetMode() & 1) << 7;
+    BitMap2 |= (OrpPID.GetMode() & 1) << 6;
 }
 
 //Check and update pumps time metrics
@@ -885,10 +903,10 @@ void UpdatePumpMetrics()
         FiltrationPumpTimeCounterStart = millis();
       }
   
-      //If Ph pum has been runing for too long over the current 24h period, stop Ph PID regulation
-      if ((PhPumpTimeCounter) > PhPumpUpTimeLimit)
+      //If Ph pum has been runing for too long over the current 24h period OR tank levels are low, stop Ph PID regulations
+      if (((PhPumpTimeCounter) > PhPumpUpTimeLimit) || !digitalRead(PH_LEVEL))
       {
-        AutoMode = 0;
+        //AutoMode = 0;
         
         //Stop PhPID
         SetPhPID(false);
@@ -900,9 +918,9 @@ void UpdatePumpMetrics()
       }
   
       //If Chl pump has been runing for too long over the current 24h period, stop Orp PID regulation
-      if ((ChlPumpTimeCounter) > ChlPumpUpTimeLimit)
+      if (((ChlPumpTimeCounter) > ChlPumpUpTimeLimit) || !digitalRead(CHL_LEVEL))
       {
-        AutoMode = 0;
+        //AutoMode = 0;
         
         //Stop PhPID
         SetPhPID(false);
@@ -984,8 +1002,8 @@ void RestoreVariables()
     Orp_Kd = 0;
 
     //PID windows
-    PhPIDWindowSize =  600000;//10 mins
-    OrpPIDWindowSize = 600000;//10 mins
+    PhPIDWindowSize =  1800000;//30 mins
+    OrpPIDWindowSize = 1800000;//30 mins
 
     //MQTT publish period
     PublishPeriod = 30000;
@@ -1018,6 +1036,33 @@ void RestoreVariables()
     EEPROM.get( eeChlPumpUpTimeLimitAddress, uiVar); if((uiVar>0) && (uiVar<7200)) ChlPumpUpTimeLimit = uiVar; else EEPROM.put( eeChlPumpUpTimeLimitAddress, ChlPumpUpTimeLimit); Serial<<F("ChlPumpUpTimeLimit: ")<<ChlPumpUpTimeLimit<<_endl; 
 }
 
+// Print data to the LCD.
+void LCDUpdate()
+{
+  //Concatenate data into one buffer then print it ot the 20x4 LCD
+  //!LCD driver wrapps lines in a strange order: line 1, then 3, then 2 then 4
+  //Here we reuse the MQTT Payload buffer while it is not being used
+  lcd.setCursor(0, 0);
+  memset(Payload, 0, sizeof(Payload));
+  char *p = &Payload[0];
+  char buff2[10];
+  char *p2 = &buff2[0];
+      
+  p += sprintf(p, "Redox:%4dmV  ",(int)OrpValue);
+  p2 = ftoa(p2, PhValue, 1);
+  p += sprintf(p, "pH:%3s",buff2);
+  p += sprintf(p, "pH pump:%2dmn  ",PhPumpTimeCounter/60);
+  p += sprintf(p, "Err:%2d",PhUpTimeError);
+  memset(buff2, 0, sizeof(buff2));
+  p2 = &buff2[0];
+  p2 = ftoa(p2, TempValue, 1);
+  char deg = 223;//'°' symbol
+  p += sprintf(p, "Temp:%5s%cC  ",buff2,deg);
+  p += sprintf(p, "Auto:%d",AutoMode);
+  p += sprintf(p, "Cl pump:%2dmn  ",ChlPumpTimeCounter/60);
+  p += sprintf(p, "Err:%2d",ChlUpTimeError);
+  lcd.print(Payload);
+}
 
 //Compute free RAM
 //useful to check if it does not shrink over time
@@ -1083,7 +1128,7 @@ void FiltrationPump(bool Start)
 
 void PhPump(bool Start)
 {
-  if(Start && !digitalRead(PH_PUMP))
+  if(Start && !digitalRead(PH_PUMP) && digitalRead(PH_LEVEL))
     PhPumpTimeCounterStart = (unsigned long)millis();
   else
   if(!Start && digitalRead(PH_PUMP))
@@ -1094,7 +1139,7 @@ void PhPump(bool Start)
 
 void ChlPump(bool Start)
 {
-  if(Start && !digitalRead(CHL_PUMP))
+  if(Start && !digitalRead(CHL_PUMP) && digitalRead(CHL_LEVEL))
     ChlPumpTimeCounterStart = (unsigned long)millis();
   else
   if(!Start && digitalRead(CHL_PUMP))
@@ -1104,7 +1149,7 @@ void ChlPump(bool Start)
 }
 
 //string (not String!) function to convert float number to string buffer
-//because sprintf() function does not handle float types on Arduino
+//because sprintf() function does not support float types on Arduino
 char *ftoa(char *a, double f, int precision)
 {
  long p[] = {0,10,100,1000,10000,100000,1000000,10000000,100000000};
