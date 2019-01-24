@@ -15,7 +15,7 @@ No warranty, use at your own risk. (c) Loic74 2018 <br />
 
 <h4>Brief description</h4>
 	
-<p>Three main metrics are measured and periodically reported over MQTT: water temperature, PH and ORP values<br />
+<p>Three main metrics are measured and periodically reported over MQTT and an LCD display: water temperature, PH and ORP values<br />
 Pumps states, tank-level states and other parmaters are also periodically reported<br />
 Two PID regulation loops are running in parallel: one for PH, one for ORP<br />
 PH is regulated by injecting Acid from a tank into the pool water (a relay starts/stops the Acid peristaltic pump)<br />
