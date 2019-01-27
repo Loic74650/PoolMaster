@@ -27,17 +27,16 @@ Every 30 seconds (by default), the system will publish on the "PoolTopic" (hardc
 
 {"Tmp":818,"pH":321,"pHEr":0,"Orp":583,"OrpEr":0,"FilUpT":8995,"PhUpT":0,"ChlUpT":0,"IO":11,"IO2":0}
 
-<br />
 
 Temp: measured Water temperature value in °C x100 (8.18°C in the above example payload)<br />
-Ph: measured Ph value x100 (3.21 in the above example payload)<br />
+pH: measured pH value x100 (3.21 in the above example payload)<br />
 PhError/100: Ph PID regulation loop instantaneous error (0 in the above example payload)<br />
 Orp: measured Orp (aka Redox) value in mV (583mV in the above example payload)<br />
 OrpError/100: Orp PID regulation loop instantaneous error (0 in the above example payload)<br />
 FiltUpTime: current running time of Filtration pump in seconds (reset every 24h. 8995secs in the above example payload)<br />
 PhUpTime: current running time of Ph pump in seconds (reset every 24h. 0secs in the above example payload)<br />
 ChlUpTime: current running time of Chl pump in seconds (reset every 24h. 0secs in the above example payload)<br />
-IO: a variable of type BYTE where each individual bit is the state of a digital input on the Arduino. These are :<br /><br />
+IO: a variable of type BYTE where each individual bit is the state of a digital input on the Arduino. These are :<br />
 <ul>
 <li>FiltPump: current state of Filtration Pump (0=on, 1=off)</li>
 <li>PhPump: current state of Ph Pump (0=on, 1=off)</li>
@@ -48,7 +47,7 @@ IO: a variable of type BYTE where each individual bit is the state of a digital 
 <li>pHErr: pH pump overtime error flag</li>
 <li>ChlErr: Chl pump overtime error flag</li>
 </ul><br />
-IO2: a variable of type BYTE where each individual bit is the state of a digital input on the Arduino. These are :<br /><br />
+IO2: a variable of type BYTE where each individual bit is the state of a digital input on the Arduino. These are :<br />
 <ul>
 <li>pHPID: current state of pH PID regulation loop (1=on, 0=off)</li>
 <li>OrpPID: current state of Orp PID regulation loop (1=on, 0=off)</li>
