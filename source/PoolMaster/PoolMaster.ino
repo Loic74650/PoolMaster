@@ -827,19 +827,6 @@ void PublishDataCallback(Task* me)
 
 void PHRegulationCallback(Task* me)
 {
-  //Make sure filtration pump is running if regulating, otherwise stop regulation
-/*  
- if(AutoMode && digitalRead(FILTRATION_PUMP))
-  {
-    //if PID is not running, start it
-    if(PhPID.GetMode() == 0) 
-    {
-      PhPID.SetTunings(Ph_Kp, Ph_Ki, Ph_Kd);
-      PhPID.SetMode(1);
-      Ph_RegulationOnOff = 1;
-    }
-*/
-
  //do not compute PID if filtration pump is not running
  //because if Ki was non-zero that would let the OutputError increase
  if(digitalRead(FILTRATION_PUMP))
@@ -864,17 +851,6 @@ void PHRegulationCallback(Task* me)
 //Orp regulation loop
 void OrpRegulationCallback(Task* me)
 {
-  //Make sure filtration pump is running if regulating, otherwise stop regulation
-/*  if(AutoMode && digitalRead(FILTRATION_PUMP))
-  {
-    //if PID is not running, start it
-    if(OrpPID.GetMode() == 0) 
-    {
-      OrpPID.SetTunings(Orp_Kp, Orp_Ki, Orp_Kd);
-      OrpPID.SetMode(1);
-      Orp_RegulationOnOff = 1;
-    }
-    */
   //do not compute PID if filtration pump is not running
   //because if Ki was non-zero that would let the OutputError increase
   if(digitalRead(FILTRATION_PUMP))
@@ -1084,13 +1060,13 @@ void RestoreVariables()
     Ph_Kd = 0;
     
     //Orp PID constants
-    Orp_Kp = 2857;
+    Orp_Kp = 2000;
     Orp_Ki = 0;
     Orp_Kd = 0;
 
     //PID windows
-    PhPIDWindowSize =  1800000;//30 mins
-    OrpPIDWindowSize = 1800000;//30 mins
+    PhPIDWindowSize =  3600000;//30 mins
+    OrpPIDWindowSize = 7200000;//120 mins
 
     //MQTT publish period
     PublishPeriod = 30000;
