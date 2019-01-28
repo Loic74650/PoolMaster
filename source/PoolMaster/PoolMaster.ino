@@ -62,10 +62,10 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see in c
 {"OrpSetPoint":750.0}            -> set the Orp setpoint, 750mV in this example
 {"WSetPoint":27.0}               -> set the water temperature setpoint, 27.0deg in this example (for future use. Water heating not handled yet)
 {"WTempLow":10.0}                -> set the water low-temperature threshold below which there is no need to regulate Orp and Ph (ie. in winter)
-{"OrpPIDParams":[2857,0,0]}      -> respectively set Kp,Ki,Kd parameters of the Orp PID loop. In this example they are set to 2857, 0 and 0
+{"OrpPIDParams":[2000,0,0]}      -> respectively set Kp,Ki,Kd parameters of the Orp PID loop. In this example they are set to 2857, 0 and 0
 {"PhPIDParams":[1330000,0,0.0]}  -> respectively set Kp,Ki,Kd parameters of the Ph PID loop. In this example they are set to 1330000, 0 and 0.0
-{"OrpPIDWSize":1800000}           -> set the window size of the Orp PID loop in msec, 30mins in this example
-{"PhPIDWSize":1800000}            -> set the window size of the Ph PID loop in msec, 30mins in this example
+{"OrpPIDWSize":7200000}          -> set the window size of the Orp PID loop in msec, 120mins in this example
+{"PhPIDWSize":3600000}           -> set the window size of the Ph PID loop in msec, 60mins in this example
 {"Date":[1,1,1,18,13,32,0]}      -> set date/time of RTC module in the following format: (Day of the month, Day of the week, Month, Year, Hour, Minute, Seconds), in this example: Monday 1st January 2018 - 13h32mn00secs
 {"FiltT0":9}                     -> set the earliest hour (9:00 in this example) to run filtration pump. Filtration pump will not run beofre that hour
 {"FiltT1":20}                    -> set the latest hour (20:00 in this example) to run filtration pump. Filtration pump will not run after that hour
@@ -105,7 +105,7 @@ https://github.com/arduino-libraries/LiquidCrystal
 #include <ArduinoJson.h>
 
 // Firmware revision
-String Firmw = "2.0.0";
+String Firmw = "2.0.1";
 
 //LCD init.
 //LCD connected on pin header 2 connector, not on screw terminal (/!\)
@@ -122,7 +122,7 @@ char Payload[PayloadBufferLength];
 
 //output relays pin definitions
 #define FILTRATION_PUMP CONTROLLINO_R4  //CONTROLLINO_RELAY_4
-#define PH_PUMP    CONTROLLINO_R1       //CONTROLLINO_RELAY_1
+#define PH_PUMP    CONTROLLINO_R3       //CONTROLLINO_RELAY_3
 #define CHL_PUMP   CONTROLLINO_R5       //CONTROLLINO_RELAY_5
 
 //Digital input pins connected to Acid and Chl tank level reed switches
@@ -184,7 +184,7 @@ double Ph_Ki = 0;
 double Ph_Kd = 0;
 
 //Orp PID constants
-double Orp_Kp = 2857;
+double Orp_Kp = 2000;
 double Orp_Ki = 0;
 double Orp_Kd = 0;
 
@@ -192,8 +192,8 @@ double Orp_Kd = 0;
 double PhPIDOutput, OrpPIDOutput;
 
 //PID window sizes
-unsigned long PhPIDWindowSize =  1800000;//30 mins
-unsigned long OrpPIDWindowSize = 1800000;//30 mins
+unsigned long PhPIDWindowSize =  3600000;//60 mins
+unsigned long OrpPIDWindowSize = 7200000;//120 mins
 unsigned long PhPIDwindowStartTime;
 unsigned long OrpPIDwindowStartTime;
 
@@ -553,16 +553,16 @@ void messageReceived(String &topic, String &payload)
               AutoMode = 0;
               
               //Stop PIDs
-              //SetPhPID(false);
-              //SetOrpPID(false);
+              SetPhPID(false);
+              SetOrpPID(false);
             }
             else
             {
               AutoMode = 1;
               
               //Start PIDs
-              //SetPhPID(true);
-              //SetOrpPID(true);           
+              SetPhPID(true);
+              SetOrpPID(true);           
             }
         }
         else 
@@ -823,36 +823,6 @@ void PublishDataCallback(Task* me)
         Serial<<F("MQTT Payload buffer overflow! - ");
         Serial<<F("Payload size: ")<<jsonBuffer.size()<<_endl;  
       }
-        
-/*  
-      //clear the buffer
-      memset(Payload, 0, sizeof(Payload));
-      
-      char *p = &Payload[0];
-      p += sprintf(p, "{\"Tmp\":%d",(int)(TempValue*100));
-      p += sprintf(p, ",\"pH\":%d",(int)(PhValue*100));
-      p += sprintf(p, ",\"pHEr\":%d",(unsigned long)(PhPIDOutput/100));
-      p += sprintf(p, ",\"Orp\":%d",(int)OrpValue);
-      p += sprintf(p, ",\"OrpEr\":%d",(unsigned long)(OrpPIDOutput/100));    
-      p += sprintf(p, ",\"FilUpT\":%d",FiltrationPumpTimeCounter);
-      p += sprintf(p, ",\"PhUpT\":%d",PhPumpTimeCounter);
-      p += sprintf(p, ",\"ChlUpT\":%d",ChlPumpTimeCounter);
-      p += sprintf(p, ",\"IO\":%u",BitMap);
-      p += sprintf(p, ",\"IO2\":%u}",BitMap2);
-
-      //Payload length to send out
-      int PayloadLength = strlen(Payload);
-
-     if(PayloadLength < PayloadBufferLength)
-      {
-        //call it to delete undesired persistent messages 
-        //MQTTClient.publish(PoolTopic,new byte[0], 0,false,LWMQTT_QOS1);
-        
-        MQTTClient.publish(PoolTopic,Payload,PayloadLength,false,LWMQTT_QOS1);
-        Serial<<F("MQTT published on PoolTopic: ")<<Payload<<_endl; 
-      }
-      else
-        Serial<<F("MQTT Payload buffer overflow!")<<_endl;*/
 }
 
 void PHRegulationCallback(Task* me)
@@ -1023,6 +993,9 @@ void UpdatePumpMetrics()
         //Raise error flag
         PhUpTimeError = 1;
         ChlUpTimeError = 1;
+
+        Serial<<F("pH pump in error mode! PhPumpTimeCounter: ")<<PhPumpTimeCounter<<F(" - ")<<F("PhPumpUpTimeLimit: ")<<PhPumpUpTimeLimit<<F("PH_LEVEL: ")<<PH_LEVEL<<endl;
+
       }
   
       //If Chl pump has been runing for too long over the current 24h period, stop Orp PID regulation
@@ -1037,6 +1010,8 @@ void UpdatePumpMetrics()
         //Raise error flag
         PhUpTimeError = 1;
         ChlUpTimeError = 1;
+
+        Serial<<F("Chl pump in error mode! ChlPumpTimeCounter: ")<<ChlPumpTimeCounter<<F(" - ")<<F("ChlPumpUpTimeLimit: ")<<ChlPumpUpTimeLimit<<F("CHL_LEVEL: ")<<CHL_LEVEL<<endl;
       }
 }
     
@@ -1492,7 +1467,7 @@ void EthernetClientCallback(Task* me)
                                     client<<F("}")<<_endl;
                                     client<<F("request.open(\"GET\", \"Info\" + nocache, true);")<<_endl;
                                     client<<F("request.send(null);")<<_endl;
-                                    client<<F("setTimeout('GetData()', 2000);")<<_endl;
+                                    client<<F("setTimeout('GetData()', 4000);")<<_endl;
                                 client<<F("}")<<_endl;
                                client<<F("</script>")<<_endl;
             

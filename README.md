@@ -15,7 +15,7 @@
 <h4>Brief description</h4>
 	
 <p>Three main metrics are measured and periodically reported over MQTT and an LCD display: water temperature, PH and ORP values<br />
-Pumps states, tank-level states and other parmaters are also periodically reported<br />
+Pumps states, tank-level states and other parameters are also periodically reported<br />
 Two PID regulation loops are running in parallel: one for PH, one for ORP<br />
 PH is regulated by injecting Acid from a tank into the pool water (a relay starts/stops the Acid peristaltic pump)<br />
 ORP is regulated by injecting Chlorine from a tank into the pool water (a relay starts/stops the Chlorine peristaltic pump)<br />
@@ -47,7 +47,7 @@ IO: a variable of type BYTE where each individual bit is the state of a digital 
 <li>pHErr: pH pump overtime error flag</li>
 <li>ChlErr: Chl pump overtime error flag</li>
 </ul><br />
-IO2: a variable of type BYTE where each individual bit is the state of a digital input on the Arduino. These are :<br />
+IO2: a variable of type BYTE where each individual bit is the state of a digital input on the Arduino. These are :<br /><br />
 <ul>
 <li>pHPID: current state of pH PID regulation loop (1=on, 0=off)</li>
 <li>OrpPID: current state of Orp PID regulation loop (1=on, 0=off)</li>
