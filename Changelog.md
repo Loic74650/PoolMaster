@@ -1,6 +1,13 @@
 PoolMaster: change log
 =======================
 
+v2.0.1
+-------
+
+* /!\ changed CONTROLLINO pin number for the PH_PUMP
+* Tuned PID parameters
+* fixed bug in Mode API function
+
 v2.0.0
 -------
 
