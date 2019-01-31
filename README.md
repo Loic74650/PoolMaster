@@ -1,16 +1,5 @@
 <h2>PoolMaster</h2>
 <h2>Arduino/Controllino-Maxi (ATmega2560) based Ph/ORP regulator for home pool sysem</h2>
-	
-<h4>Compatibility</h4>
-	
-<p>For this sketch to work on your setup you must change the following in the code:<br />
-- possibly the pinout definitions in case you are not using a CONTROLLINO MAXI board<br />
-- the code related to the RTC module in case your setup does not have one<br />
-- MAC address of DS18b20 water temperature sensor<br />
-- MAC and IP address of the Ethernet shield<br />
-- MQTT broker IP address and login credentials<br />
-- possibly the topic names on the MQTT broker to subscribe and publish to<br />
-- the Kp,Ki,Kd parameters for both PID loops in case your peristaltic pumps have a different throughput than 2Liters/hour. For instance, if twice more, divide the parameters by 2<br /></p>
 
 <h4>Brief description</h4>
 	
@@ -19,7 +8,8 @@ Pumps states, tank-level states and other parameters are also periodically repor
 Two PID regulation loops are running in parallel: one for PH, one for ORP<br />
 PH is regulated by injecting Acid from a tank into the pool water (a relay starts/stops the Acid peristaltic pump)<br />
 ORP is regulated by injecting Chlorine from a tank into the pool water (a relay starts/stops the Chlorine peristaltic pump)<br />
-Defined time-slots and water temperature are used to start/stop the filtration pump for a daily given amount of time (a relay starts/stops the filtration pump) <br />
+Defined time-slots and water temperature are used to start/stop the filtration pump for a daily given amount of time (a relay starts/stops the filtration pump)<br />
+An API function enables telling the system what the outside air temperature is. In case it is below 2.0°C, a 10min filtration slot is started every hour (outside the normal filtration time-slots)<br />
 A lightweight webserver provides a simple dynamic webpage with a summary of all system parameters. An XML file with more info is available at http://ARDUINO_LOCAL_IP/Info<br />
 Communication with the system is performed using the MQTT protocol over an Ethernet connection to the local network/MQTT broker.<br /><br />
 
@@ -53,11 +43,24 @@ IO2: a variable of type BYTE where each individual bit is the state of a digital
 <li>OrpPID: current state of Orp PID regulation loop (1=on, 0=off)</li>
 </ul><br />
 
+	
+<h4>Compatibility</h4>
+	
+<p>For this sketch to work on your setup you must change the following in the code:<br />
+- possibly the pinout definitions in case you are not using a CONTROLLINO MAXI board<br />
+- the code related to the RTC module in case your setup does not have one<br />
+- MAC address of DS18b20 water temperature sensor<br />
+- MAC and IP address of the Ethernet shield<br />
+- MQTT broker IP address and login credentials<br />
+- possibly the topic names on the MQTT broker to subscribe and publish to<br />
+- the Kp,Ki,Kd parameters for both PID loops in case your peristaltic pumps have a different throughput than 2Liters/hour. For instance, if twice more, divide the parameters by 2<br /></p>
+
 </p>
 
 
 <p align="center"> <img src="/docs/PoolMaster.jpg" width="602" title="Overview"> </p> <br /><br />
 <p align="center"> <img src="/docs/PoolMasterBox_pf.jpg" width="602" title="Overview"> </p> <br /><br />
+<p align="center"> <img src="/docs/LCD_Screens.jpg" width="602" title="Overview"> </p> <br />
 <p align="center"> <img src="/docs/Web.jpg" width="602" title="Overview"> </p> <br /><br />
 <p align="center"> <img src="/docs/WebXML.jpg" width="602" title="Overview"> </p> <br />
 
@@ -106,6 +109,7 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see hard
 
 <h4>Home automation integration example (<a title="https://www.jeedom.com" href="https://www.jeedom.com">JEEDOM</a>)</h4>
 <p>
+<p align="center"> <img src="/docs/JeedomInterface2.jpg" width="602" title="Overview"> </p> <br />
 <p align="center"> <img src="/docs/TuileJeedom.jpg" width="602" title="Overview"> </p> <br />
 <p align="center"> <img src="/docs/VirtuelJeedom.jpg" width="602" title="Overview"> </p> <br />
 </p>
