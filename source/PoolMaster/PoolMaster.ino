@@ -62,16 +62,19 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see in c
 {"OrpSetPoint":750.0}            -> set the Orp setpoint, 750mV in this example
 {"WSetPoint":27.0}               -> set the water temperature setpoint, 27.0deg in this example (for future use. Water heating not handled yet)
 {"WTempLow":10.0}                -> set the water low-temperature threshold below which there is no need to regulate Orp and Ph (ie. in winter)
-{"OrpPIDParams":[2000,0,0]}      -> respectively set Kp,Ki,Kd parameters of the Orp PID loop. In this example they are set to 2857, 0 and 0
+{"OrpPIDParams":[2857,0,0]}      -> respectively set Kp,Ki,Kd parameters of the Orp PID loop. In this example they are set to 2857, 0 and 0
 {"PhPIDParams":[1330000,0,0.0]}  -> respectively set Kp,Ki,Kd parameters of the Ph PID loop. In this example they are set to 1330000, 0 and 0.0
-{"OrpPIDWSize":7200000}          -> set the window size of the Orp PID loop in msec, 120mins in this example
-{"PhPIDWSize":3600000}           -> set the window size of the Ph PID loop in msec, 60mins in this example
+{"OrpPIDWSize":3600000}          -> set the window size of the Orp PID loop (in msec), 60mins in this example
+{"PhPIDWSize":1200000}           -> set the window size of the Ph PID loop (in msec), 20mins in this example
 {"Date":[1,1,1,18,13,32,0]}      -> set date/time of RTC module in the following format: (Day of the month, Day of the week, Month, Year, Hour, Minute, Seconds), in this example: Monday 1st January 2018 - 13h32mn00secs
 {"FiltT0":9}                     -> set the earliest hour (9:00 in this example) to run filtration pump. Filtration pump will not run beofre that hour
 {"FiltT1":20}                    -> set the latest hour (20:00 in this example) to run filtration pump. Filtration pump will not run after that hour
 {"PubPeriod":30}                 -> set the periodicity (in seconds) at which the system info (pumps states, tank levels states, measured values, etc) will be published to the MQTT broker
 {"PumpsMaxUp":1800}              -> set the Max Uptime (in secs) for the Ph and Chl pumps over a 24h period. If over, PID regulation is stopped and a warning flag is raised
 {"Clear":1}                      -> reset the pH and Orp pumps overtime error flags in order to let the regulation loops continue. "Mode", "PhPID" and "OrpPID" commands need to be switched back On (1) after an error flag was raised
+{"DelayPID":30}                  -> Delay (in mins) after FiltT0 before the PID regulation loops will start. This is to let the Orp and pH readings stabilize first. 30mins in this example. Should not be > 59mins
+{"TempExt":4.2}                  -> Provide the external temperature. Should be updated regularly and will be used to start filtration for 10mins every hour when temperature is negative. 4.2deg in this example
+
 
 ***Libraries***
 https://github.com/256dpi/arduino-mqtt/releases
@@ -105,13 +108,14 @@ https://github.com/arduino-libraries/LiquidCrystal
 #include <ArduinoJson.h>
 
 // Firmware revision
-String Firmw = "2.0.1";
+String Firmw = "2.1.0";
 
 //LCD init.
 //LCD connected on pin header 2 connector, not on screw terminal (/!\)
 //pin definitions, may vary in your setup
 const int rs = 9, en = 10, d4 = 11, d5 = 12, d6 = 13, d7 = 42;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+bool LCDToggle = true;
 
 //buffer used to capture HTTP requests
 String readString;
@@ -164,6 +168,9 @@ unsigned long FiltrationPumpTimeCounterStart = 0;
 unsigned long PhPumpTimeCounterStart = 0;
 unsigned long ChlPumpTimeCounterStart = 0;
 
+//Delay before starting PIDS
+unsigned int DelayPIDs = 30;
+
 //PH and ORP Setpoints
 double Ph_SetPoint = 7.4f;
 double Orp_SetPoint = 750.0f;
@@ -175,6 +182,10 @@ float OrpCalibCoeffs[] = {-964.32f, 2410.8f};
 //Water temperature low threshold. Stop regulations below this temp (ie. in winter) 
 float WaterTempLowThreshold = 10.0f;
 
+//External temperature. Used to start filtration every hour for 10mins when less than 2.0deg
+//Initialize it at something > 2.0deg so that if TempExternal is not updated, it won't start filtration every hour by mistake 
+float TempExternal = 3.0;
+
 //Water temperature setpoint. Currently not in use
 float WaterTemp_SetPoint = 27.0f;
 
@@ -184,7 +195,7 @@ double Ph_Ki = 0;
 double Ph_Kd = 0;
 
 //Orp PID constants
-double Orp_Kp = 2000;
+double Orp_Kp = 2857;
 double Orp_Ki = 0;
 double Orp_Kd = 0;
 
@@ -193,7 +204,7 @@ double PhPIDOutput, OrpPIDOutput;
 
 //PID window sizes
 unsigned long PhPIDWindowSize =  3600000;//60 mins
-unsigned long OrpPIDWindowSize = 7200000;//120 mins
+unsigned long OrpPIDWindowSize = 1200000;//20 mins
 unsigned long PhPIDwindowStartTime;
 unsigned long OrpPIDwindowStartTime;
 
@@ -202,6 +213,10 @@ unsigned int PhPumpUpTimeLimit = 1800;//30 mins
 unsigned int ChlPumpUpTimeLimit = 1800;//30 mins
 bool PhUpTimeError = 0;
 bool ChlUpTimeError = 0;
+
+//Tank level error flags
+bool PhLevelError = 0;
+bool ChlLevelError = 0;
 
 //Measurement results (Temperature, Ph, ORP)
 double TempValue = -1.0;
@@ -247,6 +262,7 @@ int eepHCalibCoeff0Address = eeChlPumpUpTimeLimitAddress + sizeof(unsigned int);
 int eepHCalibCoeff1Address = eepHCalibCoeff0Address + sizeof(float);
 int eeOrpCalibCoeff0Address = eepHCalibCoeff1Address + sizeof(float);
 int eeOrpCalibCoeff1Address = eeOrpCalibCoeff0Address + sizeof(float);
+int eeDelayPIDAddress = eeOrpCalibCoeff1Address + sizeof(float);
 
 // Data wire is connected to input digital pin 20 on the Arduino
 #define ONE_WIRE_BUS_A 20
@@ -309,12 +325,14 @@ void OrpRegulationCallback(Task* me);
 void PHRegulationCallback(Task* me);
 void GenericCallback(Task* me);
 void PublishDataCallback(Task* me);
+void LCDCallback(Task* me);
 
 Task t1(500, EthernetClientCallback);         //Check for Ethernet client every 0.5 secs
 Task t2(1000, OrpRegulationCallback);         //ORP regulation loop every 1 sec
 Task t3(1100, PHRegulationCallback);          //PH regulation loop every 1.1 sec
 Task t4(30000, PublishDataCallback);          //Publish data to MQTT broker every 30 secs
 Task t5(600, GenericCallback);                //Various things handled/updated in this loop every 0.6 secs
+Task t6(6000, LCDCallback);                   //Toggle between LCD screens every two secs
 
 
 void setup()
@@ -372,9 +390,9 @@ void setup()
 
     //tell the PIDs to range their Output between 0 and the full window size
     PhPID.SetTunings(Ph_Kp, Ph_Ki, Ph_Kd);
-    PhPID.SetOutputLimits(0, PhPIDWindowSize);
+    PhPID.SetOutputLimits(0, 180000);//Whatever happens, don't allow continuous injection of Acid for more than 3mins within a PID Window
     OrpPID.SetTunings(Orp_Kp, Orp_Ki, Orp_Kd);
-    OrpPID.SetOutputLimits(0, OrpPIDWindowSize);
+    OrpPID.SetOutputLimits(0, 600000);//Whatever happens, don't allow continuous injection of Chl for more than 10mins within a PID Window
 
     //let the PIDs off at start
     SetPhPID(false);
@@ -398,6 +416,9 @@ void setup()
 
     //Generic loop
     SoftTimer.add(&t5);
+
+    //LCD loop
+    SoftTimer.add(&t6);
 
     //display remaining RAM space. For debug
     Serial<<F("[memCheck]: ")<<freeRam()<<F("b")<<_endl;
@@ -450,6 +471,13 @@ void messageReceived(String &topic, String &payload)
       {
         Serial<<F("Json parseObject() success - ")<<endl;
 
+        //Provide the external temperature. Should be updated regularly and will be used to start filtration for 10mins every hour when temperature is negative
+        if(command.containsKey(F("TempExt")))
+        {
+          TempExternal = (float)command[F("TempExt")];
+          Serial<<F("External Temperature: ")<<TempExternal<<F("deg")<<endl;
+        }
+        else
         //"PhCalib" command which computes and sets the calibration coefficients of the pH sensor response based on a multi-point linear regression
         //{"PhCalib":[4.02,3.8,9.0,9.11]}  -> multi-point linear regression calibration (minimum 1 point-couple, 6 max.) in the form [ProbeReading_0, BufferRating_0, xx, xx, ProbeReading_n, BufferRating_n]
         if (command.containsKey(F("PhCalib")))
@@ -561,8 +589,8 @@ void messageReceived(String &topic, String &payload)
               AutoMode = 1;
               
               //Start PIDs
-              SetPhPID(true);
-              SetOrpPID(true);           
+              //SetPhPID(true);
+              //SetOrpPID(true);           
             }
         }
         else 
@@ -722,12 +750,26 @@ void messageReceived(String &topic, String &payload)
         }
         else
         if(command.containsKey(F("Clear")))//"Clear" command which clears the UpTime errors of the Pumps
-        {    
-          //add 30mins to the UpTimeLimit
-          ChlPumpUpTimeLimit += 1800;
-          PhPumpUpTimeLimit += 1800;
-          PhUpTimeError = 0;
-          ChlUpTimeError = 0;
+        { 
+          if(PhUpTimeError) 
+          {  
+            //add 30mins to the UpTimeLimit
+            PhPumpUpTimeLimit += 1800;
+            PhUpTimeError = 0;
+          }
+
+          if(ChlUpTimeError) 
+          {  
+            //add 30mins to the UpTimeLimit
+            ChlPumpUpTimeLimit += 1800;
+            ChlUpTimeError = 0;
+          }     
+        }
+        else
+        if(command.containsKey(F("DelayPID")))//"DelayPID" command which sets the delay from filtering start before PID loops start regulating
+        {
+          DelayPIDs = (unsigned int)command[F("DelayPID")];
+          EEPROM.put( eeDelayPIDAddress, DelayPIDs);
         }
                     
         //Publish/Update on the MQTT broker the status of our variables
@@ -750,7 +792,6 @@ void GenericCallback(Task* me)
     MQTTClient.loop(); 
 
     //reset time counters at midnight
-    //And compute next Filtering duration and stop time (in hours)
     if((hour == 0) && (minute == 0))
     {
       FiltrationPumpTimeCounter = 0;
@@ -758,6 +799,11 @@ void GenericCallback(Task* me)
       ChlPumpTimeCounter = 0;  
       EEPROM.get( eePhPumpUpTimeLimitAddress, uiVar); if((uiVar>0) && (uiVar<7200)) PhPumpUpTimeLimit = uiVar; 
       EEPROM.get( eeChlPumpUpTimeLimitAddress, uiVar); if((uiVar>0) && (uiVar<7200)) ChlPumpUpTimeLimit = uiVar; 
+    }
+
+    //compute next Filtering duration and stop time (in hours)
+    if((hour == FiltrationStart + 1) && (minute == 0))
+    {
       FiltrationDuration = round(TempValue/2);
       if(FiltrationDuration<3) FiltrationDuration = 3;
       FiltrationStop = FiltrationStart + FiltrationDuration;
@@ -769,13 +815,35 @@ void GenericCallback(Task* me)
     //start filtration pump as scheduled
     if(AutoMode && (!digitalRead(FILTRATION_PUMP)) && (hour >= FiltrationStart) && (hour < FiltrationStop))
         FiltrationPump(true);
-
-    //stop filtration pump as scheduled
+        
+    //start PIDs with delay after FiltrationStart in order to let the readings stabilize
+    if(AutoMode && !PhPID.GetMode() && (FiltrationPumpTimeCounter/60 > DelayPIDs) && (hour >= FiltrationStart) && (hour < FiltrationStop))
+    {
+        SetPhPID(true);
+        SetOrpPID(true);
+    }
+        
+    //stop filtration pump and PIDs as scheduled
     if(AutoMode && digitalRead(FILTRATION_PUMP) && ((hour < FiltrationStart) || (hour >= FiltrationStop)))
+    {
+        SetPhPID(false);
+        SetOrpPID(false);
         FiltrationPump(false); 
+    }
 
-    //Update LCD display
-    LCDUpdate();
+    //start filtration pump every hour for 10 mins in cold temperatures (<2.0deg)
+    if(AutoMode && (!digitalRead(FILTRATION_PUMP)) && ((hour < FiltrationStart) || (hour > FiltrationStop)) && (minute == 0) && (TempExternal<2.0))
+        FiltrationPump(true);
+
+    //stop filtration pump every hour after 10 mins in cold temperatures (<2.0deg)
+    if(AutoMode && (digitalRead(FILTRATION_PUMP)) && ((hour < FiltrationStart) || (hour > FiltrationStop)) && (minute == 10) && (TempExternal<2.0))
+        FiltrationPump(false);
+
+    //UPdate LCD
+    if(LCDToggle)
+      LCDScreen1();
+    else
+      LCDScreen2();
 }
 
 //PublishData loop. Publishes system info/data to MQTT broker every XX secs (30 secs by default)
@@ -872,6 +940,12 @@ void OrpRegulationCallback(Task* me)
   }
 }
 
+//Toggle between LCD screens
+void LCDCallback(Task* me)
+{
+  LCDToggle = !LCDToggle;
+}
+
 //Enable/Disable Chl PID
 void SetPhPID(bool Enable)
 {
@@ -956,38 +1030,37 @@ void UpdatePumpMetrics()
         FiltrationPumpTimeCounter += ((millis() - FiltrationPumpTimeCounterStart)/1000); 
         FiltrationPumpTimeCounterStart = millis();
       }
-  
-      //If Ph pum has been runing for too long over the current 24h period OR tank levels are low, stop Ph PID regulations
-      if (((PhPumpTimeCounter) > PhPumpUpTimeLimit) || !digitalRead(PH_LEVEL))
+
+      //If pH tank level is low, set error flag to true
+      if (!digitalRead(PH_LEVEL))
       {
-        //AutoMode = 0;
-        
-        //Stop PhPID
-        SetPhPID(false);
-        SetOrpPID(false);
-  
-        //Raise error flag
+        PhLevelError = 1;
+        PhPump(false);
+      }
+      else
+        PhLevelError = 0;        
+      
+      //If Chl tank level is low, set error flag to true
+      if (!digitalRead(CHL_LEVEL))
+      {
+        ChlLevelError = 1;
+        ChlPump(false);
+      }
+      else
+        ChlLevelError = 0;      
+
+      //If Ph pum has been runing for too long over the current 24h period, set error flag and stop pump
+      if (((PhPumpTimeCounter) > PhPumpUpTimeLimit))
+      {
         PhUpTimeError = 1;
-        ChlUpTimeError = 1;
-
-        Serial<<F("pH pump in error mode! PhPumpTimeCounter: ")<<PhPumpTimeCounter<<F(" - ")<<F("PhPumpUpTimeLimit: ")<<PhPumpUpTimeLimit<<F("PH_LEVEL: ")<<PH_LEVEL<<endl;
-
+        PhPump(false);
       }
   
-      //If Chl pump has been runing for too long over the current 24h period, stop Orp PID regulation
-      if (((ChlPumpTimeCounter) > ChlPumpUpTimeLimit) || !digitalRead(CHL_LEVEL))
+      //If Chl pump has been runing for too long over the current 24h period, , set error flag and stop pump
+      if (((ChlPumpTimeCounter) > ChlPumpUpTimeLimit))
       {
-        //AutoMode = 0;
-        
-        //Stop PhPID
-        SetPhPID(false);
-        SetOrpPID(false);
-  
-        //Raise error flag
-        PhUpTimeError = 1;
         ChlUpTimeError = 1;
-
-        Serial<<F("Chl pump in error mode! ChlPumpTimeCounter: ")<<ChlPumpTimeCounter<<F(" - ")<<F("ChlPumpUpTimeLimit: ")<<ChlPumpUpTimeLimit<<F("CHL_LEVEL: ")<<CHL_LEVEL<<endl;
+        ChlPump(false);
       }
 }
     
@@ -1060,20 +1133,23 @@ void RestoreVariables()
     Ph_Kd = 0;
     
     //Orp PID constants
-    Orp_Kp = 2000;
+    Orp_Kp = 2857;
     Orp_Ki = 0;
     Orp_Kd = 0;
 
     //PID windows
-    PhPIDWindowSize =  3600000;//30 mins
-    OrpPIDWindowSize = 7200000;//120 mins
+    PhPIDWindowSize =  3600000;//60 mins
+    OrpPIDWindowSize = 1200000;//20 mins
 
     //MQTT publish period
     PublishPeriod = 30000;
 
     //Pumps max uptime limit (in min) per 24h
     PhPumpUpTimeLimit = 1800;
-    ChlPumpUpTimeLimit = 1800;    
+    ChlPumpUpTimeLimit = 1800;  
+
+    //Delay before starting PIDs
+    DelayPIDs = 30;
  
     //read values stored in EEPROM but check that values make sense. If not use default values and write them into EEPROM
     EEPROM.get( eePh_RegulationOnOff_Address, bVar); if((bVar==0) || (bVar==1)) Ph_RegulationOnOff = (bool)bVar; else EEPROM.put( eePh_RegulationOnOff_Address, Ph_RegulationOnOff);  Serial<<F("Ph_RegulationOnOff: ")<<Ph_RegulationOnOff<<_endl;
@@ -1099,6 +1175,7 @@ void RestoreVariables()
     EEPROM.get( eepHCalibCoeff1Address, fVar); if((fVar>-5.0) && (fVar<5.0)) pHCalibCoeffs[1] = fVar; else EEPROM.put( eepHCalibCoeff1Address, pHCalibCoeffs[1]); Serial<<F("pHCalibCoeffs[1]: ")<<pHCalibCoeffs[1]<<_endl;
     EEPROM.get( eeOrpCalibCoeff0Address, fVar); if((fVar>-3000.0) && (fVar<-500.0)) OrpCalibCoeffs[0] = fVar; else EEPROM.put( eeOrpCalibCoeff0Address, OrpCalibCoeffs[0]); Serial<<F("OrpCalibCoeffs[0]: ")<<OrpCalibCoeffs[0]<<_endl; 
     EEPROM.get( eeOrpCalibCoeff1Address, fVar); if((fVar>1000.0) && (fVar<4000.0)) OrpCalibCoeffs[1] = fVar; else EEPROM.put( eeOrpCalibCoeff1Address, OrpCalibCoeffs[1]); Serial<<F("OrpCalibCoeffs[1]: ")<<OrpCalibCoeffs[1]<<_endl;
+    EEPROM.get( eeDelayPIDAddress, uiVar); if((uiVar>=0) && (uiVar<200)) DelayPIDs = uiVar; else EEPROM.put( eeDelayPIDAddress, DelayPIDs); Serial<<F("DelayPIDs: ")<<DelayPIDs<<_endl;
 }
 
 // Print data to the LCD.
@@ -1117,17 +1194,84 @@ void LCDUpdate()
   p2 = ftoa(p2, PhValue, 1);
   p += sprintf(p, "pH:%3s",buff2);
   p += sprintf(p, "pH pump:%2dmn  ",PhPumpTimeCounter/60);
-  p += sprintf(p, "Err:%2d",PhUpTimeError);
+  if(PhLevelError)
+    p += sprintf(p, "Err:%2d",1);
+  else
+  if(PhUpTimeError)
+     p += sprintf(p, "Err:%2d",2);
+  else
+     p += sprintf(p, "Err:%2d",0);  
   memset(buff2, 0, sizeof(buff2));
   p2 = &buff2[0];
   p2 = ftoa(p2, TempValue, 1);
   char deg = 223;//'°' symbol
   p += sprintf(p, "Temp:%5s%cC  ",buff2,deg);
-  p += sprintf(p, "Auto:%d",AutoMode);
+  p += sprintf(p, "Auto:%d",(int)AutoMode);
   p += sprintf(p, "Cl pump:%2dmn  ",ChlPumpTimeCounter/60);
-  p += sprintf(p, "Err:%2d",ChlUpTimeError);
+  if(ChlLevelError)
+    p += sprintf(p, "Err:%2d",1);
+  else
+  if(ChlUpTimeError)
+    p += sprintf(p, "Err:%2d",2);
+  else
+    p += sprintf(p, "Err:%2d",0);  
   lcd.print(Payload);
 }
+
+// Print Screen1 to the LCD.
+void LCDScreen1()
+{ 
+  //Concatenate data into one buffer then print it ot the 20x4 LCD
+  ///!\LCD driver wrapps lines in a strange order: line 1, then 3, then 2 then 4
+  //Here we reuse the MQTT Payload buffer while it is not being used
+ lcd.setCursor(0, 0);
+  memset(Payload, 0, sizeof(Payload));
+  char *p = &Payload[0];
+  char buff2[10];
+  char *p2 = &buff2[0];
+      
+  p += sprintf(p, "Redox:%4dmV   ",(int)OrpValue);
+  p += sprintf(p, "(%3d)",(int)Orp_SetPoint);
+  p2 = ftoa(p2, TempValue, 2);
+  p += sprintf(p, "Water:%5sC  ",buff2);
+  p += sprintf(p, "ON:%2dh",FiltrationStart);
+  p2 = ftoa(p2, PhValue, 2);
+  p += sprintf(p, "pH:    %4s   ",buff2);
+
+  p2 = ftoa(p2, Ph_SetPoint, 1);
+  p += sprintf(p, " (%3s)",buff2);
+  
+  p2 = ftoa(p2, TempExternal, 2);
+  p += sprintf(p, "Air: %6sC  ",buff2);
+  p += sprintf(p, "OF:%2dh",FiltrationStop);
+ /*  */
+  lcd.print(Payload);
+}
+
+// Print Screen2 to the LCD.
+void LCDScreen2()
+{
+  //Concatenate data into one buffer then print it ot the 20x4 LCD
+  ///!\LCD driver wrapps lines in a strange order: line 1, then 3, then 2 then 4
+  //Here we reuse the MQTT Payload buffer while it is not being used
+  lcd.setCursor(0, 0);
+  memset(Payload, 0, sizeof(Payload));
+  char *p = &Payload[0];
+  char buff2[10];
+  char *p2 = &buff2[0];
+  
+  p += sprintf(p, "Auto:%d      ",AutoMode);
+  p += sprintf(p, "%02d:%02d:%02d",hour,minute,sec);
+  p += sprintf(p, "Cl pump:%2dmn  ",ChlPumpTimeCounter/60); 
+  p += sprintf(p, " Err:%d",ChlUpTimeError);
+  p += sprintf(p, "pH pump:%2dmn  ",PhPumpTimeCounter/60);
+  p += sprintf(p, " Err:%d",PhUpTimeError);
+  p += sprintf(p, "pHTank : %d  ",digitalRead(PH_LEVEL));
+  p += sprintf(p, "ClTank:%d",digitalRead(CHL_LEVEL));
+   /*   */
+  lcd.print(Payload);
+}
+
 
 //Compute free RAM
 //useful to check if it does not shrink over time
@@ -1193,24 +1337,32 @@ void FiltrationPump(bool Start)
 
 void PhPump(bool Start)
 {
-  if(Start && !digitalRead(PH_PUMP) && digitalRead(PH_LEVEL))
+  if(Start && !digitalRead(PH_PUMP) && digitalRead(PH_LEVEL) && !PhUpTimeError)
+  {
     PhPumpTimeCounterStart = (unsigned long)millis();
+    digitalWrite(PH_PUMP, Start);
+  }
   else
   if(!Start && digitalRead(PH_PUMP))
+  {
     PhPumpTimeCounter += ((millis() - PhPumpTimeCounterStart)/1000); 
-  
-  digitalWrite(PH_PUMP, Start);
+    digitalWrite(PH_PUMP, Start);
+  }
 }
 
 void ChlPump(bool Start)
 {
-  if(Start && !digitalRead(CHL_PUMP) && digitalRead(CHL_LEVEL))
+  if(Start && !digitalRead(CHL_PUMP) && digitalRead(CHL_LEVEL) && !ChlUpTimeError)
+  {
     ChlPumpTimeCounterStart = (unsigned long)millis();
+    digitalWrite(CHL_PUMP, Start);
+  }
   else
   if(!Start && digitalRead(CHL_PUMP))
+  {
     ChlPumpTimeCounter += ((millis() - ChlPumpTimeCounterStart)/1000); 
-
-  digitalWrite(CHL_PUMP, Start);
+    digitalWrite(CHL_PUMP, Start);
+  }
 }
 
 //string (not String!) function to convert float number to string buffer

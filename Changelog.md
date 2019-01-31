@@ -1,6 +1,16 @@
 PoolMaster: change log
 =======================
 
+v2.1.0
+-------
+
+* LCD display now toggles between two screens every 6 seconds, shows more info
+* modified PhPump() and ChlPump() functions to prevent the pumps from starting if Tank Levels are low
+* Tanks Level errors now display error code on the LCD display but do not disable the PID loops or the filtering pûmp anymore, only the peristaltic pumps
+* PID regulation loops start are now delayed for 30mins (by default) after the filtration start in order to let the readings stabilize first
+* New API function to tell the system what the external temperature is. This is used to start regular short filtering periods of 10mins every hour when external temperature is below 2deg.
+* Improved PID loops tuning
+
 v2.0.1
 -------
 
