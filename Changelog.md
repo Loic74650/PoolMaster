@@ -1,6 +1,12 @@
 PoolMaster: change log
 =======================
 
+v2.1.1
+-------
+
+* fixed bug in AntiFreeze filtration function
+* updated documentation
+
 v2.1.0
 -------
 

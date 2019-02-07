@@ -18,14 +18,14 @@ Every 30 seconds (by default), the system will publish on the "PoolTopic" (hardc
 {"Tmp":818,"pH":321,"pHEr":0,"Orp":583,"OrpEr":0,"FilUpT":8995,"PhUpT":0,"ChlUpT":0,"IO":11,"IO2":0}
 
 
-Temp: measured Water temperature value in °C x100 (8.18°C in the above example payload)<br />
+Tmp: measured Water temperature value in °C x100 (8.18°C in the above example payload)<br />
 pH: measured pH value x100 (3.21 in the above example payload)<br />
-PhError/100: Ph PID regulation loop instantaneous error (0 in the above example payload)<br />
+PhEr/100: Ph PID regulation loop instantaneous error (0 in the above example payload)<br />
 Orp: measured Orp (aka Redox) value in mV (583mV in the above example payload)<br />
-OrpError/100: Orp PID regulation loop instantaneous error (0 in the above example payload)<br />
-FiltUpTime: current running time of Filtration pump in seconds (reset every 24h. 8995secs in the above example payload)<br />
-PhUpTime: current running time of Ph pump in seconds (reset every 24h. 0secs in the above example payload)<br />
-ChlUpTime: current running time of Chl pump in seconds (reset every 24h. 0secs in the above example payload)<br />
+OrpEr/100: Orp PID regulation loop instantaneous error (0 in the above example payload)<br />
+FiltUpT: current running time of Filtration pump in seconds (reset every 24h. 8995secs in the above example payload)<br />
+PhUpT: current running time of Ph pump in seconds (reset every 24h. 0secs in the above example payload)<br />
+ChlUpT: current running time of Chl pump in seconds (reset every 24h. 0secs in the above example payload)<br />
 IO: a variable of type BYTE where each individual bit is the state of a digital input on the Arduino. These are :<br />
 <ul>
 <li>FiltPump: current state of Filtration Pump (0=on, 1=off)</li>
@@ -53,7 +53,7 @@ IO2: a variable of type BYTE where each individual bit is the state of a digital
 - MAC and IP address of the Ethernet shield<br />
 - MQTT broker IP address and login credentials<br />
 - possibly the topic names on the MQTT broker to subscribe and publish to<br />
-- the Kp,Ki,Kd parameters for both PID loops in case your peristaltic pumps have a different throughput than 2Liters/hour. For instance, if twice more, divide the parameters by 2<br /></p>
+- the Kp,Ki,Kd parameters for both PID loops in case your peristaltic pumps have a different throughput than 2Liters/hour. For instance, if twice more, divide the parameters by 2. In any case these parameters are likely to require adjustments for every pool<br /></p>
 
 </p>
 
@@ -92,7 +92,7 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see hard
 <li>{"PumpsMaxUp":1800}              -> set the Max Uptime (in secs) for the Ph and Chl pumps over a 24h period. If over, PID regulation is stopped and a warning flag is raised</li>
 <li>{"Clear":1}                      -> reset the pH and Orp pumps overtime error flags in order to let the regulation loops continue. "Mode" also needs to be switched back to Auto (1) after an error flag was raised</li>
 <li>{"DelayPID":30}                  -> Delay (in mins) after FiltT0 before the PID regulation loops will start. This is to let the Orp and pH readings stabilize first. 30mins in this example. Should not be > 59mins</li>
-<li>{"TempExt":4.2}                  -> Provide the external temperature. Should be updated regularly and will be used to start filtration for 10mins every hour when temperature is negative. 4.2deg in this example</li>
+<li>{"TempExt":4.2}                  -> Provide the system with the external temperature. Should be updated regularly and will be used to start filtration for 10mins every hour when temperature is less than 2°C. 4.2deg in this example</li>
 
 </ul>
 </p><br />

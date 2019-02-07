@@ -108,7 +108,7 @@ https://github.com/arduino-libraries/LiquidCrystal
 #include <ArduinoJson.h>
 
 // Firmware revision
-String Firmw = "2.1.0";
+String Firmw = "2.1.1";
 
 //LCD init.
 //LCD connected on pin header 2 connector, not on screw terminal (/!\)
@@ -230,6 +230,9 @@ PID OrpPID(&OrpValue, &OrpPIDOutput, &Orp_SetPoint, Orp_Kp, Orp_Ki, Orp_Kd, DIRE
 
 //Filtration/regulation mode: auto (1) or manual (0)
 bool AutoMode = 0;
+
+//Filtration anti freeze mode
+bool AntiFreezeFiltering = false;
 
 //BitMaps with GPIO states
 unsigned char BitMap = 0;
@@ -598,19 +601,7 @@ void messageReceived(String &topic, String &payload)
         {
             //Serial<<F("starting Filtration")<<endl;
             if((int)command[F("FiltPump")]==0)
-            {
               FiltrationPump(false);  //stop filtration pump
-              
-              //If auto mode, switch to manual mode
-              if(AutoMode)
-              {
-                AutoMode = 0; 
-                
-                //Stop PIDs
-                SetPhPID(false);
-                SetOrpPID(false);
-              }
-            }
             else
               FiltrationPump(true);   //start filtration pump
         }
@@ -823,8 +814,8 @@ void GenericCallback(Task* me)
         SetOrpPID(true);
     }
         
-    //stop filtration pump and PIDs as scheduled
-    if(AutoMode && digitalRead(FILTRATION_PUMP) && ((hour < FiltrationStart) || (hour >= FiltrationStop)))
+    //stop filtration pump and PIDs as scheduled unless we are in AntiFreeze mode
+    if(AutoMode && digitalRead(FILTRATION_PUMP) && !AntiFreezeFiltering && ((hour < FiltrationStart) || (hour >= FiltrationStop)))
     {
         SetPhPID(false);
         SetOrpPID(false);
@@ -833,12 +824,18 @@ void GenericCallback(Task* me)
 
     //start filtration pump every hour for 10 mins in cold temperatures (<2.0deg)
     if(AutoMode && (!digitalRead(FILTRATION_PUMP)) && ((hour < FiltrationStart) || (hour > FiltrationStop)) && (minute == 0) && (TempExternal<2.0))
+    {
         FiltrationPump(true);
+        AntiFreezeFiltering = true;
+    }
 
     //stop filtration pump every hour after 10 mins in cold temperatures (<2.0deg)
-    if(AutoMode && (digitalRead(FILTRATION_PUMP)) && ((hour < FiltrationStart) || (hour > FiltrationStop)) && (minute == 10) && (TempExternal<2.0))
+    if(AutoMode && (digitalRead(FILTRATION_PUMP)) && ((hour < FiltrationStart) || (hour > FiltrationStop)) && (minute == 10))
+    {
         FiltrationPump(false);
-
+        AntiFreezeFiltering = false;
+    }
+    
     //UPdate LCD
     if(LCDToggle)
       LCDScreen1();
