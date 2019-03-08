@@ -112,7 +112,7 @@ https://github.com/sdesalas/Arduino-Queue.h (rev )
 #include <Queue.h>
 
 // Firmware revision
-String Firmw = "2.1.3";
+String Firmw = "2.1.2";
 
 //Version of config stored in Eeprom
 //Random value. Change this value (to any other value) to revert the config to default values
