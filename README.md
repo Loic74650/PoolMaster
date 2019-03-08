@@ -112,6 +112,7 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see hard
 
 <h4>Home automation integration example (<a title="https://www.jeedom.com" href="https://www.jeedom.com">JEEDOM</a>)</h4>
 <p>
+<p align="center"> <img src="/docs/JeedomInterface.jpg" width="602" title="Overview"> </p> <br />
 <p align="center"> <img src="/docs/JeedomInterface2.jpg" width="602" title="Overview"> </p> <br />
 <p align="center"> <img src="/docs/TuileJeedom.jpg" width="602" title="Overview"> </p> <br />
 <p align="center"> <img src="/docs/VirtuelJeedom.jpg" width="602" title="Overview"> </p> <br />
