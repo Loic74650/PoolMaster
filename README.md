@@ -3,26 +3,25 @@
 
 <h4>Brief description</h4>
 	
-<p>Three main metrics are measured and periodically reported over MQTT and an LCD display: water temperature, PH and ORP values<br />
+<p>Four main metrics are measured and periodically reported over MQTT and an LCD display: water temperature and pressure, pH and ORP values.<br />
 Pumps states, tank-level states and other parameters are also periodically reported<br />
 Two PID regulation loops are running in parallel: one for PH, one for ORP<br />
 PH is regulated by injecting Acid from a tank into the pool water (a relay starts/stops the Acid peristaltic pump)<br />
 ORP is regulated by injecting Chlorine from a tank into the pool water (a relay starts/stops the Chlorine peristaltic pump)<br />
 Defined time-slots and water temperature are used to start/stop the filtration pump for a daily given amount of time (a relay starts/stops the filtration pump)<br />
-An API function enables telling the system what the outside air temperature is. In case it is below 2.0°C, a 10min filtration slot is started every hour (outside the normal filtration time-slots)<br />
+An API function enables telling the system what the outside air temperature is. In case it is below -2.0°C, a 10min filtration slot is started every hour (outside the normal filtration time-slots)<br />
 A lightweight webserver provides a simple dynamic webpage with a summary of all system parameters. An XML file with more info is available at http://ARDUINO_LOCAL_IP/Info<br />
 Communication with the system is performed using the MQTT protocol over an Ethernet connection to the local network/MQTT broker.<br /><br />
 
 Every 30 seconds (by default), the system will publish on the "PoolTopic" (hardcoded, see code) the following payload in Json format:<br />
 
-{"Tmp":818,"pH":321,"pHEr":0,"Orp":583,"OrpEr":0,"FilUpT":8995,"PhUpT":0,"ChlUpT":0,"IO":11,"IO2":0}
+{"Tmp":818,"pH":321,"PSI":56,"Orp":583,"FilUpT":8995,"PhUpT":0,"ChlUpT":0,"IO":11,"IO2":0}
 
 
 Tmp: measured Water temperature value in °C x100 (8.18°C in the above example payload)<br />
 pH: measured pH value x100 (3.21 in the above example payload)<br />
-PhEr/100: Ph PID regulation loop instantaneous error (0 in the above example payload)<br />
 Orp: measured Orp (aka Redox) value in mV (583mV in the above example payload)<br />
-OrpEr/100: Orp PID regulation loop instantaneous error (0 in the above example payload)<br />
+PSI: measured Water pressure value in bar x100 (0.56bar in the above example payload)<br />
 FiltUpT: current running time of Filtration pump in seconds (reset every 24h. 8995secs in the above example payload)<br />
 PhUpT: current running time of Ph pump in seconds (reset every 24h. 0secs in the above example payload)<br />
 ChlUpT: current running time of Chl pump in seconds (reset every 24h. 0secs in the above example payload)<br />
@@ -33,7 +32,7 @@ IO: a variable of type BYTE where each individual bit is the state of a digital 
 <li>ChlPump: current state of Chl Pump (0=on, 1=off)</li>
 <li>PhlLevel: current state of Acid tank level (0=empty, 1=ok)</li>
 <li>ChlLevel: current state of Chl tank level (0=empty, 1=ok)</li>
-<li>Mode: (0=manual, 1=auto)</li>
+<li>PSIError: over-pressure error</li>
 <li>pHErr: pH pump overtime error flag</li>
 <li>ChlErr: Chl pump overtime error flag</li>
 </ul><br />
@@ -41,6 +40,7 @@ IO2: a variable of type BYTE where each individual bit is the state of a digital
 <ul>
 <li>pHPID: current state of pH PID regulation loop (1=on, 0=off)</li>
 <li>OrpPID: current state of Orp PID regulation loop (1=on, 0=off)</li>
+<li>Mode: (0=manual, 1=auto)</li>
 </ul><br />
 
 	
@@ -93,6 +93,7 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see hard
 <li>{"Clear":1}                      -> reset the pH and Orp pumps overtime error flags in order to let the regulation loops continue. "Mode" also needs to be switched back to Auto (1) after an error flag was raised</li>
 <li>{"DelayPID":30}                  -> Delay (in mins) after FiltT0 before the PID regulation loops will start. This is to let the Orp and pH readings stabilize first. 30mins in this example. Should not be > 59mins</li>
 <li>{"TempExt":4.2}                  -> Provide the system with the external temperature. Should be updated regularly and will be used to start filtration for 10mins every hour when temperature is less than 2°C. 4.2deg in this example</li>
+{"PSIHigh":1.0}                  -> set the water high-pressure threshold (1.0bar in this example). When water pressure is over that threshold, an error flag is set.
 
 </ul>
 </p><br />
