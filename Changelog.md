@@ -1,5 +1,12 @@
 PoolMaster: change log
 =======================
+v2.1.2
+-------
+
+* changed Eeprom config storage handling
+* added incoming MQTT message queue to reduce load on MQTT callback function (causing spurious socket errors and subsequent disconnections from broker)
+* Ethernet deconnection now non-blocking
+* Some minor changes
 
 v2.1.1
 -------

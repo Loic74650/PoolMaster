@@ -89,6 +89,7 @@ https://github.com/bblanchon/ArduinoJson (rev 5.13.4)
 https://github.com/arduino-libraries/LiquidCrystal (rev 1.0.7)
 https://github.com/thijse/Arduino-EEPROMEx (rev 1.0.0)
 https://github.com/sdesalas/Arduino-Queue.h (rev )
+https://github.com/Loic74650/Pump (rev 0.0.1)
 
 */ 
 #include <SPI.h>
@@ -110,13 +111,14 @@ https://github.com/sdesalas/Arduino-Queue.h (rev )
 #include <ArduinoJson.h>
 #include <EEPROMex.h>
 #include <Queue.h>
+#include "Pump.h"
 
 // Firmware revision
-String Firmw = "2.1.2";
+String Firmw = "3.0.0";
 
 //Version of config stored in Eeprom
 //Random value. Change this value (to any other value) to revert the config to default values
-#define CONFIG_VERSION 120
+#define CONFIG_VERSION 100
 
 //Starting point address where to store the config data in EEPROM
 #define memoryBase 32
@@ -154,31 +156,36 @@ char Payload[PayloadBufferLength];
 #define ORP_MEASURE CONTROLLINO_A2      //CONTROLLINO_A2 pin A2 on pin header connector, not on screw terminal (/!\)
 #define PH_MEASURE  CONTROLLINO_A4      //CONTROLLINO_A4 pin A4 on pin header connector, not on screw terminal (/!\)
 
+//Analog input pin connected to pressure sensor
+#define PSI_MEASURE CONTROLLINO_A3      //CONTROLLINO_A3 pin A3 on pin header connector, not on screw terminal (/!\)
+
 //Settings structure and its default values
 struct StoreStruct 
 {
     uint8_t ConfigVersion;   // This is for testing if first time using eeprom or not
     bool Ph_RegulationOnOff, Orp_RegulationOnOff;
     uint8_t FiltrationStart, FiltrationDuration, FiltrationStopMax, FiltrationStop, DelayPIDs;  
-    uint16_t PhPumpUpTimeLimit, ChlPumpUpTimeLimit;
-    uint32_t FiltrationPumpTimeCounter, PhPumpTimeCounter, ChlPumpTimeCounter, FiltrationPumpTimeCounterStart, PhPumpTimeCounterStart, ChlPumpTimeCounterStart;
-    uint32_t PhPIDWindowSize, OrpPIDWindowSize, PhPIDwindowStartTime, OrpPIDwindowStartTime;
-    double Ph_SetPoint, Orp_SetPoint, WaterTempLowThreshold, WaterTemp_SetPoint, TempExternal, pHCalibCoeffs0, pHCalibCoeffs1, OrpCalibCoeffs0, OrpCalibCoeffs1;
-    double Ph_Kp, Ph_Ki, Ph_Kd, Orp_Kp, Orp_Ki, Orp_Kd, PhPIDOutput, OrpPIDOutput, TempValue, PhValue, OrpValue;
+    unsigned long PhPumpUpTimeLimit, ChlPumpUpTimeLimit;
+    unsigned long PhPIDWindowSize, OrpPIDWindowSize, PhPIDwindowStartTime, OrpPIDwindowStartTime;
+    double Ph_SetPoint, Orp_SetPoint, PSI_HighThreshold, PSI_MedThreshold, WaterTempLowThreshold, WaterTemp_SetPoint, TempExternal, pHCalibCoeffs0, pHCalibCoeffs1, OrpCalibCoeffs0, OrpCalibCoeffs1, PSICalibCoeffs0, PSICalibCoeffs1;
+    double Ph_Kp, Ph_Ki, Ph_Kd, Orp_Kp, Orp_Ki, Orp_Kd, PhPIDOutput, OrpPIDOutput, TempValue, PhValue, OrpValue, PSIValue;
 } storage = 
 {                     //default values. Change the value of CONFIG_VERSION in order to restore the default values
     CONFIG_VERSION,
     0, 0,
     8, 12, 20, 20, 59,
     1800, 1800,
-    0, 0, 0, 0, 0, 0,
+//    0, 0, 0, 0, 0, 0,
     3600000, 1200000, 0, 0,
-    7.4, 750.0, 10.0, 27.0, 3.0, 3.76, -2.01, -1282.39, 2720.92,
-    1330000.0, 0.0, 0.0, 2857.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0    
+    7.4, 730.0, 0.5, 0.25, 10.0, 27.0, 3.0, 4.23, -2.28, -1268.78, 2718.63, 1.0, 0.0,
+    1330000.0, 0.0, 0.0, 2857.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4
 };
 
-bool PhUpTimeError = 0;
-bool ChlUpTimeError = 0;
+bool PSIError = 0;
+
+Pump FiltrationPump(FILTRATION_PUMP, NO_TANK);
+Pump PhPump(PH_PUMP, PH_LEVEL);
+Pump ChlPump(CHL_PUMP, CHL_LEVEL);
 
 //Tank level error flags
 bool PhLevelError = 0;
@@ -195,9 +202,11 @@ bool AutoMode = 0;
 //Filtration anti freeze mode
 bool AntiFreezeFiltering = false;
 
+//TimeStamp to track start time of filtration pump
+
 //BitMaps with GPIO states
-unsigned char BitMap = 0;
-unsigned char BitMap2 = 0;
+uint8_t BitMap = 0;
+uint8_t BitMap2 = 0;
 
 //MQTT publishing periodicity of system info, in msecs
 unsigned long PublishPeriod = 30000;
@@ -216,17 +225,18 @@ DallasTemperature sensors_A(&oneWire_A);
 
 //Signal filtering library. Only used in this case to compute the average
 //over multiple measurements but offers other filtering functions such as median, etc. 
-RunningMedian samples_Temp = RunningMedian(5);
-RunningMedian samples_Ph = RunningMedian(5);
-RunningMedian samples_Orp = RunningMedian(5);
+RunningMedian samples_Temp = RunningMedian(10);
+RunningMedian samples_Ph = RunningMedian(10);
+RunningMedian samples_Orp = RunningMedian(10);
+RunningMedian samples_PSI = RunningMedian(10);
 
 //MAC Address of DS18b20 water temperature sensor
 DeviceAddress DS18b20_0 = { 0x28, 0x92, 0x25, 0x41, 0x0A, 0x00, 0x00, 0xEE };
-String sDS18b20_0 = "";
+String sDS18b20_0;
                                                  
 // MAC address of Ethernet shield (in case of Controllino board, set an arbitrary MAC address)
 byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
-String sArduinoMac = "";
+String sArduinoMac;
 IPAddress ip(192, 168, 0, 21);  //IP address, needs to be adapted depending on local network topology
 EthernetServer server(80);      //Create a server at port 80
 EthernetClient net;             //Ethernet client to connect to MQTT server
@@ -242,7 +252,7 @@ const char* PoolTopicAPI = "Home/Pool/API";
 const char* PoolTopicStatus = "Home/Pool/status";
 
 //Date-Time variables for use with internal RTC (Real Time Clock) module
-unsigned char day, weekday, month, year, hour, minute, sec;
+uint8_t day, weekday, month, year, hour, minute, sec;
 char TimeBuffer[25];
 
 //serial printing stuff
@@ -279,25 +289,23 @@ void setup()
     Serial.begin(9600);
     delay(200);
 
-    //Initialize Eeprom and restore config from Eeprom
+    //Initialize Eeprom
     EEPROM.setMemPool(memoryBase, EEPROMSizeMega); 
 
     //Get address of "ConfigVersion" setting
-    configAdress  = EEPROM.getAddress(sizeof(StoreStruct));
+    configAdress = EEPROM.getAddress(sizeof(StoreStruct));
 
     //Read ConfigVersion. If does not match expected value, restore default values
-    uint8_t  vers = EEPROM.readByte(configAdress);
+    uint8_t vers = EEPROM.readByte(configAdress);
 
-    Serial<<F("should-be-version: ")<<CONFIG_VERSION<<_endl;
-    Serial<<F("version stored: ")<<vers<<_endl;
     if(vers == CONFIG_VERSION) 
     {
-      Serial<<F("Loading settings from eeprom")<<_endl;
+      Serial<<F("Stored config version: ")<<CONFIG_VERSION<<F(". Loading settings from eeprom")<<_endl;
       loadConfig();//Restore stored values from eeprom
     }
     else
     {
-      Serial<<F("Loading default settings, not from eeprom")<<_endl;
+      Serial<<F("Stored config version: ")<<CONFIG_VERSION<<F(". Loading default settings, not from eeprom")<<_endl;
       saveConfig();//First time use. Save default values to eeprom
     }
       
@@ -319,11 +327,11 @@ void setup()
 
     pinMode(ORP_MEASURE, INPUT);
     pinMode(PH_MEASURE, INPUT);
+    pinMode(PSI_MEASURE, INPUT);
 
     //String for MAC address of Ethernet shield for the log & XML file
     sArduinoMac = F("0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED");
 
- 
     //8 seconds watchdog timer to reset system in case it freezes for more than 8 seconds
     wdt_enable(WDTO_8S);
     
@@ -338,7 +346,7 @@ void setup()
 
     //Init MQTT
     MQTTClient.setOptions(60,false,10000);
-    MQTTClient.setWill(PoolTopicStatus,"offline",true,LWMQTT_QOS0);
+    MQTTClient.setWill(PoolTopicStatus,"offline",true,LWMQTT_QOS1);
     MQTTClient.begin(MqttServerIP, net);
     MQTTClient.onMessage(messageReceived);
     MQTTConnect();
@@ -347,7 +355,7 @@ void setup()
     storage.PhPIDwindowStartTime = millis();
     storage.OrpPIDwindowStartTime = millis();
 
-    //tell the PIDs to range their Output between 0 and the full window size
+    //Limit the PIDs output range in order to limit max. pumps runtime (safety first...)
     PhPID.SetTunings(storage.Ph_Kp, storage.Ph_Ki, storage.Ph_Kd);
     PhPID.SetOutputLimits(0, 600000);//Whatever happens, don't allow continuous injection of Acid for more than 10mins within a PID Window
     OrpPID.SetTunings(storage.Orp_Kp, storage.Orp_Ki, storage.Orp_Kd);
@@ -357,7 +365,12 @@ void setup()
     SetPhPID(false);
     SetOrpPID(false);
 
-    //Initialize Filtration
+    //Initialize pumps
+    FiltrationPump.SetMaxUpTime(0); //no runtime limit for the filtration pump
+    PhPump.SetMaxUpTime(storage.PhPumpUpTimeLimit*1000);
+    ChlPump.SetMaxUpTime(storage.ChlPumpUpTimeLimit*1000);
+
+    //Initialize Filtration schedule
     storage.FiltrationDuration = 12;
     storage.FiltrationStop = storage.FiltrationStart + storage.FiltrationDuration;
         
@@ -388,7 +401,14 @@ void setup()
 //"status" will switch to "offline". Very useful to check that the Arduino is alive and functional
 void MQTTConnect() 
 {
-  MQTTClient.connect(MqttServerClientID, MqttServerLogin, MqttServerPwd);
+//  MQTTClient.connect(MqttServerClientID, MqttServerLogin, MqttServerPwd);
+  int8_t Count=0;
+  while (!MQTTClient.connect(MqttServerClientID, MqttServerLogin, MqttServerPwd) && (Count<4))
+  {
+    Serial<<F(".")<<_endl;
+    delay(500);
+    Count++;
+  }
 
   if(MQTTClient.connected())
   {
@@ -397,7 +417,7 @@ void MQTTConnect()
     MQTTClient.subscribe(PoolTopicAPI);
   
     //tell status topic we are online
-    if(MQTTClient.publish(PoolTopicStatus,"online",true,LWMQTT_QOS0))
+    if(MQTTClient.publish(PoolTopicStatus,"online",true,LWMQTT_QOS1))
         Serial<<F("published: Home/Pool/status - online")<<_endl;
   }
   else
@@ -407,17 +427,15 @@ void MQTTConnect()
 
 //MQTT callback
 //This function is called when messages are published on the MQTT broker on the PoolTopicAPI topic to which we subscribed
-//Go through the message payload, check if we understand the content and act accordingly
+//Add the received command to a message queue for later processing and exit the callback
 void messageReceived(String &topic, String &payload) 
 {
   String TmpStrPool(PoolTopicAPI);
-  String LocalTopic(topic);
-  String LocalPayload(payload);
 
   //Pool commands. This check might be redundant since we only subscribed to this topic
-  if(LocalTopic == TmpStrPool)
+  if(topic == TmpStrPool)
   {
-    queue.push(LocalPayload); 
+    queue.push(payload); 
     Serial<<"FreeRam: "<<freeRam()<<" - Qeued messages: "<<queue.count()<<_endl;
   }
 }
@@ -435,6 +453,11 @@ void GenericCallback(Task* me)
     //Update MQTT thread
     MQTTClient.loop(); 
 
+    //update pumps
+    FiltrationPump.loop();
+    PhPump.loop();
+    ChlPump.loop();
+
     //Process queued incoming JSON commands if any
     if(queue.count()>0)
       ProcessCommand(queue.pop());
@@ -442,11 +465,9 @@ void GenericCallback(Task* me)
     //reset time counters at midnight
     if((hour == 0) && (minute == 0))
     {
-      storage.FiltrationPumpTimeCounter = 0;
-      storage.PhPumpTimeCounter = 0; 
-      storage.ChlPumpTimeCounter = 0;  
-      //EEPROM.get( eePhPumpUpTimeLimitAddress, uiVar); if((uiVar>0) && (uiVar<7200)) storage.PhPumpUpTimeLimit = uiVar; 
-      //EEPROM.get( eeChlPumpUpTimeLimitAddress, uiVar); if((uiVar>0) && (uiVar<7200)) storage.ChlPumpUpTimeLimit = uiVar; 
+      FiltrationPump.ResetUpTime();
+      PhPump.ResetUpTime();
+      ChlPump.ResetUpTime(); 
     }
 
     //compute next Filtering duration and stop time (in hours)
@@ -461,11 +482,11 @@ void GenericCallback(Task* me)
     }
 
     //start filtration pump as scheduled
-    if(AutoMode && (!digitalRead(FILTRATION_PUMP)) && (hour == storage.FiltrationStart) && (minute == 0))
-        FiltrationPump(true);
+    if(AutoMode && !PSIError && (hour == storage.FiltrationStart) && (minute == 0))
+        FiltrationPump.Start();
         
     //start PIDs with delay after FiltrationStart in order to let the readings stabilize
-    if(AutoMode && !PhPID.GetMode() && (storage.FiltrationPumpTimeCounter/60 > storage.DelayPIDs) && (hour >= storage.FiltrationStart) && (hour < storage.FiltrationStop))
+    if(AutoMode && !PhPID.GetMode() && (FiltrationPump.UpTime/1000/60 > storage.DelayPIDs) && (hour >= storage.FiltrationStart) && (hour < storage.FiltrationStop))
     {
         //Initialize PIDs StartTime
         storage.PhPIDwindowStartTime = millis();
@@ -477,27 +498,34 @@ void GenericCallback(Task* me)
     }
         
     //stop filtration pump and PIDs as scheduled unless we are in AntiFreeze mode
-    if(AutoMode && digitalRead(FILTRATION_PUMP) && !AntiFreezeFiltering && ((hour == storage.FiltrationStop) && (minute == 0)))
+    if(AutoMode && FiltrationPump.IsRunning() && !AntiFreezeFiltering && ((hour == storage.FiltrationStop) && (minute == 0)))
     {
         SetPhPID(false);
         SetOrpPID(false);
-        FiltrationPump(false); 
+        FiltrationPump.Stop(); 
     }
 
-    //start filtration pump every hour for 10 mins in cold temperatures (<2.0deg)
-    if(AutoMode && (!digitalRead(FILTRATION_PUMP)) && ((hour < storage.FiltrationStart) || (hour > storage.FiltrationStop)) && (minute == 0) && (storage.TempExternal<2.0))
+    //start filtration pump every hour for 10 mins in cold temperatures (<-2.0deg)
+    if(AutoMode&& !PSIError && (!FiltrationPump.IsRunning()) && ((hour < storage.FiltrationStart) || (hour > storage.FiltrationStop)) && (minute == 0) && (storage.TempExternal<-2.0))
     {
-        FiltrationPump(true);
+        FiltrationPump.Start();
         AntiFreezeFiltering = true;
     }
 
     //stop filtration pump every hour after 10 mins in cold temperatures (<2.0deg)
-    if(AutoMode && (digitalRead(FILTRATION_PUMP)) && ((hour < storage.FiltrationStart) || (hour > storage.FiltrationStop)) && (minute == 10))
+    if(AutoMode && FiltrationPump.IsRunning() && ((hour < storage.FiltrationStart) || (hour > storage.FiltrationStop)) && (minute == 10))
     {
-        FiltrationPump(false);
+        FiltrationPump.Stop(); 
         AntiFreezeFiltering = false;
     }
 
+    //If filtration pump has been running for over 2secs but pressure is still low, stop the filtration pump, something is wrong, set error flag 
+    if(FiltrationPump.IsRunning() && ((millis() - FiltrationPump.StartTime)>2000) && (storage.PSIValue < storage.PSI_MedThreshold))
+    {
+      FiltrationPump.Stop();
+      PSIError = true;
+    }
+    
     //UPdate LCD
     if(LCDToggle)
       LCDScreen1();
@@ -508,9 +536,6 @@ void GenericCallback(Task* me)
 //PublishData loop. Publishes system info/data to MQTT broker every XX secs (30 secs by default)
 void PublishDataCallback(Task* me)
 {      
-     //Check and update pumps metrics
-      UpdatePumpMetrics();
-    
      //Store the GPIO states in one Byte (more efficient over MQTT)
       EncodeBitmap();
       
@@ -529,20 +554,19 @@ void PublishDataCallback(Task* me)
   
         root.set<int>("Tmp", (int)(storage.TempValue*100));
         root.set<int>("pH", (int)(storage.PhValue*100));
-        root.set<unsigned long>("pHEr", (unsigned long)(storage.PhPIDOutput/100));
+        root.set<int>("PSI", (int)(storage.PSIValue*100));
         root.set<int>("Orp", (int)storage.OrpValue);
-        root.set<unsigned long>("OrpEr", (unsigned long)(storage.OrpPIDOutput/100));
-        root.set<unsigned long>("FilUpT", storage.FiltrationPumpTimeCounter);
-        root.set<unsigned long>("PhUpT", storage.PhPumpTimeCounter);
-        root.set<unsigned long>("ChlUpT", storage.ChlPumpTimeCounter);
-        root.set<unsigned char>("IO", BitMap);
-        root.set<unsigned char>("IO2", BitMap2);
+        root.set<unsigned long>("FilUpT", FiltrationPump.UpTime/1000);
+        root.set<unsigned long>("PhUpT", PhPump.UpTime/1000);
+        root.set<unsigned long>("ChlUpT", ChlPump.UpTime/1000);
+        root.set<uint8_t>("IO", BitMap);
+        root.set<uint8_t>("IO2", BitMap2);
   
         //char Payload[PayloadBufferLength];
         if(jsonBuffer.size() < PayloadBufferLength)
         {
           root.printTo(Payload,PayloadBufferLength);
-          MQTTClient.publish(PoolTopic,Payload,strlen(Payload),false,LWMQTT_QOS0);
+          MQTTClient.publish(PoolTopic,Payload,strlen(Payload),false,LWMQTT_QOS1);
           
           Serial<<F("Payload: ")<<Payload<<F(" - ");
           Serial<<F("Payload size: ")<<jsonBuffer.size()<<_endl;   
@@ -562,7 +586,7 @@ void PHRegulationCallback(Task* me)
 {
  //do not compute PID if filtration pump is not running
  //because if Ki was non-zero that would let the OutputError increase
- if(digitalRead(FILTRATION_PUMP))
+ if(FiltrationPump.IsRunning())
   {
     PhPID.Compute(); 
   
@@ -575,9 +599,9 @@ void PHRegulationCallback(Task* me)
       storage.PhPIDwindowStartTime += storage.PhPIDWindowSize;
     }
     if (storage.PhPIDOutput < millis() - storage.PhPIDwindowStartTime)
-      PhPump(false);
+      PhPump.Stop();
     else 
-      PhPump(true);
+      PhPump.Start();
   }
 }
 
@@ -586,7 +610,7 @@ void OrpRegulationCallback(Task* me)
 {
   //do not compute PID if filtration pump is not running
   //because if Ki was non-zero that would let the OutputError increase
-  if(digitalRead(FILTRATION_PUMP))
+  if(FiltrationPump.IsRunning())
   {
     OrpPID.Compute(); 
   
@@ -599,9 +623,9 @@ void OrpRegulationCallback(Task* me)
       storage.OrpPIDwindowStartTime += storage.OrpPIDWindowSize;
     }
     if (storage.OrpPIDOutput < millis() - storage.OrpPIDwindowStartTime)
-      ChlPump(false);
+      ChlPump.Stop();
     else 
-      ChlPump(true);
+      ChlPump.Start();
   }
 }
 
@@ -617,7 +641,7 @@ void SetPhPID(bool Enable)
   if(Enable)
   {
      //Stop PhPID
-     PhUpTimeError = 0;
+     PhPump.ClearErrors();
      storage.PhPIDOutput = 0.0;
      PhPID.SetMode(1);
      storage.Ph_RegulationOnOff = 1;
@@ -628,7 +652,7 @@ void SetPhPID(bool Enable)
      PhPID.SetMode(0);
      storage.Ph_RegulationOnOff = 0;
      storage.PhPIDOutput = 0.0;   
-     PhPump(false);
+     PhPump.Stop();
   }
 }
 
@@ -638,7 +662,7 @@ void SetOrpPID(bool Enable)
   if(Enable)
   {
      //Stop OrpPID
-     ChlUpTimeError = 0;
+     ChlPump.ClearErrors();
      storage.OrpPIDOutput = 0.0;
      OrpPID.SetMode(1);
      storage.Orp_RegulationOnOff = 1;
@@ -650,7 +674,7 @@ void SetOrpPID(bool Enable)
      OrpPID.SetMode(0);
      storage.Orp_RegulationOnOff = 0;
      storage.OrpPIDOutput = 0.0;   
-     ChlPump(false);
+     ChlPump.Stop();
   }
 }
 
@@ -659,76 +683,20 @@ void EncodeBitmap()
 {
     BitMap = 0;
     BitMap2 = 0;
-    BitMap |= (digitalRead(FILTRATION_PUMP) & 1) << 7;
-    BitMap |= (digitalRead(PH_PUMP) & 1) << 6;
-    BitMap |= (digitalRead(CHL_PUMP) & 1) << 5;
-    BitMap |= (digitalRead(PH_LEVEL) & 1) << 4;
-    BitMap |= (digitalRead(CHL_LEVEL) & 1) << 3;
-    BitMap |= (AutoMode & 1) << 2;
-    BitMap |= (PhUpTimeError & 1) << 1;
-    BitMap |= (ChlUpTimeError & 1) << 0;
+    BitMap |= (FiltrationPump.IsRunning() & 1) << 7;
+    BitMap |= (PhPump.IsRunning() & 1) << 6;
+    BitMap |= (ChlPump.IsRunning() & 1) << 5;
+    BitMap |= (PhPump.TankLevel() & 1) << 4;
+    BitMap |= (ChlPump.TankLevel() & 1) << 3;
+    BitMap |= (PSIError & 1) << 2;
+    BitMap |= (PhPump.UpTimeError & 1) << 1;
+    BitMap |= (ChlPump.UpTimeError & 1) << 0;
     
     BitMap2 |= (PhPID.GetMode() & 1) << 7;
     BitMap2 |= (OrpPID.GetMode() & 1) << 6;
+    BitMap2 |= (AutoMode & 1) << 5;
 }
-
-//Check and update pumps time metrics
-void UpdatePumpMetrics()
-{
-      //If ChlPump running, update the UpTime
-      if(digitalRead(CHL_PUMP))
-      {
-        storage.ChlPumpTimeCounter += ((millis() - storage.ChlPumpTimeCounterStart)/1000); 
-        storage.ChlPumpTimeCounterStart = millis();
-      }
   
-      //If PhPump running, update the UpTime
-      if(digitalRead(PH_PUMP))
-      {
-        storage.PhPumpTimeCounter += ((millis() - storage.PhPumpTimeCounterStart)/1000); 
-        storage.PhPumpTimeCounterStart = millis();
-      }
-  
-      //If FiltPump running, update the UpTime
-      if(digitalRead(FILTRATION_PUMP))
-      {
-        storage.FiltrationPumpTimeCounter += ((millis() - storage.FiltrationPumpTimeCounterStart)/1000); 
-        storage.FiltrationPumpTimeCounterStart = millis();
-      }
-
-      //If pH tank level is low, set error flag to true
-      if (!digitalRead(PH_LEVEL))
-      {
-        PhLevelError = 1;
-        PhPump(false);
-      }
-      else
-        PhLevelError = 0;        
-      
-      //If Chl tank level is low, set error flag to true
-      if (!digitalRead(CHL_LEVEL))
-      {
-        ChlLevelError = 1;
-        ChlPump(false);
-      }
-      else
-        ChlLevelError = 0;      
-
-      //If Ph pum has been runing for too long over the current 24h period, set error flag and stop pump
-      if (((storage.PhPumpTimeCounter) > storage.PhPumpUpTimeLimit))
-      {
-        PhUpTimeError = 1;
-        PhPump(false);
-      }
-  
-      //If Chl pump has been runing for too long over the current 24h period, , set error flag and stop pump
-      if (((storage.ChlPumpTimeCounter) > storage.ChlPumpUpTimeLimit))
-      {
-        ChlUpTimeError = 1;
-        ChlPump(false);
-      }
-}
-    
 //Update temperature, Ph and Orp values
 void getMeasures(DeviceAddress deviceAddress_0)
 {
@@ -736,7 +704,7 @@ void getMeasures(DeviceAddress deviceAddress_0)
 
   //Water Temperature
   samples_Temp.add(sensors_A.getTempC(deviceAddress_0));
-  storage.TempValue = samples_Temp.getAverage(5);
+  storage.TempValue = samples_Temp.getAverage(10);
   if (storage.TempValue == -127.00) {
     Serial<<F("Error getting temperature from DS18b20_0")<<_endl;
   } else {
@@ -744,35 +712,42 @@ void getMeasures(DeviceAddress deviceAddress_0)
   }
 
   //Ph
-  float ph_sensor_value = analogRead(PH_MEASURE)* 5000.0 / 1023.0 / 1000.0;                           // from 0.0 to 5.0 V
-  //storage.PhValue = 7.0 - ((2.5 - ph_sensor_value)/(0.257179 + 0.000941468 * storage.TempValue));                   // formula to compute pH which takes water temperature into account
-  //storage.PhValue = (0.0178 * ph_sensor_value * 200.0) - 1.889;                                             // formula to compute pH without taking temperature into account (assumes 27deg water temp)
-  storage.PhValue = (storage.pHCalibCoeffs0 * ph_sensor_value) + storage.pHCalibCoeffs1;                                  //Calibrated sensor response based on multi-point linear regression
-  samples_Ph.add(storage.PhValue);                                                                            // compute average of pH from last 5 measurements
-  storage.PhValue = samples_Ph.getAverage(5);
+  float ph_sensor_value = analogRead(PH_MEASURE)* 5.0 / 1023.0;                                         // from 0.0 to 5.0 V
+  //storage.PhValue = 7.0 - ((2.5 - ph_sensor_value)/(0.257179 + 0.000941468 * storage.TempValue));     // formula to compute pH which takes water temperature into account
+  //storage.PhValue = (0.0178 * ph_sensor_value * 200.0) - 1.889;                                       // formula to compute pH without taking temperature into account (assumes 27deg water temp)
+  storage.PhValue = (storage.pHCalibCoeffs0 * ph_sensor_value) + storage.pHCalibCoeffs1;                //Calibrated sensor response based on multi-point linear regression
+  samples_Ph.add(storage.PhValue);                                                                      // compute average of pH from last 5 measurements
+  storage.PhValue = samples_Ph.getAverage(10);
   Serial<<F("Ph: ")<<storage.PhValue<<F(" - ");
 
   //ORP
-  float orp_sensor_value = analogRead(ORP_MEASURE) * 5000.0 / 1023.0 / 1000.0;                        // from 0.0 to 5.0 V
-  //storage.OrpValue = ((2.5 - orp_sensor_value) / 1.037) * 1000.0;                                           // from -2000 to 2000 mV where the positive values are for oxidizers and the negative values are for reducers
-  storage.OrpValue = (storage.OrpCalibCoeffs0 * orp_sensor_value) + storage.OrpCalibCoeffs1;                              //Calibrated sensor response based on multi-point linear regression
-  samples_Orp.add(storage.OrpValue);                                                                          // compute average of ORP from last 5 measurements
-  storage.OrpValue = samples_Orp.getAverage(5);
+  float orp_sensor_value = analogRead(ORP_MEASURE) * 5.0 / 1023.0;                                      // from 0.0 to 5.0 V
+  //storage.OrpValue = ((2.5 - orp_sensor_value) / 1.037) * 1000.0;                                     // from -2000 to 2000 mV where the positive values are for oxidizers and the negative values are for reducers
+  storage.OrpValue = (storage.OrpCalibCoeffs0 * orp_sensor_value) + storage.OrpCalibCoeffs1;            //Calibrated sensor response based on multi-point linear regression
+  samples_Orp.add(storage.OrpValue);                                                                    // compute average of ORP from last 5 measurements
+  storage.OrpValue = samples_Orp.getAverage(10);
   Serial<<F("Orp: ")<<orp_sensor_value<<" - "<<storage.OrpValue<<F("mV")<<_endl;
+
+  //PSI (water pressure)
+  float psi_sensor_value = analogRead(PSI_MEASURE) * 2.0 / 1023.0;                                      // from 0.0 to 2.0 Bar (depends on sensor ref!)
+  psi_sensor_value = 0.45;                                                                        // Remove this line when sensor is integrated!!!
+  storage.PSIValue = (storage.PSICalibCoeffs0 * psi_sensor_value) + storage.PSICalibCoeffs1;            //Calibrated sensor response based on multi-point linear regression
+  samples_PSI.add(storage.PSIValue);                                                                    // compute average of PSI from last 5 measurements
+  storage.PSIValue = samples_PSI.getAverage(10);
+  Serial<<F("PSI: ")<<psi_sensor_value<<" - "<<storage.PSIValue<<F("Bar")<<_endl;
 }
 
 bool loadConfig() 
 {
   EEPROM.readBlock(configAdress, storage);
 
-    Serial<<storage.ConfigVersion<<", "<<storage.Ph_RegulationOnOff<<", "<<storage.Orp_RegulationOnOff<<'\n';
-    Serial<<storage.FiltrationStart<<", "<<storage.FiltrationDuration<<", "<<storage.FiltrationStopMax<<", "<<storage.FiltrationStop<<", "<<storage.DelayPIDs<<'\n';  
-    Serial<<storage.PhPumpUpTimeLimit<<", "<<storage.ChlPumpUpTimeLimit<<'\n';
-    Serial<<storage.FiltrationPumpTimeCounter<<", "<<storage.PhPumpTimeCounter<<", "<<storage.ChlPumpTimeCounter<<", "<<storage.FiltrationPumpTimeCounterStart<<", "<<storage.PhPumpTimeCounterStart<<", "<<storage.ChlPumpTimeCounterStart<<'\n';
-    Serial<<storage.PhPIDWindowSize<<", "<<storage.OrpPIDWindowSize<<", "<<storage.PhPIDwindowStartTime<<", "<<storage.OrpPIDwindowStartTime<<'\n';
-    Serial<<storage.Ph_SetPoint<<", "<<storage.Orp_SetPoint<<", "<<storage.WaterTempLowThreshold<<", "<<storage.WaterTemp_SetPoint<<", "<<storage.TempExternal<<", "<<storage.pHCalibCoeffs0<<", "<<storage.pHCalibCoeffs1<<", "<<storage.OrpCalibCoeffs0<<", "<<storage.OrpCalibCoeffs1<<'\n';
-    Serial<<storage.Ph_Kp<<", "<<storage.Ph_Ki<<", "<<storage.Ph_Kd<<", "<<storage.Orp_Kp<<", "<<storage.Orp_Ki<<", "<<storage.Orp_Kd<<", "<<storage.PhPIDOutput<<", "<<storage.OrpPIDOutput<<", "<<storage.TempValue<<", "<<storage.PhValue<<", "<<storage.OrpValue<<'\n';
-
+  Serial<<storage.ConfigVersion<<", "<<storage.Ph_RegulationOnOff<<", "<<storage.Orp_RegulationOnOff<<'\n';
+  Serial<<storage.FiltrationStart<<", "<<storage.FiltrationDuration<<", "<<storage.FiltrationStopMax<<", "<<storage.FiltrationStop<<", "<<storage.DelayPIDs<<'\n';  
+  Serial<<storage.PhPumpUpTimeLimit<<", "<<storage.ChlPumpUpTimeLimit<<'\n';
+//  Serial<<storage.FiltrationPumpTimeCounter<<", "<<storage.PhPumpTimeCounter<<", "<<storage.ChlPumpTimeCounter<<", "<<storage.FiltrationPumpTimeCounterStart<<", "<<storage.PhPumpTimeCounterStart<<", "<<storage.ChlPumpTimeCounterStart<<'\n';
+  Serial<<storage.PhPIDWindowSize<<", "<<storage.OrpPIDWindowSize<<", "<<storage.PhPIDwindowStartTime<<", "<<storage.OrpPIDwindowStartTime<<'\n';
+  Serial<<storage.Ph_SetPoint<<", "<<storage.Orp_SetPoint<<", "<<storage.PSI_HighThreshold<<", "<<storage.PSI_MedThreshold<<", "<<storage.WaterTempLowThreshold<<", "<<storage.WaterTemp_SetPoint<<", "<<storage.TempExternal<<", "<<storage.pHCalibCoeffs0<<", "<<storage.pHCalibCoeffs1<<", "<<storage.OrpCalibCoeffs0<<", "<<storage.OrpCalibCoeffs1<<", "<<storage.PSICalibCoeffs0<<", "<<storage.PSICalibCoeffs1<<'\n';
+  Serial<<storage.Ph_Kp<<", "<<storage.Ph_Ki<<", "<<storage.Ph_Kd<<", "<<storage.Orp_Kp<<", "<<storage.Orp_Ki<<", "<<storage.Orp_Kd<<", "<<storage.PhPIDOutput<<", "<<storage.OrpPIDOutput<<", "<<storage.TempValue<<", "<<storage.PhValue<<", "<<storage.OrpValue<<", "<<storage.PSIValue<<'\n';
 
   return (storage.ConfigVersion == CONFIG_VERSION);
 }
@@ -783,11 +758,40 @@ void saveConfig()
    EEPROM.writeBlock(configAdress, storage);
 }
 
-// Print data to the LCD.
-void LCDUpdate()
-{
+// Print Screen1 to the LCD.
+void LCDScreen1()
+{ 
   //Concatenate data into one buffer then print it ot the 20x4 LCD
-  //!LCD driver wrapps lines in a strange order: line 1, then 3, then 2 then 4
+  ///!\LCD driver wrapps lines in a strange order: line 1, then 3, then 2 then 4
+  //Here we reuse the MQTT Payload buffer while it is not being used
+  lcd.setCursor(0, 0);
+  memset(Payload, 0, sizeof(Payload));
+  char *p = &Payload[0];
+  char buff2[10];
+  char buff3[13];
+
+  p += sprintf(p, "Rx:%3dmV       ",(int)storage.OrpValue);
+  p += sprintf(p, "(%3d)",(int)storage.Orp_SetPoint);
+  dtostrf(storage.TempValue,5,2,buff2);
+  p += sprintf(p, "W:%5sC",buff2);
+  dtostrf(storage.TempExternal,1,1,buff2);
+  sprintf(buff3, "A:%sC",buff2);
+  p += sprintf(p, "%12s",buff3);
+  dtostrf(storage.PhValue,4,2,buff2);
+  p += sprintf(p, "pH:%4s       ",buff2);
+  dtostrf(storage.Ph_SetPoint,3,1,buff2);
+  p += sprintf(p, " (%3s)",buff2);
+  dtostrf(storage.PSIValue,4,2,buff2);
+  p += sprintf(p, "P: %4sb      ",buff2);
+  p += sprintf(p, "%2d/%2dh",storage.FiltrationStart,storage.FiltrationStop);
+  lcd.print(Payload);
+}
+/*
+// Print Screen1 to the LCD.
+void LCDScreen1()
+{ 
+  //Concatenate data into one buffer then print it ot the 20x4 LCD
+  ///!\LCD driver wrapps lines in a strange order: line 1, then 3, then 2 then 4
   //Here we reuse the MQTT Payload buffer while it is not being used
   lcd.setCursor(0, 0);
   memset(Payload, 0, sizeof(Payload));
@@ -795,63 +799,21 @@ void LCDUpdate()
   char buff2[10];
   char *p2 = &buff2[0];
       
-  p += sprintf(p, "Redox:%4dmV  ",(int)storage.OrpValue);
-  p2 = ftoa(p2, storage.PhValue, 1);
-  p += sprintf(p, "pH:%3s",buff2);
-  p += sprintf(p, "pH pump:%2dmn  ",storage.PhPumpTimeCounter/60);
-  if(PhLevelError)
-    p += sprintf(p, "Err:%2d",1);
-  else
-  if(PhUpTimeError)
-     p += sprintf(p, "Err:%2d",2);
-  else
-     p += sprintf(p, "Err:%2d",0);  
-  memset(buff2, 0, sizeof(buff2));
-  p2 = &buff2[0];
-  p2 = ftoa(p2, storage.TempValue, 1);
-  char deg = 223;//'°' symbol
-  p += sprintf(p, "Temp:%5s%cC  ",buff2,deg);
-  p += sprintf(p, "Auto:%d",(int)AutoMode);
-  p += sprintf(p, "Cl pump:%2dmn  ",storage.ChlPumpTimeCounter/60);
-  if(ChlLevelError)
-    p += sprintf(p, "Err:%2d",1);
-  else
-  if(ChlUpTimeError)
-    p += sprintf(p, "Err:%2d",2);
-  else
-    p += sprintf(p, "Err:%2d",0);  
-  lcd.print(Payload);
-}
-
-// Print Screen1 to the LCD.
-void LCDScreen1()
-{ 
-  //Concatenate data into one buffer then print it ot the 20x4 LCD
-  ///!\LCD driver wrapps lines in a strange order: line 1, then 3, then 2 then 4
-  //Here we reuse the MQTT Payload buffer while it is not being used
- lcd.setCursor(0, 0);
-  memset(Payload, 0, sizeof(Payload));
-  char *p = &Payload[0];
-  char buff2[10];
-  char *p2 = &buff2[0];
-      
   p += sprintf(p, "Redox:%4dmV   ",(int)storage.OrpValue);
   p += sprintf(p, "(%3d)",(int)storage.Orp_SetPoint);
-  p2 = ftoa(p2, storage.TempValue, 2);
+  dtostrf(storage.TempValue,5,2,buff2);
   p += sprintf(p, "Water:%5sC  ",buff2);
   p += sprintf(p, "ON:%2dh",storage.FiltrationStart);
-  p2 = ftoa(p2, storage.PhValue, 2);
+  dtostrf(storage.PhValue,4,2,buff2);
   p += sprintf(p, "pH:    %4s   ",buff2);
-
-  p2 = ftoa(p2, storage.Ph_SetPoint, 1);
+  dtostrf(storage.Ph_SetPoint,3,1,buff2);
   p += sprintf(p, " (%3s)",buff2);
-  
-  p2 = ftoa(p2, storage.TempExternal, 2);
+  dtostrf(storage.TempExternal,6,2,buff2);
   p += sprintf(p, "Air: %6sC  ",buff2);
   p += sprintf(p, "OF:%2dh",storage.FiltrationStop);
- /*  */
   lcd.print(Payload);
 }
+*/
 
 // Print Screen2 to the LCD.
 void LCDScreen2()
@@ -862,17 +824,15 @@ void LCDScreen2()
   lcd.setCursor(0, 0);
   memset(Payload, 0, sizeof(Payload));
   char *p = &Payload[0];
-  char buff2[10];
-  char *p2 = &buff2[0];
   
   p += sprintf(p, "Auto:%d      ",AutoMode);
   p += sprintf(p, "%02d:%02d:%02d",hour,minute,sec);
-  p += sprintf(p, "Cl pump:%2dmn  ",storage.ChlPumpTimeCounter/60); 
-  p += sprintf(p, " Err:%d",ChlUpTimeError);
-  p += sprintf(p, "pH pump:%2dmn  ",storage.PhPumpTimeCounter/60);
-  p += sprintf(p, " Err:%d",PhUpTimeError);
-  p += sprintf(p, "pHTank : %d  ",digitalRead(PH_LEVEL));
-  p += sprintf(p, "ClTank:%d",digitalRead(CHL_LEVEL));
+  p += sprintf(p, "Cl pump:%2dmn  ",(int)(ChlPump.UpTime/1000/60)); 
+  p += sprintf(p, " Err:%d",ChlPump.UpTimeError);
+  p += sprintf(p, "pH pump:%2dmn  ",(int)(PhPump.UpTime/1000/60));
+  p += sprintf(p, " Err:%d",PhPump.UpTimeError);
+  p += sprintf(p, "pHTank : %d  ",PhPump.TankLevel());
+  p += sprintf(p, "ClTank:%d",ChlPump.TankLevel());
    /*   */
   lcd.print(Payload);
 }
@@ -880,7 +840,7 @@ void LCDScreen2()
 void ProcessCommand(String JSONCommand)
 {
         //Json buffer
-      StaticJsonBuffer<60> jsonBuffer;
+      StaticJsonBuffer<200> jsonBuffer;
       
       //Parse Json object and find which command it is
       JsonObject& command = jsonBuffer.parseObject(JSONCommand);
@@ -919,6 +879,8 @@ void ProcessCommand(String JSONCommand)
 
             //compute offset correction
             storage.pHCalibCoeffs1 += CalibPoints[1] - CalibPoints[0];
+
+            //Set slope back to default value
             storage.pHCalibCoeffs0 = 3.76;
 
             //Store the new coefficients in eeprom
@@ -968,6 +930,8 @@ void ProcessCommand(String JSONCommand)
 
             //compute offset correction
             storage.OrpCalibCoeffs1 += CalibPoints[1] - CalibPoints[0];
+
+            //Set slope back to default value
             storage.OrpCalibCoeffs0 = -1282.39;
 
             //Store the new coefficients in eeprom
@@ -1013,10 +977,6 @@ void ProcessCommand(String JSONCommand)
             else
             {
               AutoMode = 1;
-              
-              //Start PIDs
-              //SetPhPID(true);
-              //SetOrpPID(true);           
             }
         }
         else 
@@ -1024,25 +984,30 @@ void ProcessCommand(String JSONCommand)
         {
             //Serial<<F("starting Filtration")<<endl;
             if((int)command["FiltPump"]==0)
-              FiltrationPump(false);  //stop filtration pump
+              FiltrationPump.Stop();  //stop filtration pump
             else
-              FiltrationPump(true);   //start filtration pump
+            {
+                Serial<<F("Entering FiltStart - ")<<FiltrationPump.IsRunning()<<F(",")<<FiltrationPump.UpTimeError<<F(",")<<FiltrationPump.TankLevel()<<_endl; 
+//  if((digitalRead(pumppin) == PUMP_OFF) && !UpTimeError && (digitalRead(tanklevelpin) != TANK_EMPTY))//if((digitalRead(pumppin) == false))
+
+              FiltrationPump.Start();   //start filtration pump
+            }
         }
         else  
         if(command.containsKey("PhPump"))//"PhPump" command which starts or stops the Acid pump
         {          
             if((int)command["PhPump"]==0)
-              PhPump(false);          //stop Acid pump
+              PhPump.Stop();          //stop Acid pump
             else
-              PhPump(true);           //start Acid pump
+              PhPump.Start();           //start Acid pump
         } 
         else
         if(command.containsKey("ChlPump"))//"ChlPump" command which starts or stops the Acid pump
         {          
             if((int)command["ChlPump"]==0)
-              ChlPump(false);          //stop Chl pump
+              ChlPump.Stop();          //stop Chl pump
             else
-              ChlPump(true);           //start Chl pump
+              ChlPump.Start();           //start Chl pump
         } 
         else
         if(command.containsKey("PhPID"))//"PhPID" command which starts or stops the Ph PID loop
@@ -1104,7 +1069,9 @@ void ProcessCommand(String JSONCommand)
         if(command.containsKey("PumpsMaxUp"))//"PumpsMaxUp" command which sets the Max UpTime for pumps
         {          
            storage.PhPumpUpTimeLimit = (unsigned int)command["PumpsMaxUp"];
+           PhPump.SetMaxUpTime(storage.PhPumpUpTimeLimit*1000);
            storage.ChlPumpUpTimeLimit = (unsigned int)command["PumpsMaxUp"];
+           ChlPump.SetMaxUpTime(storage.ChlPumpUpTimeLimit*1000);
            saveConfig();
         }
         else
@@ -1140,7 +1107,7 @@ void ProcessCommand(String JSONCommand)
         else
         if(command.containsKey("Date"))//"Date" command which sets the Date of RTC module
         {         
-           Controllino_SetTimeDate((unsigned char)command["Date"][0],(unsigned char)command["Date"][1],(unsigned char)command["Date"][2],(unsigned char)command["Date"][3],(unsigned char)command["Date"][4],(unsigned char)command["Date"][5],(unsigned char)command["Date"][6]); // set initial values to the RTC chip. (Day of the month, Day of the week, Month, Year, Hour, Minute, Second)
+           Controllino_SetTimeDate((uint8_t)command["Date"][0],(uint8_t)command["Date"][1],(uint8_t)command["Date"][2],(uint8_t)command["Date"][3],(uint8_t)command["Date"][4],(uint8_t)command["Date"][5],(uint8_t)command["Date"][6]); // set initial values to the RTC chip. (Day of the month, Day of the week, Month, Year, Hour, Minute, Second)
         }
         else
         if(command.containsKey("FiltT0"))//"FiltT0" command which sets the earliest hour when starting Filtration pump
@@ -1162,21 +1129,16 @@ void ProcessCommand(String JSONCommand)
           saveConfig();
         }
         else
-        if(command.containsKey("Clear"))//"Clear" command which clears the UpTime errors of the Pumps
+        if(command.containsKey("Clear"))//"Clear" command which clears the UpTime and pressure errors of the Pumps
         { 
-          if(PhUpTimeError) 
-          {  
-            //add 30mins to the UpTimeLimit
-            storage.PhPumpUpTimeLimit += 1800;
-            PhUpTimeError = 0;
-          }
+          if(PSIError)
+            PSIError = false;
+            
+          if(PhPump.UpTimeError) 
+            PhPump.ClearErrors();
 
-          if(ChlUpTimeError) 
-          {  
-            //add 30mins to the UpTimeLimit
-            storage.ChlPumpUpTimeLimit += 1800;
-            ChlUpTimeError = 0;
-          }     
+          if(ChlPump.UpTimeError) 
+            ChlPump.ClearErrors();  
         }
         else
         if(command.containsKey("DelayPID"))//"DelayPID" command which sets the delay from filtering start before PID loops start regulating
@@ -1239,63 +1201,6 @@ void gettemp_read()
     sprintf(TimeBuffer,"%d-%02d-%02d %02d:%02d:%02d",year+2000,month,day,hour,minute,sec);  
     getMeasures(DS18b20_0); 
     gettemp.next(gettemp_request);
-}
-
-void FiltrationPump(bool Start)
-{
-  if(Start && !digitalRead(FILTRATION_PUMP))
-    storage.FiltrationPumpTimeCounterStart = (unsigned long)millis();
-  else
-  if(!Start && digitalRead(FILTRATION_PUMP))
-    storage.FiltrationPumpTimeCounter += ((millis() - storage.FiltrationPumpTimeCounterStart)/1000); 
-  
-  digitalWrite(FILTRATION_PUMP, Start);
-}
-
-void PhPump(bool Start)
-{
-  if(Start && !digitalRead(PH_PUMP) && digitalRead(PH_LEVEL) && !PhUpTimeError)
-  {
-    storage.PhPumpTimeCounterStart = (unsigned long)millis();
-    digitalWrite(PH_PUMP, Start);
-  }
-  else
-  if(!Start && digitalRead(PH_PUMP))
-  {
-    storage.PhPumpTimeCounter += ((millis() - storage.PhPumpTimeCounterStart)/1000); 
-    digitalWrite(PH_PUMP, Start);
-  }
-}
-
-void ChlPump(bool Start)
-{
-  if(Start && !digitalRead(CHL_PUMP) && digitalRead(CHL_LEVEL) && !ChlUpTimeError)
-  {
-    storage.ChlPumpTimeCounterStart = (unsigned long)millis();
-    digitalWrite(CHL_PUMP, Start);
-  }
-  else
-  if(!Start && digitalRead(CHL_PUMP))
-  {
-    storage.ChlPumpTimeCounter += ((millis() - storage.ChlPumpTimeCounterStart)/1000); 
-    digitalWrite(CHL_PUMP, Start);
-  }
-}
-
-//string (not String!) function to convert float number to string buffer
-//because sprintf() function does not support float types on Arduino
-char *ftoa(char *a, double f, int precision)
-{
- long p[] = {0,10,100,1000,10000,100000,1000000,10000000,100000000};
- 
- char *ret = a;
- long heiltal = (long)f;
- itoa(heiltal, a, 10);
- while (*a != '\0') a++;
- *a++ = '.';
- long desimal = abs((long)((f - heiltal) * p[precision]));
- itoa(desimal, a, 10);
- return ret;
 }
 
 //Linear regression coefficients calculation function
@@ -1675,16 +1580,16 @@ void XML_response(EthernetClient cl)
                 cl<<storage.TempValue;
             cl<<F("</DS18b20_0>");
             cl<<F("<PhPumpEr>");
-                cl<<PhUpTimeError;
+                cl<<PhPump.UpTimeError;
             cl<<F("</PhPumpEr>");
             cl<<F("<ChlPumpEr>");
-                cl<<ChlUpTimeError;
+                cl<<ChlPump.UpTimeError;
             cl<<F("</ChlPumpEr>");
         cl<<F("</device>");
 
         cl<<F("<Filtration>");
             cl<<F("<Pump>");
-                cl<<digitalRead(FILTRATION_PUMP);
+                cl<<FiltrationPump.IsRunning();
             cl<<F("</Pump>"); 
             cl<<F("<Duration>");
                 cl<<storage.FiltrationDuration;
@@ -1705,13 +1610,13 @@ void XML_response(EthernetClient cl)
                 cl<<storage.PhValue;
             cl<<F("</Value>");           
             cl<<F("<Pump>");
-                cl<<digitalRead(PH_PUMP);
+                cl<<PhPump.IsRunning();
             cl<<F("</Pump>");
             cl<<F("<UpT>");
-                cl<<storage.PhPumpTimeCounter;
+                cl<<PhPump.UpTime/1000;
             cl<<F("</UpT>");
             cl<<F("<TankLevel>");
-                cl<<digitalRead(PH_LEVEL);
+                cl<<PhPump.TankLevel();
             cl<<F("</TankLevel>");
             cl<<F("<PIDMode>");
                 cl<<storage.Ph_RegulationOnOff;
@@ -1741,13 +1646,13 @@ void XML_response(EthernetClient cl)
                 cl<<storage.OrpValue;
             cl<<F("</Value>");           
             cl<<F("<Pump>");
-                cl<<digitalRead(CHL_PUMP);
+                cl<<ChlPump.IsRunning();
             cl<<F("</Pump>");
             cl<<F("<UpT>");
-                cl<<storage.ChlPumpTimeCounter;
+                cl<<ChlPump.UpTime/1000;
             cl<<F("</UpT>");
             cl<<F("<TankLevel>");
-                cl<<digitalRead(CHL_LEVEL);
+                cl<<ChlPump.TankLevel();
             cl<<F("</TankLevel>");
             cl<<F("<PIDMode>");
                 cl<<storage.Orp_RegulationOnOff;
