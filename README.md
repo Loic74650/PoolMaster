@@ -119,3 +119,8 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see hard
 <p align="center"> <img src="/docs/TuileJeedom.jpg" width="602" title="Overview"> </p> <br />
 <p align="center"> <img src="/docs/VirtuelJeedom.jpg" width="602" title="Overview"> </p> <br />
 </p>
+
+<h4>Home automation integration example (<a title="https://blynk.io/" href="https://blynk.io/">BLYNK</a>)</h4>
+<p>
+<p align="center"> <img src="/docs/Blynk.jpg" width="302" title="Blynk"> </p> <br />
+</p>
