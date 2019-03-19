@@ -43,7 +43,13 @@ IO2: a variable of type BYTE where each individual bit is the state of a digital
 <li>Mode: (0=manual, 1=auto)</li>
 </ul><br />
 
-	
+
+<h4>How to compile</h4>
+<p>
+- select the target board type in the Arduino IDE (either "Arduino Mega 2560" or "Controllino Maxi")<br />
+- in the section below holding all the #define, change the following to refelect the board selected in the IDE (either "#define BOARD CONTRO_MAXI" or "#define BOARD MEGA_2560")<br /></p>
+
+
 <h4>Compatibility</h4>
 	
 <p>For this sketch to work on your setup you must change the following in the code:<br />
@@ -54,8 +60,6 @@ IO2: a variable of type BYTE where each individual bit is the state of a digital
 - MQTT broker IP address and login credentials<br />
 - possibly the topic names on the MQTT broker to subscribe and publish to<br />
 - the Kp,Ki,Kd parameters for both PID loops in case your peristaltic pumps have a different throughput than 1.5Liters/hour for the pH pump and 3.0Liters/hour for the Chlorine pump. Also the default Kp values were adjusted for a 50m3 pool volume. You might have to adjust the Kp values in case of a different pool volume and/or peristaltic pumps throughput (start by adjusting it proportionally). In any case these parameters are likely to require adjustments for every pool<br /></p>
-
-</p>
 
 
 <p align="center"> <img src="/docs/PoolMaster.jpg" width="602" title="Overview"> </p> <br /><br />

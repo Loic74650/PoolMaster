@@ -1,19 +1,24 @@
 /*
-Arduino/Controllino-Maxi (ATmega2560) based Ph/ORP regulator for home pool sysem. No warranty, use at your own risk
-(c) Loic74 <loic74650@gmail.com> 2018
+Arduino/Controllino-Maxi/ATmega2560 based Ph/ORP regulator for home pool sysem
+(c) Loic74 <loic74650@gmail.com> 2018-2019
+
+***how to compile***
+- select the target board type in the Arduino IDE (either "Arduino Mega 2560" or "Controllino Maxi")
+- in the section below holding all the #define, change the following to refelect the board selected in the IDE (either "#define BOARD CONTRO_MAXI" or "#define BOARD MEGA_2560")
 
 ***Compatibility***
 For this sketch to work on your setup you must change the following in the code:
 - possibly the pinout definitions in case you are not using a CONTROLLINO MAXI board
-- the code related to the RTC module in case your setup does not have one
 - MAC address of DS18b20 water temperature sensor
 - MAC and IP address of the Ethernet shield
 - MQTT broker IP address and login credentials
 - possibly the topic names on the MQTT broker to subscribe and publish to
-- the Kp,Ki,Kd parameters for both PID loops in case your peristaltic pumps have a different throughput than 2Liters/hour. For instance, if twice more, divide the parameters by 2
+- the Kp,Ki,Kd parameters for both PID loops in case your peristaltic pumps have a different throughput than 1.5Liters/hour for the pH pump and 3.0Liters/hour for the Chlorine pump. 
+Also the default Kp values were adjusted for a 50m3 pool volume. You might have to adjust the Kp values in case of a different pool volume and/or peristaltic pumps throughput
+(start by adjusting it proportionally). In any case these parameters are likely to require adjustments for every pool
 
 ***Brief description:***
-Three main metrics are measured and periodically reported over MQTT: water temperature, PH and ORP values
+Four main metrics are measured and periodically reported over MQTT: water temperature and pressure, PH and ORP values
 Pumps states, tank-level states and other parmaters are also periodically reported
 Two PID regulation loops are running in parallel: one for PH, one for ORP
 PH is regulated by injecting Acid from a tank into the pool water (a relay starts/stops the Acid peristaltic pump)
@@ -24,29 +29,32 @@ Communication with the system is performed using the MQTT protocol over an Ether
 
 Every 30 seconds (by default), the system will publish on the "PoolTopic" (see in code below) the following payloads in Json format:
 
-Temp: measured Water temperature value in °C
-Ph: measured Ph value
-PhError/100: Ph PID regulation loop instantaneous error
-Orp: measured Orp (Redox) value
-OrpError/100: Orp PID regulation loop instantaneous error 
-FiltUpTime: current running time of Filtration pump in seconds (reset every 24h)
-PhUpTime: current running time of Ph pump in seconds (reset every 24h)
-ChlUpTime: current running time of Chl pump in seconds (reset every 24h)
-IO & IO2: two variables of type BYTE where each individual bit is the state of a digital input on the Arduino. These are:
+{"Tmp":818,"pH":321,"PSI":56,"Orp":583,"FilUpT":8995,"PhUpT":0,"ChlUpT":0,"IO":11,"IO2":0}
 
-IO:
-FiltPump: current state of Filtration Pump (1=on, 0=off)
-PhPump: current state of Ph Pump (1=on, 0=off)
-ChlPump: current state of Chl Pump (1=on, 0=off)
+Tmp: measured Water temperature value in °C x100 (8.18°C in the above example payload)
+pH: measured pH value x100 (3.21 in the above example payload)
+Orp: measured Orp (aka Redox) value in mV (583mV in the above example payload)
+PSI: measured Water pressure value in bar x100 (0.56bar in the above example payload)
+FiltUpT: current running time of Filtration pump in seconds (reset every 24h. 8995secs in the above example payload)
+PhUpT: current running time of Ph pump in seconds (reset every 24h. 0secs in the above example payload)
+ChlUpT: current running time of Chl pump in seconds (reset every 24h. 0secs in the above example payload)
+IO: a variable of type BYTE where each individual bit is the state of a digital input on the Arduino. These are :
+
+FiltPump: current state of Filtration Pump (0=on, 1=off)
+PhPump: current state of Ph Pump (0=on, 1=off)
+ChlPump: current state of Chl Pump (0=on, 1=off)
 PhlLevel: current state of Acid tank level (0=empty, 1=ok)
 ChlLevel: current state of Chl tank level (0=empty, 1=ok)
-Mode: (0=manual, 1=auto). 
+PSIError: over-pressure error
 pHErr: pH pump overtime error flag
 ChlErr: Chl pump overtime error flag
 
-IO2:
+IO2: a variable of type BYTE where each individual bit is the state of a digital input on the Arduino. These are :
+
 pHPID: current state of pH PID regulation loop (1=on, 0=off)
 OrpPID: current state of Orp PID regulation loop (1=on, 0=off)
+Mode: (0=manual, 1=auto)
+
    
 ***MQTT API***
 Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see in code below) in Json format in order to launch actions on the Arduino:
@@ -74,7 +82,7 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see in c
 {"Clear":1}                      -> reset the pH and Orp pumps overtime error flags in order to let the regulation loops continue. "Mode", "PhPID" and "OrpPID" commands need to be switched back On (1) after an error flag was raised
 {"DelayPID":60}                  -> Delay (in mins) after FiltT0 before the PID regulation loops will start. This is to let the Orp and pH readings stabilize first. 30mins in this example. Should not be > 59mins
 {"TempExt":4.2}                  -> Provide the external temperature. Should be updated regularly and will be used to start filtration for 10mins every hour when temperature is negative. 4.2deg in this example
-
+{"PSIHigh":1.0}                  -> set the water high-pressure threshold (1.0bar in this example). When water pressure is over that threshold, an error flag is set.
 
 ***Dependencies and respective revisions used to compile this project***
 https://github.com/256dpi/arduino-mqtt/releases (rev 2.4.3)
@@ -91,15 +99,60 @@ https://github.com/thijse/Arduino-EEPROMEx (rev 1.0.0)
 https://github.com/sdesalas/Arduino-Queue.h (rev )
 https://github.com/Loic74650/Pump (rev 0.0.1)
 
-*/ 
+*/
+#define CONTRO_MAXI 1
+#define MEGA_2560   2
+
+#define BOARD CONTRO_MAXI  //change this to refelect the board selected in the IDE (either "#define BOARD CONTRO_MAXI" or "#define BOARD MEGA_2560")
+ 
+#if(BOARD == MEGA_2560)
+
+  #define FILTRATION_PUMP 38
+  #define PH_PUMP         36
+  #define CHL_PUMP        42
+  
+  //Digital input pins connected to Acid and Chl tank level reed switches
+  #define CHL_LEVEL       28
+  #define PH_LEVEL        30
+  
+  //Analog input pins connected to Phidgets 1130_0 pH/ORP Adapters. 
+  //Galvanic isolation circuitry between Adapters and Arduino required!
+  #define ORP_MEASURE     A9
+  #define PH_MEASURE      A8
+  
+  //Analog input pin connected to pressure sensor
+  #define PSI_MEASURE     A7
+
+#else
+  #include <Controllino.h>
+  
+  //output relays pin definitions
+  #define FILTRATION_PUMP CONTROLLINO_R4  //CONTROLLINO_RELAY_4
+  #define PH_PUMP    CONTROLLINO_R3       //CONTROLLINO_RELAY_3
+  #define CHL_PUMP   CONTROLLINO_R5       //CONTROLLINO_RELAY_5
+  
+  //Digital input pins connected to Acid and Chl tank level reed switches
+  #define CHL_LEVEL  CONTROLLINO_D1       //CONTROLLINO_D1 pin 3
+  #define PH_LEVEL   CONTROLLINO_D3       //CONTROLLINO_D3 pin 5
+  
+  //Analog input pins connected to Phidgets 1130_0 pH/ORP Adapters. 
+  //Galvanic isolation circuitry between Adapters and Arduino required!
+  #define ORP_MEASURE CONTROLLINO_A2      //CONTROLLINO_A2 pin A2 on pin header connector, not on screw terminal (/!\)
+  #define PH_MEASURE  CONTROLLINO_A4      //CONTROLLINO_A4 pin A4 on pin header connector, not on screw terminal (/!\)
+  
+  //Analog input pin connected to pressure sensor
+  #define PSI_MEASURE CONTROLLINO_A3      //CONTROLLINO_A3 pin A3 on pin header connector, not on screw terminal (/!\)
+
+#endif
+
 #include <SPI.h>
 #include <Ethernet.h>
 #include <MQTT.h>
 #include <SD.h>
 #include "OneWire.h"
 #include <DallasTemperature.h>
-#include <Controllino.h>
-//#include <EEPROM.h>
+#include <TimeLib.h>
+
 #include <RunningMedian.h>
 #include <SoftTimer.h>
 #include <yasm.h>
@@ -111,6 +164,7 @@ https://github.com/Loic74650/Pump (rev 0.0.1)
 #include <ArduinoJson.h>
 #include <EEPROMex.h>
 #include <Queue.h>
+#include <Time.h>
 #include "Pump.h"
 
 // Firmware revision
@@ -135,29 +189,16 @@ const int rs = 9, en = 10, d4 = 11, d5 = 12, d6 = 13, d7 = 42;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 bool LCDToggle = true;
 
+//buffers for MQTT string payload
+#define LCD_BufferLength (20*4)+1
+char LCD_Buffer[LCD_BufferLength];
+
 //buffer used to capture HTTP requests
 String readString;
 
 //buffers for MQTT string payload
 #define PayloadBufferLength 128
 char Payload[PayloadBufferLength];
-
-//output relays pin definitions
-#define FILTRATION_PUMP CONTROLLINO_R4  //CONTROLLINO_RELAY_4
-#define PH_PUMP    CONTROLLINO_R3       //CONTROLLINO_RELAY_3
-#define CHL_PUMP   CONTROLLINO_R5       //CONTROLLINO_RELAY_5
-
-//Digital input pins connected to Acid and Chl tank level reed switches
-#define CHL_LEVEL  CONTROLLINO_D1       //CONTROLLINO_D1 pin 3
-#define PH_LEVEL   CONTROLLINO_D3       //CONTROLLINO_D3 pin 5
-
-//Analog input pins connected to Phidgets 1130_0 pH/ORP Adapters. 
-//Galvanic isolation circuitry between Adapters and Arduino required!
-#define ORP_MEASURE CONTROLLINO_A2      //CONTROLLINO_A2 pin A2 on pin header connector, not on screw terminal (/!\)
-#define PH_MEASURE  CONTROLLINO_A4      //CONTROLLINO_A4 pin A4 on pin header connector, not on screw terminal (/!\)
-
-//Analog input pin connected to pressure sensor
-#define PSI_MEASURE CONTROLLINO_A3      //CONTROLLINO_A3 pin A3 on pin header connector, not on screw terminal (/!\)
 
 //Settings structure and its default values
 struct StoreStruct 
@@ -175,7 +216,6 @@ struct StoreStruct
     0, 0,
     8, 12, 20, 20, 59,
     1800, 1800,
-//    0, 0, 0, 0, 0, 0,
     3600000, 1200000, 0, 0,
     7.4, 730.0, 0.5, 0.25, 10.0, 27.0, 3.0, 4.23, -2.28, -1268.78, 2718.63, 1.0, 0.0,
     1330000.0, 0.0, 0.0, 2857.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4
@@ -201,8 +241,6 @@ bool AutoMode = 0;
 
 //Filtration anti freeze mode
 bool AntiFreezeFiltering = false;
-
-//TimeStamp to track start time of filtration pump
 
 //BitMaps with GPIO states
 uint8_t BitMap = 0;
@@ -252,7 +290,6 @@ const char* PoolTopicAPI = "Home/Pool/API";
 const char* PoolTopicStatus = "Home/Pool/status";
 
 //Date-Time variables for use with internal RTC (Real Time Clock) module
-uint8_t day, weekday, month, year, hour, minute, sec;
 char TimeBuffer[25];
 
 //serial printing stuff
@@ -313,10 +350,12 @@ void setup()
     lcd.begin(20, 4);
     lcd.clear();
   
-    //RTC Stuff (embedded battery operated clock)
-    Controllino_RTC_init(0);
-    Controllino_ReadTimeDate(&day,&weekday,&month,&year,&hour,&minute,&sec);
-
+    //RTC Stuff (embedded battery operated clock). In case board is MEGA_2560, need to initialize the date time!
+    #if(BOARD == CONTRO_MAXI)
+      Controllino_RTC_init(0);
+      setTime((uint8_t)Controllino_GetHour(),(uint8_t)Controllino_GetMinute(),(uint8_t)Controllino_GetSecond(),(uint8_t)Controllino_GetDay(),Controllino_GetMonth(),(uint8_t)Controllino_GetYear()+2000); //(Day of the month, Day of the week, Month, Year, Hour, Minute, Second)    
+    #endif
+    
     //Define pins directions
     pinMode(FILTRATION_PUMP, OUTPUT);
     pinMode(PH_PUMP, OUTPUT);
@@ -463,7 +502,7 @@ void GenericCallback(Task* me)
       ProcessCommand(queue.pop());
 
     //reset time counters at midnight
-    if((hour == 0) && (minute == 0))
+    if((hour() == 0) && (minute() == 0))
     {
       FiltrationPump.ResetUpTime();
       PhPump.ResetUpTime();
@@ -471,7 +510,7 @@ void GenericCallback(Task* me)
     }
 
     //compute next Filtering duration and stop time (in hours)
-    if((hour == storage.FiltrationStart + 1) && (minute == 0))
+    if((hour() == storage.FiltrationStart + 1) && (minute() == 0))
     {
       storage.FiltrationDuration = round(storage.TempValue/2);
       if(storage.FiltrationDuration<3) storage.FiltrationDuration = 3;
@@ -482,11 +521,11 @@ void GenericCallback(Task* me)
     }
 
     //start filtration pump as scheduled
-    if(AutoMode && !PSIError && (hour == storage.FiltrationStart) && (minute == 0))
+    if(AutoMode && !PSIError && (hour() == storage.FiltrationStart) && (minute() == 0))
         FiltrationPump.Start();
         
     //start PIDs with delay after FiltrationStart in order to let the readings stabilize
-    if(AutoMode && !PhPID.GetMode() && (FiltrationPump.UpTime/1000/60 > storage.DelayPIDs) && (hour >= storage.FiltrationStart) && (hour < storage.FiltrationStop))
+    if(AutoMode && !PhPID.GetMode() && (FiltrationPump.UpTime/1000/60 > storage.DelayPIDs) && (hour() >= storage.FiltrationStart) && (hour() < storage.FiltrationStop))
     {
         //Initialize PIDs StartTime
         storage.PhPIDwindowStartTime = millis();
@@ -498,7 +537,7 @@ void GenericCallback(Task* me)
     }
         
     //stop filtration pump and PIDs as scheduled unless we are in AntiFreeze mode
-    if(AutoMode && FiltrationPump.IsRunning() && !AntiFreezeFiltering && ((hour == storage.FiltrationStop) && (minute == 0)))
+    if(AutoMode && FiltrationPump.IsRunning() && !AntiFreezeFiltering && ((hour() == storage.FiltrationStop) && (minute() == 0)))
     {
         SetPhPID(false);
         SetOrpPID(false);
@@ -506,14 +545,14 @@ void GenericCallback(Task* me)
     }
 
     //start filtration pump every hour for 10 mins in cold temperatures (<-2.0deg)
-    if(AutoMode&& !PSIError && (!FiltrationPump.IsRunning()) && ((hour < storage.FiltrationStart) || (hour > storage.FiltrationStop)) && (minute == 0) && (storage.TempExternal<-2.0))
+    if(AutoMode&& !PSIError && (!FiltrationPump.IsRunning()) && ((hour() < storage.FiltrationStart) || (hour() > storage.FiltrationStop)) && (minute() == 0) && (storage.TempExternal<-2.0))
     {
         FiltrationPump.Start();
         AntiFreezeFiltering = true;
     }
 
     //stop filtration pump every hour after 10 mins in cold temperatures (<2.0deg)
-    if(AutoMode && FiltrationPump.IsRunning() && ((hour < storage.FiltrationStart) || (hour > storage.FiltrationStop)) && (minute == 10))
+    if(AutoMode && FiltrationPump.IsRunning() && ((hour() < storage.FiltrationStart) || (hour() > storage.FiltrationStop)) && (minute() == 10))
     {
         FiltrationPump.Stop(); 
         AntiFreezeFiltering = false;
@@ -548,7 +587,7 @@ void PublishDataCallback(Task* me)
       if(MQTTClient.connected())
       {
         //send a JSON to MQTT broker. /!\ Split JSON if longer than 128 bytes
-        //Will publish something like {"Tmp":818,"pH":321,"pHEr":0,"Orp":583,"OrpEr":0,"FilUpT":8995,"PhUpT":0,"ChlUpT":0,"IO":11,"IO2":0}
+        //Will publish something like {"Tmp":818,"pH":321,"PSI":56,"Orp":583,"FilUpT":8995,"PhUpT":0,"ChlUpT":0,"IO":11,"IO2":0}
         StaticJsonBuffer<200> jsonBuffer;
         JsonObject& root = jsonBuffer.createObject();
   
@@ -763,28 +802,40 @@ void LCDScreen1()
 { 
   //Concatenate data into one buffer then print it ot the 20x4 LCD
   ///!\LCD driver wrapps lines in a strange order: line 1, then 3, then 2 then 4
-  //Here we reuse the MQTT Payload buffer while it is not being used
   lcd.setCursor(0, 0);
-  memset(Payload, 0, sizeof(Payload));
-  char *p = &Payload[0];
+  memset(LCD_Buffer, 0, sizeof(LCD_Buffer));
+  char *p = &LCD_Buffer[0];
   char buff2[10];
   char buff3[13];
+  uint8_t Nb = 0;
+  uint8_t TNb = 0;
 
-  p += sprintf(p, "Rx:%3dmV       ",(int)storage.OrpValue);
-  p += sprintf(p, "(%3d)",(int)storage.Orp_SetPoint);
+  Nb = sprintf(p, "Rx:%3dmV       ",(int)storage.OrpValue); p += Nb; TNb += Nb; 
+  Nb = sprintf(p, "(%3d)",(int)storage.Orp_SetPoint); p += Nb; TNb += Nb; 
   dtostrf(storage.TempValue,5,2,buff2);
-  p += sprintf(p, "W:%5sC",buff2);
+  Nb = sprintf(p, "W:%5sC",buff2); p += Nb; TNb += Nb; 
   dtostrf(storage.TempExternal,1,1,buff2);
   sprintf(buff3, "A:%sC",buff2);
-  p += sprintf(p, "%12s",buff3);
+  Nb = sprintf(p, "%12s",buff3); p += Nb; TNb += Nb; 
   dtostrf(storage.PhValue,4,2,buff2);
-  p += sprintf(p, "pH:%4s       ",buff2);
+  Nb = sprintf(p, "pH:%4s       ",buff2); p += Nb; TNb += Nb; 
   dtostrf(storage.Ph_SetPoint,3,1,buff2);
-  p += sprintf(p, " (%3s)",buff2);
+  Nb = sprintf(p, " (%3s)",buff2); p += Nb; TNb += Nb; 
   dtostrf(storage.PSIValue,4,2,buff2);
-  p += sprintf(p, "P: %4sb      ",buff2);
-  p += sprintf(p, "%2d/%2dh",storage.FiltrationStart,storage.FiltrationStop);
-  lcd.print(Payload);
+  Nb = sprintf(p, "P: %4sb      ",buff2); p += Nb; TNb += Nb; 
+  Nb = sprintf(p, "%2d/%2dh",storage.FiltrationStart,storage.FiltrationStop); TNb += Nb; 
+
+  if(TNb <= sizeof(LCD_Buffer))
+  {
+    lcd.print(LCD_Buffer);
+    Serial<<F("Printed some characters to LCD Screen1: ")<<TNb<<endl;
+  }
+  else
+  {
+    sprintf(LCD_Buffer, "Trying to print %d chars to LCD1",TNb);
+    MQTTClient.publish("Home/Pool/Err",LCD_Buffer,true,LWMQTT_QOS1);
+    Serial<<F("Trying to print too many characters to LCD Screen1: ")<<TNb<<endl;
+  }
 }
 /*
 // Print Screen1 to the LCD.
@@ -822,19 +873,31 @@ void LCDScreen2()
   ///!\LCD driver wrapps lines in a strange order: line 1, then 3, then 2 then 4
   //Here we reuse the MQTT Payload buffer while it is not being used
   lcd.setCursor(0, 0);
-  memset(Payload, 0, sizeof(Payload));
-  char *p = &Payload[0];
+  memset(LCD_Buffer, 0, sizeof(LCD_Buffer));
+  char *p = &LCD_Buffer[0];
+  uint8_t Nb = 0;
+  uint8_t TNb = 0;
   
-  p += sprintf(p, "Auto:%d      ",AutoMode);
-  p += sprintf(p, "%02d:%02d:%02d",hour,minute,sec);
-  p += sprintf(p, "Cl pump:%2dmn  ",(int)(ChlPump.UpTime/1000/60)); 
-  p += sprintf(p, " Err:%d",ChlPump.UpTimeError);
-  p += sprintf(p, "pH pump:%2dmn  ",(int)(PhPump.UpTime/1000/60));
-  p += sprintf(p, " Err:%d",PhPump.UpTimeError);
-  p += sprintf(p, "pHTank : %d  ",PhPump.TankLevel());
-  p += sprintf(p, "ClTank:%d",ChlPump.TankLevel());
-   /*   */
-  lcd.print(Payload);
+  Nb = sprintf(p, "Auto:%d      ",AutoMode); p += Nb; TNb += Nb;
+  Nb = sprintf(p, "%02d:%02d:%02d",hour(),minute(),second()); p += Nb; TNb += Nb;
+  Nb = sprintf(p, "Cl pump:%2dmn  ",(int)(ChlPump.UpTime/1000/60));  p += Nb; TNb += Nb;
+  Nb = sprintf(p, " Err:%d",ChlPump.UpTimeError); p += Nb; TNb += Nb;
+  Nb = sprintf(p, "pH pump:%2dmn  ",(int)(PhPump.UpTime/1000/60)); p += Nb; TNb += Nb;
+  Nb = sprintf(p, " Err:%d",PhPump.UpTimeError); p += Nb; TNb += Nb;
+  Nb = sprintf(p, "pHTank : %d  ",PhPump.TankLevel()); p += Nb; TNb += Nb;
+  Nb = sprintf(p, "ClTank:%d",ChlPump.TankLevel());  TNb += Nb;
+
+  if(TNb <= sizeof(LCD_Buffer))
+  {
+    lcd.print(LCD_Buffer);
+    Serial<<F("Printed some characters to LCD Screen2: ")<<TNb<<endl;
+  }
+  else
+  {
+    sprintf(LCD_Buffer, "Trying to print %d chars to LCD2",TNb);
+    MQTTClient.publish("Home/Pool/Err",LCD_Buffer,true,LWMQTT_QOS1);
+    Serial<<F("Trying to print too many characters to LCD Screen2: ")<<TNb<<endl;
+  }
 }
 
 void ProcessCommand(String JSONCommand)
@@ -982,16 +1045,10 @@ void ProcessCommand(String JSONCommand)
         else 
         if (command.containsKey("FiltPump")) //"FiltPump" command which starts or stops the filtration pump
         {
-            //Serial<<F("starting Filtration")<<endl;
             if((int)command["FiltPump"]==0)
               FiltrationPump.Stop();  //stop filtration pump
             else
-            {
-                Serial<<F("Entering FiltStart - ")<<FiltrationPump.IsRunning()<<F(",")<<FiltrationPump.UpTimeError<<F(",")<<FiltrationPump.TankLevel()<<_endl; 
-//  if((digitalRead(pumppin) == PUMP_OFF) && !UpTimeError && (digitalRead(tanklevelpin) != TANK_EMPTY))//if((digitalRead(pumppin) == false))
-
               FiltrationPump.Start();   //start filtration pump
-            }
         }
         else  
         if(command.containsKey("PhPump"))//"PhPump" command which starts or stops the Acid pump
@@ -1107,7 +1164,11 @@ void ProcessCommand(String JSONCommand)
         else
         if(command.containsKey("Date"))//"Date" command which sets the Date of RTC module
         {         
-           Controllino_SetTimeDate((uint8_t)command["Date"][0],(uint8_t)command["Date"][1],(uint8_t)command["Date"][2],(uint8_t)command["Date"][3],(uint8_t)command["Date"][4],(uint8_t)command["Date"][5],(uint8_t)command["Date"][6]); // set initial values to the RTC chip. (Day of the month, Day of the week, Month, Year, Hour, Minute, Second)
+          #if(BOARD == CONTRO_MAXI)
+           Controllino_SetTimeDate((uint8_t)command["Date"][0],(uint8_t)command["Date"][1],(uint8_t)command["Date"][2],(uint8_t)command["Date"][3],(uint8_t)command["Date"][4],(uint8_t)command["Date"][5],(uint8_t)command["Date"][6]); // set initial values to the RTC chip. (Day of the month, Day of the week, Month, Year, Hour, Minute, Second) 
+          #endif
+
+          setTime((uint8_t)command["Date"][4],(uint8_t)command["Date"][5],(uint8_t)command["Date"][6],(uint8_t)command["Date"][1],(uint8_t)command["Date"][2],(uint8_t)command["Date"][3]); //(Day of the month, Day of the week, Month, Year, Hour, Minute, Second)    
         }
         else
         if(command.containsKey("FiltT0"))//"FiltT0" command which sets the earliest hour when starting Filtration pump
@@ -1146,7 +1207,13 @@ void ProcessCommand(String JSONCommand)
           storage.DelayPIDs = (unsigned int)command["DelayPID"];
           saveConfig();
         }
-                    
+        else
+        if(command.containsKey("PSIHigh"))//"PSIHigh" command which sets the water high-pressure threshold
+        {
+          storage.PSI_HighThreshold = (float)command["PSIHigh"];
+          saveConfig();
+        }
+                        
         //Publish/Update on the MQTT broker the status of our variables
         PublishDataCallback(NULL);    
       }
@@ -1197,8 +1264,7 @@ void gettemp_wait()
 //read and print temperature measurement
 void gettemp_read()
 {
-    Controllino_ReadTimeDate(&day,&weekday,&month,&year,&hour,&minute,&sec);
-    sprintf(TimeBuffer,"%d-%02d-%02d %02d:%02d:%02d",year+2000,month,day,hour,minute,sec);  
+    sprintf(TimeBuffer,"%d-%02d-%02d %02d:%02d:%02d",year(),month(),day(),hour(),minute(),second());  
     getMeasures(DS18b20_0); 
     gettemp.next(gettemp_request);
 }
