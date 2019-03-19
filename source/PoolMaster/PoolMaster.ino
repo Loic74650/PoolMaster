@@ -98,6 +98,7 @@ https://github.com/arduino-libraries/LiquidCrystal (rev 1.0.7)
 https://github.com/thijse/Arduino-EEPROMEx (rev 1.0.0)
 https://github.com/sdesalas/Arduino-Queue.h (rev )
 https://github.com/Loic74650/Pump (rev 0.0.1)
+https://github.com/PaulStoffregen/Time (rev 1.5)
 
 */
 #define CONTRO_MAXI 1
