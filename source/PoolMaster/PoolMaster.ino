@@ -99,9 +99,10 @@ https://github.com/thijse/Arduino-EEPROMEx (rev 1.0.0)
 https://github.com/sdesalas/Arduino-Queue.h (rev )
 https://github.com/Loic74650/Pump (rev 0.0.1)
 https://github.com/PaulStoffregen/Time (rev 1.5)
+https://github.com/adafruit/RTClib (rev 1.2.0)
 
 */
-#if defined(CONTROLLINO_MAXI)
+#if defined(CONTROLLINO_MAXI) //Controllino Maxi board specifics
 
   #include <Controllino.h>
   
@@ -122,7 +123,11 @@ https://github.com/PaulStoffregen/Time (rev 1.5)
   //Analog input pin connected to pressure sensor
   #define PSI_MEASURE CONTROLLINO_A3      //CONTROLLINO_A3 pin A3 on pin header connector, not on screw terminal (/!\)
 
-#else //Mega2560
+#else //Mega2560 board specifics
+
+  #include <Wire.h>
+  #include "RTClib.h"
+  RTC_DS3231 rtc;
 
   #define FILTRATION_PUMP 38
   #define PH_PUMP         36
@@ -139,6 +144,7 @@ https://github.com/PaulStoffregen/Time (rev 1.5)
   
   //Analog input pin connected to pressure sensor
   #define PSI_MEASURE     A7
+
 
 #endif
 
@@ -350,7 +356,18 @@ void setup()
     //RTC Stuff (embedded battery operated clock). In case board is MEGA_2560, need to initialize the date time!
     #if defined(CONTROLLINO_MAXI)
       Controllino_RTC_init(0);
-      setTime((uint8_t)Controllino_GetHour(),(uint8_t)Controllino_GetMinute(),(uint8_t)Controllino_GetSecond(),(uint8_t)Controllino_GetDay(),Controllino_GetMonth(),(uint8_t)Controllino_GetYear()+2000); //(Day of the month, Day of the week, Month, Year, Hour, Minute, Second)    
+      setTime((uint8_t)Controllino_GetHour(),(uint8_t)Controllino_GetMinute(),(uint8_t)Controllino_GetSecond(),(uint8_t)Controllino_GetDay(),(uint8_t)Controllino_GetMonth(),(uint8_t)Controllino_GetYear()+2000);     
+    #else
+      if (! rtc.begin()) 
+      {
+        Serial<<F("Couldn't find RTC")<<endl;
+        while (1);
+      }
+      else
+      {  
+        DateTime now = rtc.now();
+        setTime(now.hour(),(uint8_t)now.minute(),(uint8_t)now.second(),(uint8_t)now.day(),(uint8_t)now.month(),(uint16_t)now.year());     
+      }      
     #endif
     
     //Define pins directions
