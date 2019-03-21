@@ -101,30 +101,8 @@ https://github.com/Loic74650/Pump (rev 0.0.1)
 https://github.com/PaulStoffregen/Time (rev 1.5)
 
 */
-#define CONTRO_MAXI 1
-#define MEGA_2560   2
+#if defined(CONTROLLINO_MAXI)
 
-#define BOARD CONTRO_MAXI  //change this to refelect the board selected in the IDE (either "#define BOARD CONTRO_MAXI" or "#define BOARD MEGA_2560")
- 
-#if(BOARD == MEGA_2560)
-
-  #define FILTRATION_PUMP 38
-  #define PH_PUMP         36
-  #define CHL_PUMP        42
-  
-  //Digital input pins connected to Acid and Chl tank level reed switches
-  #define CHL_LEVEL       28
-  #define PH_LEVEL        30
-  
-  //Analog input pins connected to Phidgets 1130_0 pH/ORP Adapters. 
-  //Galvanic isolation circuitry between Adapters and Arduino required!
-  #define ORP_MEASURE     A9
-  #define PH_MEASURE      A8
-  
-  //Analog input pin connected to pressure sensor
-  #define PSI_MEASURE     A7
-
-#else
   #include <Controllino.h>
   
   //output relays pin definitions
@@ -143,6 +121,24 @@ https://github.com/PaulStoffregen/Time (rev 1.5)
   
   //Analog input pin connected to pressure sensor
   #define PSI_MEASURE CONTROLLINO_A3      //CONTROLLINO_A3 pin A3 on pin header connector, not on screw terminal (/!\)
+
+#else //Mega2560
+
+  #define FILTRATION_PUMP 38
+  #define PH_PUMP         36
+  #define CHL_PUMP        42
+  
+  //Digital input pins connected to Acid and Chl tank level reed switches
+  #define CHL_LEVEL       28
+  #define PH_LEVEL        30
+  
+  //Analog input pins connected to Phidgets 1130_0 pH/ORP Adapters. 
+  //Galvanic isolation circuitry between Adapters and Arduino required!
+  #define ORP_MEASURE     A9
+  #define PH_MEASURE      A8
+  
+  //Analog input pin connected to pressure sensor
+  #define PSI_MEASURE     A7
 
 #endif
 
@@ -352,7 +348,7 @@ void setup()
     lcd.clear();
   
     //RTC Stuff (embedded battery operated clock). In case board is MEGA_2560, need to initialize the date time!
-    #if(BOARD == CONTRO_MAXI)
+    #if defined(CONTROLLINO_MAXI)
       Controllino_RTC_init(0);
       setTime((uint8_t)Controllino_GetHour(),(uint8_t)Controllino_GetMinute(),(uint8_t)Controllino_GetSecond(),(uint8_t)Controllino_GetDay(),Controllino_GetMonth(),(uint8_t)Controllino_GetYear()+2000); //(Day of the month, Day of the week, Month, Year, Hour, Minute, Second)    
     #endif
@@ -1165,7 +1161,7 @@ void ProcessCommand(String JSONCommand)
         else
         if(command.containsKey("Date"))//"Date" command which sets the Date of RTC module
         {         
-          #if(BOARD == CONTRO_MAXI)
+          #if defined(CONTROLLINO_MAXI)
            Controllino_SetTimeDate((uint8_t)command["Date"][0],(uint8_t)command["Date"][1],(uint8_t)command["Date"][2],(uint8_t)command["Date"][3],(uint8_t)command["Date"][4],(uint8_t)command["Date"][5],(uint8_t)command["Date"][6]); // set initial values to the RTC chip. (Day of the month, Day of the week, Month, Year, Hour, Minute, Second) 
           #endif
 

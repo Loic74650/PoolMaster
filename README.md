@@ -46,8 +46,7 @@ IO2: a variable of type BYTE where each individual bit is the state of a digital
 
 <h4>How to compile</h4>
 <p>
-- select the target board type in the Arduino IDE (either "Arduino Mega 2560" or "Controllino Maxi")<br />
-- in the section below holding all the #define, change the following to refelect the board selected in the IDE (either "#define BOARD CONTRO_MAXI" or "#define BOARD MEGA_2560")<br /></p>
+- select the target board type in the Arduino IDE (either "Arduino Mega 2560" or "Controllino Maxi") code should compile for both types<br />
 
 
 <h4>Compatibility</h4>
