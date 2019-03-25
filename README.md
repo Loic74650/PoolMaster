@@ -49,7 +49,7 @@ IO2: a variable of type BYTE where each individual bit is the state of a digital
 - this code was developped for two main hardware configurations (list in the hardware section below):<br /> 
 <ul>
 <li>Controllino-Maxi or</li> 
-<li>Arduino Mega 2560 + Ethernet shield + relay shield + RTC module</li></ul><br />
+<li>Arduino Mega 2560 + Ethernet shield + relay shield + RTC module</li></ul>
 - select the target board type in the Arduino IDE (either "Arduino Mega 2560" or "Controllino Maxi") code should compile for both types<br />
 
 
