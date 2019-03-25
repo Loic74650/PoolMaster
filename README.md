@@ -64,11 +64,11 @@ IO2: a variable of type BYTE where each individual bit is the state of a digital
 - the Kp,Ki,Kd parameters for both PID loops in case your peristaltic pumps have a different throughput than 1.5Liters/hour for the pH pump and 3.0Liters/hour for the Chlorine pump. Also the default Kp values were adjusted for a 50m3 pool volume. You might have to adjust the Kp values in case of a different pool volume and/or peristaltic pumps throughput (start by adjusting it proportionally). In any case these parameters are likely to require adjustments for every pool<br /></p>
 
 
-<p align="center"> <img src="/docs/PoolMaster.jpg" width="602" title="Overview"> </p> <br /><br />
-<p align="center"> <img src="/docs/PoolMasterBox_pf.jpg" width="602" title="Overview"> </p> <br /><br />
-<p align="center"> <img src="/docs/LCD_Screens.jpg" width="602" title="Overview"> </p> <br />
-<p align="center"> <img src="/docs/Web.jpg" width="602" title="Overview"> </p> <br /><br />
-<p align="center"> <img src="/docs/WebXML.jpg" width="602" title="Overview"> </p> <br />
+<p align="center"> <img src="/docs/PoolMaster.jpg" width="702" title="Overview"> </p> <br /><br />
+<p align="center"> <img src="/docs/PoolMasterBox_pf.jpg" width="702" title="Overview"> </p> <br /><br />
+<p align="center"> <img src="/docs/LCD_Screens.jpg" width="702" title="Overview"> </p> <br />
+<p align="center"> <img src="/docs/Web.jpg" width="702" title="Overview"> </p> <br /><br />
+<p align="center"> <img src="/docs/WebXML.jpg" width="702" title="Overview"> </p> <br />
 
 
 <h4>MQTT API</h4>
@@ -122,13 +122,13 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see hard
 <p>
 See NodeRed folder for more info and code
 <p align="center"> <img src="/docs/Blynk.jpg" width="302" title="Blynk"> </p> <br />
-<p align="center"> <img src="/NodeRed/NodeRed-to-Blynk.jpg" width="302" title="Blynk"> </p> <br />
+<p align="center"> <img src="/NodeRed/NodeRed-to-Blynk.jpg" width="702" title="Blynk"> </p> <br />
 </p>
 
 <h4>Home automation integration example (<a title="https://www.jeedom.com" href="https://www.jeedom.com">JEEDOM</a>)</h4>
 <p>
-<p align="center"> <img src="/docs/JeedomInterface.jpg" width="602" title="Overview"> </p> <br />
-<p align="center"> <img src="/docs/JeedomInterface2.jpg" width="602" title="Overview"> </p> <br />
-<p align="center"> <img src="/docs/TuileJeedom.jpg" width="602" title="Overview"> </p> <br />
-<p align="center"> <img src="/docs/VirtuelJeedom.jpg" width="602" title="Overview"> </p> <br />
+<p align="center"> <img src="/docs/JeedomInterface.jpg" width="702" title="Overview"> </p> <br />
+<p align="center"> <img src="/docs/JeedomInterface2.jpg" width="702" title="Overview"> </p> <br />
+<p align="center"> <img src="/docs/TuileJeedom.jpg" width="702" title="Overview"> </p> <br />
+<p align="center"> <img src="/docs/VirtuelJeedom.jpg" width="702" title="Overview"> </p> <br />
 </p>
