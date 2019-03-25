@@ -1,5 +1,5 @@
 <h2>PoolMaster</h2>
-<h2>Arduino/Controllino-Maxi (ATmega2560) based Ph/ORP regulator for home pool sysem</h2>
+<h2>Arduino Mega2560/Controllino-Maxi based Ph/ORP regulator for home pool sysem</h2>
 
 <h4>Brief description</h4>
 	
@@ -20,8 +20,8 @@ Every 30 seconds (by default), the system will publish on the "PoolTopic" (hardc
 
 Tmp: measured Water temperature value in °C x100 (8.18°C in the above example payload)<br />
 pH: measured pH value x100 (3.21 in the above example payload)<br />
-Orp: measured Orp (aka Redox) value in mV (583mV in the above example payload)<br />
 PSI: measured Water pressure value in bar x100 (0.56bar in the above example payload)<br />
+Orp: measured Orp (aka Redox) value in mV (583mV in the above example payload)<br />
 FiltUpT: current running time of Filtration pump in seconds (reset every 24h. 8995secs in the above example payload)<br />
 PhUpT: current running time of Ph pump in seconds (reset every 24h. 0secs in the above example payload)<br />
 ChlUpT: current running time of Chl pump in seconds (reset every 24h. 0secs in the above example payload)<br />
@@ -46,14 +46,16 @@ IO2: a variable of type BYTE where each individual bit is the state of a digital
 
 <h4>How to compile</h4>
 <p>
+- this code was developped for two main hardware configurations (list in the hardware section below): 
+* Controllino-Maxi or 
+* Arduino Mega 2560 + Ethernet shield + relay shield + RTC module
 - select the target board type in the Arduino IDE (either "Arduino Mega 2560" or "Controllino Maxi") code should compile for both types<br />
 
 
 <h4>Compatibility</h4>
 	
 <p>For this sketch to work on your setup you must change the following in the code:<br />
-- possibly the pinout definitions in case you are not using a CONTROLLINO MAXI board<br />
-- the code related to the RTC module in case your setup does not have one<br />
+- possibly the pinout definitions depending on your wiring<br />
 - MAC address of DS18b20 water temperature sensor<br />
 - MAC and IP address of the Ethernet shield<br />
 - MQTT broker IP address and login credentials<br />
@@ -105,7 +107,7 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see hard
 <h4>Hardware</h4>
 <p>
 <ul>
-<li><a title="https://www.controllino.biz/controllino-maxi/maxi-and-maxi-pure/" href="https://www.controllino.biz/controllino-maxi/maxi-and-maxi-pure/">CONTROLLINO MAXI (ATmega2560)</a></li>
+<li><a title="https://www.controllino.biz/controllino-maxi/maxi-and-maxi-pure/" href="https://www.controllino.biz/controllino-maxi/maxi-and-maxi-pure/">CONTROLLINO MAXI (ATmega2560)</a> or Arduino Mega 2560 + Ethernet shield + relay shield + RTC module</li>
 <li><a title="https://www.phidgets.com/docs/1130_User_Guide#Measuring_the_pH" href="https://www.phidgets.com/docs/1130_User_Guide#Measuring_the_pH">Phidgets PH/ORB amplifier modules</a></li> 
 <li><a title="https://www.dfrobot.com/product-1621.html" href="https://www.dfrobot.com/product-1621.html">Galvanic isolator for the pH and Orp probes</a></li> 
 <li><a title="https://www.trattamento-acque.net/dosaggio/pompe-peristaltiche/pompe-a-portata-fissa/pompa-serie-mp2-p-detail.html" href="https://www.trattamento-acque.net/dosaggio/pompe-peristaltiche/pompe-a-portata-fissa/pompa-serie-mp2-p-detail.html">Peristaltic pumps</a></li>
