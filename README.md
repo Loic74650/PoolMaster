@@ -120,6 +120,7 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see hard
 
 <h4>Home automation integration example (<a title="https://blynk.io/" href="https://blynk.io/">BLYNK</a>)</h4>
 <p>
+See NodeRed folder for more info and code
 <p align="center"> <img src="/docs/Blynk.jpg" width="302" title="Blynk"> </p> <br />
 </p>
 

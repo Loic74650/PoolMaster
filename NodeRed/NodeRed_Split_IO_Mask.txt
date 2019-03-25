@@ -1,0 +1,21 @@
+var mask = parseInt(msg.payload, 10);
+
+var msg0={};
+var msg1={};
+var msg2={};
+var msg3={};
+var msg4={};
+var msg5={};
+var msg6={};
+var msg7={};
+
+msg0.payload = (mask & 128) == 128 ? 1:0;
+msg1.payload = (mask & 64) == 64 ? 1:0;
+msg2.payload = (mask & 32) == 32 ? 1:0;
+msg3.payload = (mask & 16) == 16 ? 1:0;
+msg4.payload = (mask & 8) == 8 ? 1:0;
+msg5.payload = (mask & 4) == 4 ? 1:0;
+msg6.payload = (mask & 2) == 2 ? 1:0;
+msg7.payload = (mask & 1) == 1 ? 1:0;
+
+return [msg0,msg1,msg2,msg3,msg4,msg5,msg6,msg7]
