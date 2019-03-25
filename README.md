@@ -122,6 +122,7 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see hard
 <p>
 See NodeRed folder for more info and code
 <p align="center"> <img src="/docs/Blynk.jpg" width="302" title="Blynk"> </p> <br />
+<p align="center"> <img src="/NodeRed/NodeRed-to-Blynk.jpg" width="302" title="Blynk"> </p> <br />
 </p>
 
 <h4>Home automation integration example (<a title="https://www.jeedom.com" href="https://www.jeedom.com">JEEDOM</a>)</h4>
