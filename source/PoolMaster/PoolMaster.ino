@@ -4,6 +4,7 @@ Arduino/Controllino-Maxi/ATmega2560 based Ph/ORP regulator for home pool sysem
 
 ***how to compile***
 - select the target board type in the Arduino IDE (either "Arduino Mega 2560" or "Controllino Maxi")
+- in the section below holding all the #define, change the following to refelect the board selected in the IDE (either "#define BOARD CONTRO_MAXI" or "#define BOARD MEGA_2560")
 
 ***Compatibility***
 For this sketch to work on your setup you must change the following in the code:
@@ -99,7 +100,6 @@ https://github.com/sdesalas/Arduino-Queue.h (rev )
 https://github.com/Loic74650/Pump (rev 0.0.1)
 https://github.com/PaulStoffregen/Time (rev 1.5)
 https://github.com/adafruit/RTClib (rev 1.2.0)
-
 */
 #if defined(CONTROLLINO_MAXI) //Controllino Maxi board specifics
 
@@ -120,7 +120,7 @@ https://github.com/adafruit/RTClib (rev 1.2.0)
   #define PH_MEASURE  CONTROLLINO_A4      //CONTROLLINO_A4 pin A4 on pin header connector, not on screw terminal (/!\)
   
   //Analog input pin connected to pressure sensor
-  #define PSI_MEASURE CONTROLLINO_A3      //CONTROLLINO_A3 pin A3 on pin header connector, not on screw terminal (/!\)
+  #define PSI_MEASURE CONTROLLINO_A9      //CONTROLLINO_A9 pin A9 on pin header connector, not on screw terminal (/!\)
 
 #else //Mega2560 board specifics
 
@@ -268,7 +268,7 @@ DallasTemperature sensors_A(&oneWire_A);
 RunningMedian samples_Temp = RunningMedian(10);
 RunningMedian samples_Ph = RunningMedian(10);
 RunningMedian samples_Orp = RunningMedian(10);
-RunningMedian samples_PSI = RunningMedian(10);
+RunningMedian samples_PSI = RunningMedian(3);
 
 //MAC Address of DS18b20 water temperature sensor
 DeviceAddress DS18b20_0 = { 0x28, 0x92, 0x25, 0x41, 0x0A, 0x00, 0x00, 0xEE };
@@ -571,8 +571,8 @@ void GenericCallback(Task* me)
         AntiFreezeFiltering = false;
     }
 
-    //If filtration pump has been running for over 2secs but pressure is still low, stop the filtration pump, something is wrong, set error flag 
-    if(FiltrationPump.IsRunning() && ((millis() - FiltrationPump.StartTime)>2000) && (storage.PSIValue < storage.PSI_MedThreshold))
+    //If filtration pump has been running for over 10secs but pressure is still low, stop the filtration pump, something is wrong, set error flag 
+    if(FiltrationPump.IsRunning() && ((millis() - FiltrationPump.StartTime)>10000) && (storage.PSIValue < storage.PSI_MedThreshold))
     {
       FiltrationPump.Stop();
       PSIError = true;
@@ -781,11 +781,10 @@ void getMeasures(DeviceAddress deviceAddress_0)
   Serial<<F("Orp: ")<<orp_sensor_value<<" - "<<storage.OrpValue<<F("mV")<<_endl;
 
   //PSI (water pressure)
-  float psi_sensor_value = analogRead(PSI_MEASURE) * 2.0 / 1023.0;                                      // from 0.0 to 2.0 Bar (depends on sensor ref!)
-  psi_sensor_value = 0.45;                                                                        // Remove this line when sensor is integrated!!!
+  float psi_sensor_value = ((analogRead(PSI_MEASURE) * 0.03)-0.5)*5.0/4.0;                              // from 0.5 to 4.5V -> 0.0 to 5.0 Bar (depends on sensor ref!)                                                                           // Remove this line when sensor is integrated!!!
   storage.PSIValue = (storage.PSICalibCoeffs0 * psi_sensor_value) + storage.PSICalibCoeffs1;            //Calibrated sensor response based on multi-point linear regression
   samples_PSI.add(storage.PSIValue);                                                                    // compute average of PSI from last 5 measurements
-  storage.PSIValue = samples_PSI.getAverage(10);
+  storage.PSIValue = samples_PSI.getAverage(3);
   Serial<<F("PSI: ")<<psi_sensor_value<<" - "<<storage.PSIValue<<F("Bar")<<_endl;
 }
 
