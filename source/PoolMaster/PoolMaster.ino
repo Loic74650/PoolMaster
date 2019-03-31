@@ -100,6 +100,7 @@ https://github.com/sdesalas/Arduino-Queue.h (rev )
 https://github.com/Loic74650/Pump (rev 0.0.1)
 https://github.com/PaulStoffregen/Time (rev 1.5)
 https://github.com/adafruit/RTClib (rev 1.2.0)
+
 */
 #if defined(CONTROLLINO_MAXI) //Controllino Maxi board specifics
 
@@ -174,7 +175,7 @@ String Firmw = "3.0.0";
 
 //Version of config stored in Eeprom
 //Random value. Change this value (to any other value) to revert the config to default values
-#define CONFIG_VERSION 100
+#define CONFIG_VERSION 107
 
 //Starting point address where to store the config data in EEPROM
 #define memoryBase 32
@@ -218,7 +219,7 @@ struct StoreStruct
     0, 0,
     8, 12, 20, 20, 59,
     1800, 1800,
-    3600000, 1200000, 0, 0,
+    3600000, 7200000, 0, 0,
     7.4, 730.0, 0.5, 0.25, 10.0, 27.0, 3.0, 4.23, -2.28, -1268.78, 2718.63, 1.0, 0.0,
     1330000.0, 0.0, 0.0, 2857.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4
 };
@@ -285,7 +286,7 @@ EthernetClient net;             //Ethernet client to connect to MQTT server
 MQTTClient MQTTClient;
 const char* MqttServerIP = "192.168.0.38";
 const char* MqttServerClientID = "ArduinoPool2"; // /!\ choose a client ID which is unique to this Arduino board
-const char* MqttServerLogin = "XXX";
+const char* MqttServerLogin = "XXX ";
 const char* MqttServerPwd = "XXX";
 const char* PoolTopic = "Home/Pool";
 const char* PoolTopicAPI = "Home/Pool/API";
@@ -1180,7 +1181,7 @@ void ProcessCommand(String JSONCommand)
            Controllino_SetTimeDate((uint8_t)command["Date"][0],(uint8_t)command["Date"][1],(uint8_t)command["Date"][2],(uint8_t)command["Date"][3],(uint8_t)command["Date"][4],(uint8_t)command["Date"][5],(uint8_t)command["Date"][6]); // set initial values to the RTC chip. (Day of the month, Day of the week, Month, Year, Hour, Minute, Second) 
           #endif
 
-          setTime((uint8_t)command["Date"][4],(uint8_t)command["Date"][5],(uint8_t)command["Date"][6],(uint8_t)command["Date"][1],(uint8_t)command["Date"][2],(uint8_t)command["Date"][3]); //(Day of the month, Day of the week, Month, Year, Hour, Minute, Second)    
+          setTime((uint8_t)command["Date"][4],(uint8_t)command["Date"][5],(uint8_t)command["Date"][6],(uint8_t)command["Date"][0],(uint8_t)command["Date"][2],(uint8_t)command["Date"][3]); //(Day of the month, Day of the week, Month, Year, Hour, Minute, Second)    
         }
         else
         if(command.containsKey("FiltT0"))//"FiltT0" command which sets the earliest hour when starting Filtration pump
