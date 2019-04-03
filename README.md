@@ -1,4 +1,4 @@
-<h2>PoolMaster</h2>
+<h2>PoolMaster 3.0.0</h2>
 <h2>Arduino Mega2560/Controllino-Maxi based Ph/ORP regulator for home pool sysem</h2>
 
 <h4>Brief description</h4>
