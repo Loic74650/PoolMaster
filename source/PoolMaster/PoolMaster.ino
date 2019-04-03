@@ -81,7 +81,7 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see in c
 {"PumpsMaxUp":1800}              -> set the Max Uptime (in secs) for the Ph and Chl pumps over a 24h period. If over, PID regulation is stopped and a warning flag is raised
 {"Clear":1}                      -> reset the pH and Orp pumps overtime error flags in order to let the regulation loops continue. "Mode", "PhPID" and "OrpPID" commands need to be switched back On (1) after an error flag was raised
 {"DelayPID":60}                  -> Delay (in mins) after FiltT0 before the PID regulation loops will start. This is to let the Orp and pH readings stabilize first. 30mins in this example. Should not be > 59mins
-{"TempExt":4.2}                  -> Provide the external temperature. Should be updated regularly and will be used to start filtration for 10mins every hour when temperature is negative. 4.2deg in this example
+{"TempExt":4.2}                  -> Provide the external temperature. Should be updated regularly and will be used to start filtration when outside air temperature is <-2.0deg. 4.2deg in this example
 {"PSIHigh":1.0}                  -> set the water high-pressure threshold (1.0bar in this example). When water pressure is over that threshold, an error flag is set.
 
 ***Dependencies and respective revisions used to compile this project***
@@ -100,7 +100,6 @@ https://github.com/sdesalas/Arduino-Queue.h (rev )
 https://github.com/Loic74650/Pump (rev 0.0.1)
 https://github.com/PaulStoffregen/Time (rev 1.5)
 https://github.com/adafruit/RTClib (rev 1.2.0)
-
 */
 #if defined(CONTROLLINO_MAXI) //Controllino Maxi board specifics
 
@@ -186,8 +185,8 @@ const int maxAllowedWrites = 200;//not sure what this is for
 Queue<String> queue = Queue<String>(10);
 
 //LCD init.
-//LCD connected on pin header 2 connector, not on screw terminal (/!\)
-//pin definitions, may vary in your setup
+//LCD connected on pin header 2 connector of Controllino Maxi, not on screw terminal (/!\)
+//pin definitions, may vary in your setup. This one is not an I2C LCD
 const int rs = 9, en = 10, d4 = 11, d5 = 12, d6 = 13, d7 = 42;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 bool LCDToggle = true;
@@ -214,7 +213,7 @@ struct StoreStruct
     double Ph_SetPoint, Orp_SetPoint, PSI_HighThreshold, PSI_MedThreshold, WaterTempLowThreshold, WaterTemp_SetPoint, TempExternal, pHCalibCoeffs0, pHCalibCoeffs1, OrpCalibCoeffs0, OrpCalibCoeffs1, PSICalibCoeffs0, PSICalibCoeffs1;
     double Ph_Kp, Ph_Ki, Ph_Kd, Orp_Kp, Orp_Ki, Orp_Kd, PhPIDOutput, OrpPIDOutput, TempValue, PhValue, OrpValue, PSIValue;
 } storage = 
-{                     //default values. Change the value of CONFIG_VERSION in order to restore the default values
+{   //default values. Change the value of CONFIG_VERSION in order to restore the default values
     CONFIG_VERSION,
     0, 0,
     8, 12, 20, 20, 59,
@@ -226,6 +225,7 @@ struct StoreStruct
 
 bool PSIError = 0;
 
+//The three pumps of the system (instanciate the Pump class)
 Pump FiltrationPump(FILTRATION_PUMP, NO_TANK);
 Pump PhPump(PH_PUMP, PH_LEVEL);
 Pump ChlPump(CHL_PUMP, CHL_LEVEL);
@@ -252,7 +252,8 @@ uint8_t BitMap2 = 0;
 //MQTT publishing periodicity of system info, in msecs
 unsigned long PublishPeriod = 30000;
 
-// Data wire is connected to input digital pin 20 on the Arduino
+//One wire bus for the water temperature measurement
+//Data wire is connected to input digital pin 20 on the Arduino
 #define ONE_WIRE_BUS_A 20
 
 // Setup a oneWire instance to communicate with any OneWire devices
@@ -286,7 +287,7 @@ EthernetClient net;             //Ethernet client to connect to MQTT server
 MQTTClient MQTTClient;
 const char* MqttServerIP = "192.168.0.38";
 const char* MqttServerClientID = "ArduinoPool2"; // /!\ choose a client ID which is unique to this Arduino board
-const char* MqttServerLogin = "XXX ";
+const char* MqttServerLogin = "XXX";
 const char* MqttServerPwd = "XXX";
 const char* PoolTopic = "Home/Pool";
 const char* PoolTopicAPI = "Home/Pool/API";
@@ -454,15 +455,15 @@ void setup()
 //"status" will switch to "offline". Very useful to check that the Arduino is alive and functional
 void MQTTConnect() 
 {
-//  MQTTClient.connect(MqttServerClientID, MqttServerLogin, MqttServerPwd);
-  int8_t Count=0;
+  MQTTClient.connect(MqttServerClientID, MqttServerLogin, MqttServerPwd);
+/*  int8_t Count=0;
   while (!MQTTClient.connect(MqttServerClientID, MqttServerLogin, MqttServerPwd) && (Count<4))
   {
     Serial<<F(".")<<_endl;
     delay(500);
     Count++;
   }
-
+*/
   if(MQTTClient.connected())
   {
     //String PoolTopicAPI = "Home/Pool/Api";
@@ -558,22 +559,22 @@ void GenericCallback(Task* me)
         FiltrationPump.Stop(); 
     }
 
-    //start filtration pump every hour for 10 mins in cold temperatures (<-2.0deg)
-    if(AutoMode&& !PSIError && (!FiltrationPump.IsRunning()) && ((hour() < storage.FiltrationStart) || (hour() > storage.FiltrationStop)) && (minute() == 0) && (storage.TempExternal<-2.0))
+    //Outside regular filtration hours, start filtration in case of cold Air temperatures (<-2.0deg)
+    if(AutoMode && !PSIError && !FiltrationPump.IsRunning() && ((hour() < storage.FiltrationStart) || (hour() > storage.FiltrationStop)) && (storage.TempExternal<-2.0))
     {
         FiltrationPump.Start();
         AntiFreezeFiltering = true;
     }
 
-    //stop filtration pump every hour after 10 mins in cold temperatures (<2.0deg)
-    if(AutoMode && FiltrationPump.IsRunning() && ((hour() < storage.FiltrationStart) || (hour() > storage.FiltrationStop)) && (minute() == 10))
+    //Outside regular filtration hours and if in AntiFreezeFiltering mode but Air temperature rose back above 2.0deg, stop filtration
+    if(AutoMode && FiltrationPump.IsRunning() && ((hour() < storage.FiltrationStart) || (hour() > storage.FiltrationStop)) && AntiFreezeFiltering && (storage.TempExternal>2.0))
     {
         FiltrationPump.Stop(); 
         AntiFreezeFiltering = false;
     }
 
-    //If filtration pump has been running for over 10secs but pressure is still low, stop the filtration pump, something is wrong, set error flag 
-    if(FiltrationPump.IsRunning() && ((millis() - FiltrationPump.StartTime)>10000) && (storage.PSIValue < storage.PSI_MedThreshold))
+    //If filtration pump has been running for over 7secs but pressure is still low, stop the filtration pump, something is wrong, set error flag 
+    if(FiltrationPump.IsRunning() && ((millis() - FiltrationPump.StartTime)>7000) && (storage.PSIValue < storage.PSI_MedThreshold))
     {
       FiltrationPump.Stop();
       PSIError = true;
