@@ -8,7 +8,7 @@ v3.0.0
 * Added better support for the Arduino Mega2560 platform. Should now compile without any code modification
 * Added the "Pump" class to improve quality of code and easier integration of additional pumps in the future if required (eg. pH+ pump)
 * Added integration example into cloud-based BLYNK smart phone application via NodeRed
-* /!\ API change. The IO and IO2 bitmaps which are published to the MQTT broker have been modified
+* /!\ API change. The MQTT published data and the IO and IO2 bitmaps which are published to the MQTT broker have been modified in order to accomodate the pressure readings
 
 v2.1.2
 -------
