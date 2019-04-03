@@ -1,5 +1,15 @@
 PoolMaster: change log
 =======================
+v3.0.0
+-------
+
+* modified anti-freeze filtration behaviour. It now starts filtration when outside air temperature goes below -2.0deg and stops it when it rises back above +2.0deg
+* added support for a water pressure sensor. A water pressure which increases above a certain threshold can be an indication that the sand filter requires cleaning). When filtration is running but water pressure is below a certain threshold (ie. something is wrong), filtration is automatically stopped as a safety precaution
+* Added better support for the Arduino Mega2560 platform. Should now compile without any code modification
+* Added the "Pump" class to improve quality of code and easier integration of additional pumps in the future if required (eg. pH+ pump)
+* Added integration example into cloud-based BLYNK smart phone application via NodeRed
+* /!\ API change. The IO and IO2 bitmaps which are published to the MQTT broker have been modified
+
 v2.1.2
 -------
 
