@@ -121,14 +121,14 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see hard
 </ul>
 </p><br />
 
-<h4>Home automation integration example (<a title="https://blynk.io/" href="https://blynk.io/">BLYNK</a>)</h4>
+<h4>Cloud integration example (<a title="https://blynk.io/" href="https://blynk.io/">BLYNK</a>)</h4>
 <p>
 See NodeRed folder for more info and code
 <p align="center"> <img src="/docs/Blynk.jpg" width="302" title="Blynk"> </p> <br />
 <p align="center"> <img src="/NodeRed/NodeRed-to-Blynk.jpg" width="702" title="Blynk"> </p> <br />
 </p>
 
-<h4>Home automation integration example (<a title="https://www.jeedom.com" href="https://www.jeedom.com">JEEDOM</a>)</h4>
+<h4>Non-cloud home automation integration example (<a title="https://www.jeedom.com" href="https://www.jeedom.com">JEEDOM</a>)</h4>
 <p>
 <p align="center"> <img src="/docs/JeedomInterface.jpg" width="702" title="Overview"> </p> <br />
 <p align="center"> <img src="/docs/JeedomInterface2.jpg" width="702" title="Overview"> </p> <br />
