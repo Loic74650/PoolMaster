@@ -97,9 +97,10 @@ https://github.com/bblanchon/ArduinoJson (rev 5.13.4)
 https://github.com/arduino-libraries/LiquidCrystal (rev 1.0.7)
 https://github.com/thijse/Arduino-EEPROMEx (rev 1.0.0)
 https://github.com/sdesalas/Arduino-Queue.h (rev )
-https://github.com/Loic74650/Pump (rev 0.0.1)
+https://github.com/Loic74650/Pump (rev 0.0.2)
 https://github.com/PaulStoffregen/Time (rev 1.5)
 https://github.com/adafruit/RTClib (rev 1.2.0)
+
 */
 #if defined(CONTROLLINO_MAXI) //Controllino Maxi board specifics
 
@@ -170,7 +171,7 @@ https://github.com/adafruit/RTClib (rev 1.2.0)
 #include "Pump.h"
 
 // Firmware revision
-String Firmw = "3.0.0";
+String Firmw = "3.0.1";
 
 //Version of config stored in Eeprom
 //Random value. Change this value (to any other value) to revert the config to default values
@@ -186,7 +187,7 @@ Queue<String> queue = Queue<String>(10);
 
 //LCD init.
 //LCD connected on pin header 2 connector of Controllino Maxi, not on screw terminal (/!\)
-//pin definitions, may vary in your setup. This one is not an I2C LCD
+//pin definitions, may vary in your setup
 const int rs = 9, en = 10, d4 = 11, d5 = 12, d6 = 13, d7 = 42;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 bool LCDToggle = true;
@@ -226,9 +227,9 @@ struct StoreStruct
 bool PSIError = 0;
 
 //The three pumps of the system (instanciate the Pump class)
-Pump FiltrationPump(FILTRATION_PUMP, NO_TANK);
-Pump PhPump(PH_PUMP, PH_LEVEL);
-Pump ChlPump(CHL_PUMP, CHL_LEVEL);
+Pump FiltrationPump(FILTRATION_PUMP, NO_TANK, NO_INTERLOCK);
+Pump PhPump(PH_PUMP, PH_LEVEL, FILTRATION_PUMP);
+Pump ChlPump(CHL_PUMP, CHL_LEVEL, FILTRATION_PUMP);
 
 //Tank level error flags
 bool PhLevelError = 0;
@@ -574,7 +575,7 @@ void GenericCallback(Task* me)
     }
 
     //If filtration pump has been running for over 7secs but pressure is still low, stop the filtration pump, something is wrong, set error flag 
-    if(FiltrationPump.IsRunning() && ((millis() - FiltrationPump.StartTime)>7000) && (storage.PSIValue < storage.PSI_MedThreshold))
+    if(FiltrationPump.IsRunning() && ((millis() - FiltrationPump.LastStartTime)>7000) && (storage.PSIValue < storage.PSI_MedThreshold))
     {
       FiltrationPump.Stop();
       PSIError = true;
