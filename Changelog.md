@@ -1,5 +1,11 @@
 PoolMaster: change log
 =======================
+v3.0.1
+-------
+
+* improved security at Pumps level so that Orp and pH pumps cannot run and/or stop if Filtration is not running/stopped
+* fixed bug. Now when filtration pump is running but water pressure remains low, filtration pump is really stopped
+
 v3.0.0
 -------
 
