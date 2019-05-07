@@ -2,7 +2,7 @@
 <h2>Arduino Mega2560/Controllino-Maxi based Ph/Orp regulator for home pools</h2>
 
 <br />
-<p align="center"> <img src="/docs/PoolMaster_2.jpg" width="702" title="Overview"> </p> <br /><br />
+<p align="center"> <img src="/docs/PoolMaster_2.jpg" width="802" title="Overview"> </p> <br /><br />
 
 <h4>Brief description</h4>
 	
