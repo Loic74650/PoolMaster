@@ -1,6 +1,9 @@
 <h2>PoolMaster 3.0.1</h2>
 <h2>Arduino Mega2560/Controllino-Maxi based Ph/Orp regulator for home pools</h2>
 
+<br />
+<p align="center"> <img src="/docs/PoolMaster_2.jpg" width="702" title="Overview"> </p> <br /><br />
+
 <h4>Brief description</h4>
 	
 <p>Four main metrics are measured and periodically reported over MQTT and an LCD display: water temperature and pressure, pH and ORP values.<br />
@@ -49,7 +52,7 @@ IO2: a variable of type BYTE where each individual bit is the state of a digital
 - this code was developped for two main hardware configurations (list in the hardware section below):<br /> 
 <ul>
 <li>Controllino-Maxi or</li> 
-<li>Arduino Mega 2560 + Ethernet shield + relay shield + RTC module</li></ul>
+<li>Arduino Mega 2560 + Ethernet shield + relay shield + RTC module (NB: not yet tested on that platform)</li></ul>
 - select the target board type in the Arduino IDE (either "Arduino Mega 2560" or "Controllino Maxi") code should compile for both types<br />
 
 
