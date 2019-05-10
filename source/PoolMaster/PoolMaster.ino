@@ -97,9 +97,11 @@ https://github.com/bblanchon/ArduinoJson (rev 5.13.4)
 https://github.com/arduino-libraries/LiquidCrystal (rev 1.0.7)
 https://github.com/thijse/Arduino-EEPROMEx (rev 1.0.0)
 https://github.com/sdesalas/Arduino-Queue.h (rev )
-https://github.com/Loic74650/Pump (rev 0.0.2)
+https://github.com/Loic74650/Pump (rev 0.0.1)
 https://github.com/PaulStoffregen/Time (rev 1.5)
 https://github.com/adafruit/RTClib (rev 1.2.0)
+#include <Wire.h> 
+#include <LiquidCrystal_I2C.h>
 
 */
 #if defined(CONTROLLINO_MAXI) //Controllino Maxi board specifics
@@ -155,13 +157,14 @@ https://github.com/adafruit/RTClib (rev 1.2.0)
 #include "OneWire.h"
 #include <DallasTemperature.h>
 #include <TimeLib.h>
-
 #include <RunningMedian.h>
 #include <SoftTimer.h>
 #include <yasm.h>
 #include <PID_v1.h>
 #include <Streaming.h>
+#include <Wire.h> 
 #include <LiquidCrystal.h>
+#include <LiquidCrystal_I2C.h>
 #include <avr/wdt.h>
 #include <stdlib.h>
 #include <ArduinoJson.h>
@@ -171,11 +174,11 @@ https://github.com/adafruit/RTClib (rev 1.2.0)
 #include "Pump.h"
 
 // Firmware revision
-String Firmw = "3.0.1";
+String Firmw = "3.0.2";
 
 //Version of config stored in Eeprom
 //Random value. Change this value (to any other value) to revert the config to default values
-#define CONFIG_VERSION 107
+#define CONFIG_VERSION 108
 
 //Starting point address where to store the config data in EEPROM
 #define memoryBase 32
@@ -186,10 +189,7 @@ const int maxAllowedWrites = 200;//not sure what this is for
 Queue<String> queue = Queue<String>(10);
 
 //LCD init.
-//LCD connected on pin header 2 connector of Controllino Maxi, not on screw terminal (/!\)
-//pin definitions, may vary in your setup
-const int rs = 9, en = 10, d4 = 11, d5 = 12, d6 = 13, d7 = 42;
-LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+LiquidCrystal_I2C lcd(0x27,20,4);  // set the I2C LCD address to 0x27 for a 20 chars and 4 lines display
 bool LCDToggle = true;
 
 //buffers for MQTT string payload
@@ -220,7 +220,7 @@ struct StoreStruct
     8, 12, 20, 20, 59,
     1800, 1800,
     3600000, 7200000, 0, 0,
-    7.4, 730.0, 0.5, 0.25, 10.0, 27.0, 3.0, 4.23, -2.28, -1268.78, 2718.63, 1.0, 0.0,
+    7.4, 730.0, 0.5, 0.25, 10.0, 27.0, 3.0, 4.23, -2.28, -1000, 2500, 1.0, 0.0,
     1330000.0, 0.0, 0.0, 2857.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4
 };
 
@@ -254,8 +254,8 @@ uint8_t BitMap2 = 0;
 unsigned long PublishPeriod = 30000;
 
 //One wire bus for the water temperature measurement
-//Data wire is connected to input digital pin 20 on the Arduino
-#define ONE_WIRE_BUS_A 20
+//Data wire is connected to input digital pin 6 on the Arduino
+#define ONE_WIRE_BUS_A 6
 
 // Setup a oneWire instance to communicate with any OneWire devices
 OneWire oneWire_A(ONE_WIRE_BUS_A);
@@ -351,10 +351,10 @@ void setup()
       saveConfig();//First time use. Save default values to eeprom
     }
       
-    // set up the LCD's number of columns and rows:
-    lcd.begin(20, 4);
-    lcd.clear();
-  
+    // set up the I2C LCD
+    lcd.init();
+    lcd.backlight();
+      
     //RTC Stuff (embedded battery operated clock). In case board is MEGA_2560, need to initialize the date time!
     #if defined(CONTROLLINO_MAXI)
       Controllino_RTC_init(0);
@@ -473,7 +473,11 @@ void MQTTConnect()
   
     //tell status topic we are online
     if(MQTTClient.publish(PoolTopicStatus,"online",true,LWMQTT_QOS1))
-        Serial<<F("published: Home/Pool/status - online")<<_endl;
+      Serial<<F("published: Home/Pool/status - online")<<_endl;
+    else
+    {
+      Serial<<F("Unable to publish on status topic; MQTTClient.lastError() returned: ")<<MQTTClient.lastError()<<F(" - MQTTClient.returnCode() returned: ")<<MQTTClient.returnCode()<<_endl;
+    }
   }
   else
   Serial<<F("Failed to connect to the MQTT broker")<<_endl;
@@ -543,10 +547,6 @@ void GenericCallback(Task* me)
     //start PIDs with delay after FiltrationStart in order to let the readings stabilize
     if(AutoMode && !PhPID.GetMode() && (FiltrationPump.UpTime/1000/60 > storage.DelayPIDs) && (hour() >= storage.FiltrationStart) && (hour() < storage.FiltrationStop))
     {
-        //Initialize PIDs StartTime
-        storage.PhPIDwindowStartTime = millis();
-        storage.OrpPIDwindowStartTime = millis();
-
         //Start PIDs
         SetPhPID(true);
         SetOrpPID(true);
@@ -621,10 +621,16 @@ void PublishDataCallback(Task* me)
         if(jsonBuffer.size() < PayloadBufferLength)
         {
           root.printTo(Payload,PayloadBufferLength);
-          MQTTClient.publish(PoolTopic,Payload,strlen(Payload),false,LWMQTT_QOS1);
-          
-          Serial<<F("Payload: ")<<Payload<<F(" - ");
-          Serial<<F("Payload size: ")<<jsonBuffer.size()<<_endl;   
+          if(MQTTClient.publish(PoolTopic,Payload,strlen(Payload),false,LWMQTT_QOS1))
+          {   
+            Serial<<F("Payload: ")<<Payload<<F(" - ");
+            Serial<<F("Payload size: ")<<jsonBuffer.size()<<_endl;   
+          }
+          else
+          {
+            Serial<<F("Unable to publish the following payload: ")<<Payload<<_endl;
+            Serial<<F("MQTTClient.lastError() returned: ")<<MQTTClient.lastError()<<F(" - MQTTClient.returnCode() returned: ")<<MQTTClient.returnCode()<<_endl;
+          }       
         }
         else
         {
@@ -698,6 +704,7 @@ void SetPhPID(bool Enable)
      //Stop PhPID
      PhPump.ClearErrors();
      storage.PhPIDOutput = 0.0;
+     storage.PhPIDwindowStartTime = millis();
      PhPID.SetMode(1);
      storage.Ph_RegulationOnOff = 1;
   }
@@ -719,6 +726,7 @@ void SetOrpPID(bool Enable)
      //Stop OrpPID
      ChlPump.ClearErrors();
      storage.OrpPIDOutput = 0.0;
+     storage.OrpPIDwindowStartTime = millis();
      OrpPID.SetMode(1);
      storage.Orp_RegulationOnOff = 1;
 
@@ -841,10 +849,7 @@ void LCDScreen1()
   Nb = sprintf(p, "%2d/%2dh",storage.FiltrationStart,storage.FiltrationStop); TNb += Nb; 
 
   if(TNb <= sizeof(LCD_Buffer))
-  {
     lcd.print(LCD_Buffer);
-    Serial<<F("Printed some characters to LCD Screen1: ")<<TNb<<endl;
-  }
   else
   {
     sprintf(LCD_Buffer, "Trying to print %d chars to LCD1",TNb);
@@ -903,10 +908,7 @@ void LCDScreen2()
   Nb = sprintf(p, "ClTank:%d",ChlPump.TankLevel());  TNb += Nb;
 
   if(TNb <= sizeof(LCD_Buffer))
-  {
     lcd.print(LCD_Buffer);
-    Serial<<F("Printed some characters to LCD Screen2: ")<<TNb<<endl;
-  }
   else
   {
     sprintf(LCD_Buffer, "Trying to print %d chars to LCD2",TNb);
