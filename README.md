@@ -67,17 +67,17 @@ IO2: a variable of type BYTE where each individual bit is the state of a digital
 - the Kp,Ki,Kd parameters for both PID loops in case your peristaltic pumps have a different throughput than 1.5Liters/hour for the pH pump and 3.0Liters/hour for the Chlorine pump. Also the default Kp values were adjusted for a 50m3 pool volume. You might have to adjust the Kp values in case of a different pool volume and/or peristaltic pumps throughput (start by adjusting it proportionally). In any case these parameters are likely to require adjustments for every pool<br /></p>
 
 <h4>Tips</h4>
-Before attempting to regulate your pool water with this automated system, it is essential that you start with:
-1- testing your water quality (using liquid kits and/or test strips for instance) and balancing it properly (pH, Chlorine, Alkalinity, Hardness). Proper water balancing will greatly ease the pH stability and regulation
-2- calibrating the pH probe using calibrated buffer solutions (pay attention to the water temperature which plays a big role in pH readings)
-3- adjusting pH to 7.4 
-4- once above steps 1 to 3 are ok, you can start regulating ORP
+Before attempting to regulate your pool water with this automated system, it is essential that you start with:<br />
+1- testing your water quality (using liquid kits and/or test strips for instance) and balancing it properly (pH, Chlorine, Alkalinity, Hardness). Proper water balancing will greatly ease the pH stability and regulation<br />
+2- calibrating the pH probe using calibrated buffer solutions (pay attention to the water temperature which plays a big role in pH readings)<br />
+3- adjusting pH to 7.4 <br />
+4- once above steps 1 to 3 are ok, you can start regulating ORP<br /><br />
  
-Notes:
-a/ the ORP sensor should theoretically not be calibrated nore temperature compensated (by nature its 0mV pivot point cannot shift)
-b/ the ORP reading is strongly affected by the pH value and the water temperature. Make sure pH is adjusted at 7.4
-c/ prefer platinium ORP probes for setpoints >500mV (ie. Pools and spas)
-e/ the response time of ORP sensors can be fast in reference buffer solutions (10 secs) and yet very slow in pool water (minutes or more) as it depends on the water composition 
+Notes:<br />
+a/ the ORP sensor should theoretically not be calibrated nore temperature compensated (by nature its 0mV pivot point cannot shift)<br />
+b/ the ORP reading is strongly affected by the pH value and the water temperature. Make sure pH is adjusted at 7.4<br />
+c/ prefer platinium ORP probes for setpoints >500mV (ie. Pools and spas)<br />
+e/ the response time of ORP sensors can be fast in reference buffer solutions (10 secs) and yet very slow in pool water (minutes or more) as it depends on the water composition <br /><br />
 
 
 <p align="center"> <img src="/docs/PoolMaster.jpg" width="702" title="Overview"> </p> <br /><br />
