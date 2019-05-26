@@ -147,7 +147,6 @@ See NodeRed folder for more info and code
 <h4>Non-cloud home automation integration example (<a title="https://www.jeedom.com" href="https://www.jeedom.com">JEEDOM</a>)</h4>
 <p>
 <p align="center"> <img src="/docs/JeedomInterface.jpg" width="702" title="Overview"> </p> <br />
-<p align="center"> <img src="/docs/JeedomInterface2.jpg" width="702" title="Overview"> </p> <br />
 <p align="center"> <img src="/docs/TuileJeedom.jpg" width="702" title="Overview"> </p> <br />
 <p align="center"> <img src="/docs/VirtuelJeedom.jpg" width="702" title="Overview"> </p> <br />
 </p>
