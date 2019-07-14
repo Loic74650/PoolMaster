@@ -70,10 +70,10 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see in c
 {"OrpSetPoint":750.0}            -> set the Orp setpoint, 750mV in this example
 {"WSetPoint":27.0}               -> set the water temperature setpoint, 27.0deg in this example (for future use. Water heating not handled yet)
 {"WTempLow":10.0}                -> set the water low-temperature threshold below which there is no need to regulate Orp and Ph (ie. in winter)
-{"OrpPIDParams":[2857,0,0]}      -> respectively set Kp,Ki,Kd parameters of the Orp PID loop. In this example they are set to 2857, 0 and 0
-{"PhPIDParams":[1330000,0,0.0]}  -> respectively set Kp,Ki,Kd parameters of the Ph PID loop. In this example they are set to 1330000, 0 and 0.0
+{"OrpPIDParams":[4000,0,0]}      -> respectively set Kp,Ki,Kd parameters of the Orp PID loop. In this example they are set to 2857, 0 and 0
+{"PhPIDParams":[2000000,0,0.0]}  -> respectively set Kp,Ki,Kd parameters of the Ph PID loop. In this example they are set to 1330000, 0 and 0.0
 {"OrpPIDWSize":3600000}          -> set the window size of the Orp PID loop (in msec), 60mins in this example
-{"PhPIDWSize":600000}            -> set the window size of the Ph PID loop (in msec), 20mins in this example
+{"PhPIDWSize":3600000}            -> set the window size of the Ph PID loop (in msec), 60mins in this example
 {"Date":[1,1,1,18,13,32,0]}      -> set date/time of RTC module in the following format: (Day of the month, Day of the week, Month, Year, Hour, Minute, Seconds), in this example: Monday 1st January 2018 - 13h32mn00secs
 {"FiltT0":9}                     -> set the earliest hour (9:00 in this example) to run filtration pump. Filtration pump will not run beofre that hour
 {"FiltT1":20}                    -> set the latest hour (20:00 in this example) to run filtration pump. Filtration pump will not run after that hour
@@ -94,14 +94,13 @@ https://github.com/prampec/arduino-softtimer (rev 3.1.3)
 https://github.com/bricofoy/yasm (rev 0.9.2)
 https://github.com/br3ttb/Arduino-PID-Library (rev 1.2.0)
 https://github.com/bblanchon/ArduinoJson (rev 5.13.4)
-https://github.com/arduino-libraries/LiquidCrystal (rev 1.0.7)
+https://github.com/johnrickman/LiquidCrystal_I2C (rev 1.1.2)
 https://github.com/thijse/Arduino-EEPROMEx (rev 1.0.0)
 https://github.com/sdesalas/Arduino-Queue.h (rev )
 https://github.com/Loic74650/Pump (rev 0.0.1)
 https://github.com/PaulStoffregen/Time (rev 1.5)
 https://github.com/adafruit/RTClib (rev 1.2.0)
-#include <Wire.h> 
-#include <LiquidCrystal_I2C.h>
+https://github.com/JChristensen/JC_Button (rev 2.1.1)
 
 */
 #if defined(CONTROLLINO_MAXI) //Controllino Maxi board specifics
@@ -125,6 +124,11 @@ https://github.com/adafruit/RTClib (rev 1.2.0)
   //Analog input pin connected to pressure sensor
   #define PSI_MEASURE CONTROLLINO_A9      //CONTROLLINO_A9 pin A9 on pin header connector, not on screw terminal (/!\)
 
+  //Front panel push button switch
+  #define PUSH_BUTTON_PIN  CONTROLLINO_A5   //CONTROLLINO_A5 pin A5. Connect a button switch from this pin to ground
+  #define GREEN_LED_PIN    CONTROLLINO_D0  //CONTROLLINO_D0). Digital output pin to switch ON/OFF Green LED of push button
+  #define RED_LED_PIN      CONTROLLINO_D2  //CONTROLLINO_D1). Digital output pin to switch ON/OFF Red LED of push button
+
 #else //Mega2560 board specifics
 
   #include <Wire.h>
@@ -147,7 +151,11 @@ https://github.com/adafruit/RTClib (rev 1.2.0)
   //Analog input pin connected to pressure sensor
   #define PSI_MEASURE     A7
 
-
+  //Front panel push button switch
+  #define PUSH_BUTTON_PIN  40   //Connect a button switch from this pin to ground
+  #define GREEN_LED_PIN    54  //Digital output pin to switch ON/OFF Green LED of push button
+  #define RED_LED_PIN      56  //Digital output pin to switch ON/OFF Red LED of push button
+  
 #endif
 
 #include <SPI.h>
@@ -163,7 +171,6 @@ https://github.com/adafruit/RTClib (rev 1.2.0)
 #include <PID_v1.h>
 #include <Streaming.h>
 #include <Wire.h> 
-#include <LiquidCrystal.h>
 #include <LiquidCrystal_I2C.h>
 #include <avr/wdt.h>
 #include <stdlib.h>
@@ -172,13 +179,14 @@ https://github.com/adafruit/RTClib (rev 1.2.0)
 #include <Queue.h>
 #include <Time.h>
 #include "Pump.h"
+#include <JC_Button.h>
 
 // Firmware revision
-String Firmw = "3.0.2";
+String Firmw = "3.0.3";
 
 //Version of config stored in Eeprom
 //Random value. Change this value (to any other value) to revert the config to default values
-#define CONFIG_VERSION 108
+#define CONFIG_VERSION 110
 
 //Starting point address where to store the config data in EEPROM
 #define memoryBase 32
@@ -191,6 +199,17 @@ Queue<String> queue = Queue<String>(10);
 //LCD init.
 LiquidCrystal_I2C lcd(0x27,20,4);  // set the I2C LCD address to 0x27 for a 20 chars and 4 lines display
 bool LCDToggle = true;
+
+//Front panel push button switch used to reset system errors
+//Short press to toggle between LCD screens or Long press to reset system errors (pH and Orp pumps overtime error or Pressure sensor error)
+const byte
+    bBUTTON_PIN(PUSH_BUTTON_PIN),              // connect a button switch from this pin to ground
+    bGREEN_LED_PIN(GREEN_LED_PIN),             // Connect cathode of push button green LED to this pin. /!\ select appropriate ballast resistor in series! 
+    bRED_LED_PIN(RED_LED_PIN);                 // Connect cathode of push butotn red LED to this pin. /!\ select appropriate ballast resistor in series!
+
+Button PushButton(bBUTTON_PIN);               // define the button
+bool LongPressed = false;
+bool RedPushButtonLedToggle = false;
 
 //buffers for MQTT string payload
 #define LCD_BufferLength (20*4)+1
@@ -207,7 +226,7 @@ char Payload[PayloadBufferLength];
 struct StoreStruct 
 {
     uint8_t ConfigVersion;   // This is for testing if first time using eeprom or not
-    bool Ph_RegulationOnOff, Orp_RegulationOnOff;
+    bool Ph_RegulationOnOff, Orp_RegulationOnOff, AutoMode;
     uint8_t FiltrationStart, FiltrationDuration, FiltrationStopMax, FiltrationStop, DelayPIDs;  
     unsigned long PhPumpUpTimeLimit, ChlPumpUpTimeLimit;
     unsigned long PhPIDWindowSize, OrpPIDWindowSize, PhPIDwindowStartTime, OrpPIDwindowStartTime;
@@ -216,12 +235,12 @@ struct StoreStruct
 } storage = 
 {   //default values. Change the value of CONFIG_VERSION in order to restore the default values
     CONFIG_VERSION,
-    0, 0,
+    0, 0, 1,
     8, 12, 20, 20, 59,
     1800, 1800,
-    3600000, 7200000, 0, 0,
-    7.4, 730.0, 0.5, 0.25, 10.0, 27.0, 3.0, 4.23, -2.28, -1000, 2500, 1.0, 0.0,
-    1330000.0, 0.0, 0.0, 2857.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4
+    3000000, 3600000, 0, 0,
+    7.4, 730.0, 0.5, 0.25, 10.0, 27.0, 3.0, 4.16, -2.1, -1189, 2564, 1.0, 0.0,
+    2000000.0, 0.0, 0.0, 20000.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4
 };
 
 bool PSIError = 0;
@@ -239,9 +258,6 @@ bool ChlLevelError = 0;
 //Specify the links and initial tuning parameters
 PID PhPID(&storage.PhValue, &storage.PhPIDOutput, &storage.Ph_SetPoint, storage.Ph_Kp, storage.Ph_Ki, storage.Ph_Kd, REVERSE);
 PID OrpPID(&storage.OrpValue, &storage.OrpPIDOutput, &storage.Orp_SetPoint, storage.Orp_Kp, storage.Orp_Ki, storage.Orp_Kd, DIRECT);
-
-//Filtration/regulation mode: auto (1) or manual (0)
-bool AutoMode = 0;
 
 //Filtration anti freeze mode
 bool AntiFreezeFiltering = false;
@@ -288,11 +304,12 @@ EthernetClient net;             //Ethernet client to connect to MQTT server
 MQTTClient MQTTClient;
 const char* MqttServerIP = "192.168.0.38";
 const char* MqttServerClientID = "ArduinoPool2"; // /!\ choose a client ID which is unique to this Arduino board
-const char* MqttServerLogin = "XXX";
-const char* MqttServerPwd = "XXX";
+const char* MqttServerLogin = "XXXXXXXXXX";
+const char* MqttServerPwd = "XXXXXXXXXXXX";
 const char* PoolTopic = "Home/Pool";
 const char* PoolTopicAPI = "Home/Pool/API";
 const char* PoolTopicStatus = "Home/Pool/status";
+const char* PoolTopicError = "Home/Pool/Err";
 
 //Date-Time variables for use with internal RTC (Real Time Clock) module
 char TimeBuffer[25];
@@ -322,7 +339,7 @@ Task t2(1000, OrpRegulationCallback);         //ORP regulation loop every 1 sec
 Task t3(1100, PHRegulationCallback);          //PH regulation loop every 1.1 sec
 Task t4(30000, PublishDataCallback);          //Publish data to MQTT broker every 30 secs
 Task t5(600, GenericCallback);                //Various things handled/updated in this loop every 0.6 secs
-Task t6(6000, LCDCallback);                   //Toggle between LCD screens every 6 secs
+//Task t6(6000, LCDCallback);                   //Toggle between LCD screens every 6 secs
 
 
 void setup()
@@ -352,7 +369,7 @@ void setup()
     }
       
     // set up the I2C LCD
-    lcd.init();
+    lcd.init();                      // initialize the lcd 
     lcd.backlight();
       
     //RTC Stuff (embedded battery operated clock). In case board is MEGA_2560, need to initialize the date time!
@@ -376,9 +393,12 @@ void setup()
     pinMode(FILTRATION_PUMP, OUTPUT);
     pinMode(PH_PUMP, OUTPUT);
     pinMode(CHL_PUMP, OUTPUT);
+    pinMode(GREEN_LED_PIN, OUTPUT);
+    pinMode(RED_LED_PIN, OUTPUT);
 
     pinMode(CHL_LEVEL, INPUT_PULLUP);
     pinMode(PH_LEVEL, INPUT_PULLUP);
+    pinMode(PUSH_BUTTON_PIN, INPUT_PULLUP);
 
     pinMode(ORP_MEASURE, INPUT);
     pinMode(PH_MEASURE, INPUT);
@@ -405,7 +425,11 @@ void setup()
     MQTTClient.begin(MqttServerIP, net);
     MQTTClient.onMessage(messageReceived);
     MQTTConnect();
+
    
+    //Initialize the front panel push-button object
+    PushButton.begin();              
+
     //Initialize PIDs
     storage.PhPIDwindowStartTime = millis();
     storage.OrpPIDwindowStartTime = millis();
@@ -445,7 +469,7 @@ void setup()
     SoftTimer.add(&t5);
 
     //LCD loop
-    SoftTimer.add(&t6);
+    //SoftTimer.add(&t6);
 
     //display remaining RAM space. For debug
     Serial<<F("[memCheck]: ")<<freeRam()<<F("b")<<_endl;
@@ -512,6 +536,56 @@ void GenericCallback(Task* me)
     //Update MQTT thread
     MQTTClient.loop(); 
 
+    //Read the front panel push-button
+    PushButton.read();
+
+    //If long press more than 2secs, clear system errors and switch push-button LED back to Green
+    if (PushButton.pressedFor(2000) & !LongPressed)    // if the button was released, change the LED state
+    {
+        LongPressed = true;
+        
+        if(PSIError)
+          PSIError = false;
+            
+        if(PhPump.UpTimeError) 
+          PhPump.ClearErrors();
+
+        if(ChlPump.UpTimeError) 
+          ChlPump.ClearErrors(); 
+           
+        digitalWrite(bRED_LED_PIN, false);
+        digitalWrite(bGREEN_LED_PIN, true);
+        Serial<<F("Push-Button long press. Clearing errors")<<endl;
+        MQTTClient.publish(PoolTopicError,"",true,LWMQTT_QOS1);
+
+        //start filtration pump if within scheduled time slots
+        if(storage.AutoMode && (hour() >= storage.FiltrationStart) && (hour() < storage.FiltrationStop))
+          FiltrationPump.Start();
+    }
+
+    //Button released after short press -> toggle LCD screen
+    //Button released after long press -> reset long press
+    if(PushButton.wasReleased())
+    {
+      if(LongPressed) 
+        LongPressed = false;
+      else  
+      {    
+        LCDToggle = !LCDToggle; //toggle LCD screen
+        Serial<<F("Push-Button short press. Toggling LCD screen")<<endl;
+      }
+    }
+
+    //If any error flag is true, blink Red push-button LED
+    if(PhPump.UpTimeError || ChlPump.UpTimeError || PSIError || !PhPump.TankLevel() || !ChlPump.TankLevel())
+    {
+        digitalWrite(bGREEN_LED_PIN, false);
+        RedPushButtonLedToggle = !RedPushButtonLedToggle;  
+        digitalWrite(bRED_LED_PIN, RedPushButtonLedToggle);     
+    }
+    else
+      digitalWrite(bRED_LED_PIN, false);
+
     //update pumps
     FiltrationPump.loop();
     PhPump.loop();
@@ -541,11 +615,11 @@ void GenericCallback(Task* me)
     }
 
     //start filtration pump as scheduled
-    if(AutoMode && !PSIError && (hour() == storage.FiltrationStart) && (minute() == 0))
+    if(storage.AutoMode && !PSIError && (hour() == storage.FiltrationStart) && (minute() == 0))
         FiltrationPump.Start();
         
     //start PIDs with delay after FiltrationStart in order to let the readings stabilize
-    if(AutoMode && !PhPID.GetMode() && (FiltrationPump.UpTime/1000/60 > storage.DelayPIDs) && (hour() >= storage.FiltrationStart) && (hour() < storage.FiltrationStop))
+    if(storage.AutoMode && !PhPID.GetMode() && (FiltrationPump.UpTime/1000/60 > storage.DelayPIDs) && (hour() >= storage.FiltrationStart) && (hour() < storage.FiltrationStop))
     {
         //Start PIDs
         SetPhPID(true);
@@ -553,7 +627,7 @@ void GenericCallback(Task* me)
     }
         
     //stop filtration pump and PIDs as scheduled unless we are in AntiFreeze mode
-    if(AutoMode && FiltrationPump.IsRunning() && !AntiFreezeFiltering && ((hour() == storage.FiltrationStop) && (minute() == 0)))
+    if(storage.AutoMode && FiltrationPump.IsRunning() && !AntiFreezeFiltering && ((hour() == storage.FiltrationStop) && (minute() == 0)))
     {
         SetPhPID(false);
         SetOrpPID(false);
@@ -561,14 +635,14 @@ void GenericCallback(Task* me)
     }
 
     //Outside regular filtration hours, start filtration in case of cold Air temperatures (<-2.0deg)
-    if(AutoMode && !PSIError && !FiltrationPump.IsRunning() && ((hour() < storage.FiltrationStart) || (hour() > storage.FiltrationStop)) && (storage.TempExternal<-2.0))
+    if(storage.AutoMode && !PSIError && !FiltrationPump.IsRunning() && ((hour() < storage.FiltrationStart) || (hour() > storage.FiltrationStop)) && (storage.TempExternal<-2.0))
     {
         FiltrationPump.Start();
         AntiFreezeFiltering = true;
     }
 
     //Outside regular filtration hours and if in AntiFreezeFiltering mode but Air temperature rose back above 2.0deg, stop filtration
-    if(AutoMode && FiltrationPump.IsRunning() && ((hour() < storage.FiltrationStart) || (hour() > storage.FiltrationStop)) && AntiFreezeFiltering && (storage.TempExternal>2.0))
+    if(storage.AutoMode && FiltrationPump.IsRunning() && ((hour() < storage.FiltrationStart) || (hour() > storage.FiltrationStop)) && AntiFreezeFiltering && (storage.TempExternal>2.0))
     {
         FiltrationPump.Stop(); 
         AntiFreezeFiltering = false;
@@ -579,6 +653,9 @@ void GenericCallback(Task* me)
     {
       FiltrationPump.Stop();
       PSIError = true;
+      digitalWrite(bRED_LED_PIN, true);
+      digitalWrite(bGREEN_LED_PIN, false);
+      MQTTClient.publish(PoolTopicError,"PSI Error",true,LWMQTT_QOS1);
     }
     
     //UPdate LCD
@@ -690,11 +767,12 @@ void OrpRegulationCallback(Task* me)
   }
 }
 
-//Toggle between LCD screens
+/*//Toggle between LCD screens
 void LCDCallback(Task* me)
 {
   LCDToggle = !LCDToggle;
 }
+*/
 
 //Enable/Disable Chl PID
 void SetPhPID(bool Enable)
@@ -757,7 +835,7 @@ void EncodeBitmap()
     
     BitMap2 |= (PhPID.GetMode() & 1) << 7;
     BitMap2 |= (OrpPID.GetMode() & 1) << 6;
-    BitMap2 |= (AutoMode & 1) << 5;
+    BitMap2 |= (storage.AutoMode & 1) << 5;
 }
   
 //Update temperature, Ph and Orp values
@@ -833,15 +911,15 @@ void LCDScreen1()
   uint8_t Nb = 0;
   uint8_t TNb = 0;
 
-  Nb = sprintf(p, "Rx:%3dmV       ",(int)storage.OrpValue); p += Nb; TNb += Nb; 
+  Nb = sprintf(p, "Rx:%4dmV      ",(int)storage.OrpValue); p += Nb; TNb += Nb; 
   Nb = sprintf(p, "(%3d)",(int)storage.Orp_SetPoint); p += Nb; TNb += Nb; 
   dtostrf(storage.TempValue,5,2,buff2);
-  Nb = sprintf(p, "W:%5sC",buff2); p += Nb; TNb += Nb; 
+  Nb = sprintf(p, "W:%6sC",buff2); p += Nb; TNb += Nb; 
   dtostrf(storage.TempExternal,1,1,buff2);
   sprintf(buff3, "A:%sC",buff2);
-  Nb = sprintf(p, "%12s",buff3); p += Nb; TNb += Nb; 
+  Nb = sprintf(p, "%11s",buff3); p += Nb; TNb += Nb; 
   dtostrf(storage.PhValue,4,2,buff2);
-  Nb = sprintf(p, "pH:%4s       ",buff2); p += Nb; TNb += Nb; 
+  Nb = sprintf(p, "pH:%5s      ",buff2); p += Nb; TNb += Nb; 
   dtostrf(storage.Ph_SetPoint,3,1,buff2);
   Nb = sprintf(p, " (%3s)",buff2); p += Nb; TNb += Nb; 
   dtostrf(storage.PSIValue,4,2,buff2);
@@ -850,12 +928,6 @@ void LCDScreen1()
 
   if(TNb <= sizeof(LCD_Buffer))
     lcd.print(LCD_Buffer);
-  else
-  {
-    sprintf(LCD_Buffer, "Trying to print %d chars to LCD1",TNb);
-    MQTTClient.publish("Home/Pool/Err",LCD_Buffer,true,LWMQTT_QOS1);
-    Serial<<F("Trying to print too many characters to LCD Screen1: ")<<TNb<<endl;
-  }
 }
 /*
 // Print Screen1 to the LCD.
@@ -898,7 +970,7 @@ void LCDScreen2()
   uint8_t Nb = 0;
   uint8_t TNb = 0;
   
-  Nb = sprintf(p, "Auto:%d      ",AutoMode); p += Nb; TNb += Nb;
+  Nb = sprintf(p, "Auto:%d      ",storage.AutoMode); p += Nb; TNb += Nb;
   Nb = sprintf(p, "%02d:%02d:%02d",hour(),minute(),second()); p += Nb; TNb += Nb;
   Nb = sprintf(p, "Cl pump:%2dmn  ",(int)(ChlPump.UpTime/1000/60));  p += Nb; TNb += Nb;
   Nb = sprintf(p, " Err:%d",ChlPump.UpTimeError); p += Nb; TNb += Nb;
@@ -909,12 +981,6 @@ void LCDScreen2()
 
   if(TNb <= sizeof(LCD_Buffer))
     lcd.print(LCD_Buffer);
-  else
-  {
-    sprintf(LCD_Buffer, "Trying to print %d chars to LCD2",TNb);
-    MQTTClient.publish("Home/Pool/Err",LCD_Buffer,true,LWMQTT_QOS1);
-    Serial<<F("Trying to print too many characters to LCD Screen2: ")<<TNb<<endl;
-  }
 }
 
 void ProcessCommand(String JSONCommand)
@@ -1012,7 +1078,7 @@ void ProcessCommand(String JSONCommand)
             storage.OrpCalibCoeffs1 += CalibPoints[1] - CalibPoints[0];
 
             //Set slope back to default value
-            storage.OrpCalibCoeffs0 = -1282.39;
+            storage.OrpCalibCoeffs0 = -1000;
 
             //Store the new coefficients in eeprom
             saveConfig();
@@ -1048,7 +1114,7 @@ void ProcessCommand(String JSONCommand)
         {
             if((int)command["Mode"]==0)
             {
-              AutoMode = 0;
+              storage.AutoMode = 0;
               
               //Stop PIDs
               SetPhPID(false);
@@ -1056,8 +1122,9 @@ void ProcessCommand(String JSONCommand)
             }
             else
             {
-              AutoMode = 1;
+              storage.AutoMode = 1;
             }
+            saveConfig();
         }
         else 
         if (command.containsKey("FiltPump")) //"FiltPump" command which starts or stops the filtration pump
@@ -1216,7 +1283,11 @@ void ProcessCommand(String JSONCommand)
             PhPump.ClearErrors();
 
           if(ChlPump.UpTimeError) 
-            ChlPump.ClearErrors();  
+            ChlPump.ClearErrors(); 
+
+          digitalWrite(bRED_LED_PIN, false);
+          digitalWrite(bGREEN_LED_PIN, true);
+          MQTTClient.publish(PoolTopicError,"",true,LWMQTT_QOS1);
         }
         else
         if(command.containsKey("DelayPID"))//"DelayPID" command which sets the delay from filtering start before PID loops start regulating
