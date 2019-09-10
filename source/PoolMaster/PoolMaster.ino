@@ -21,6 +21,7 @@ Also the default Kp values were adjusted for a 50m3 pool volume. You might have 
 Four main metrics are measured and periodically reported over MQTT: water temperature and pressure, PH and ORP values
 Pumps states, tank-level states and other parmaters are also periodically reported
 Two PID regulation loops are running in parallel: one for PH, one for ORP
+An additional simple on/off regulation loop is handling the water temperature (starts/stops the heating system circulator)
 PH is regulated by injecting Acid from a tank into the pool water (a relay starts/stops the Acid peristaltic pump)
 ORP is regulated by injecting Chlorine from a tank into the pool water (a relay starts/stops the Chlorine peristaltic pump)
 Defined time-slots and water temperature are used to start/stop the filtration pump for a daily given amount of time (a relay starts/stops the filtration pump) 
@@ -53,12 +54,13 @@ IO2: a variable of type BYTE where each individual bit is the state of a digital
 
 pHPID: current state of pH PID regulation loop (1=on, 0=off)
 OrpPID: current state of Orp PID regulation loop (1=on, 0=off)
-Mode: (0=manual, 1=auto)
+Mode: state of pH and Orp regulation mode (0=manual, 1=auto)
+Heat: state of water heat command (0=off, 1=on)
 
-   
 ***MQTT API***
 Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see in code below) in Json format in order to launch actions on the Arduino:
 {"Mode":1} or {"Mode":0}         -> set "Mode" to manual (0) or Auto (1). In Auto, filtration starts/stops at set times of the day 
+{"Heat":1} or {"Heat":0}         -> start/stop the regulation of the pool water temperature 
 {"FiltPump":1} or {"FiltPump":0} -> manually start/stop the filtration pump. 
 {"ChlPump":1} or {"ChlPump":0}   -> manually start/stop the Chl pump to add more Chlorine
 {"PhPump":1} or {"PhPump":0}     -> manually start/stop the Acid pump to lower the Ph
@@ -68,7 +70,7 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see in c
 {"OrpCalib":[450,465,750,784]}   -> multi-point linear regression calibration (minimum 1 point-couple, 6 max.) in the form [ProbeReading_0, BufferRating_0, xx, xx, ProbeReading_n, BufferRating_n]
 {"PhSetPoint":7.4}               -> set the Ph setpoint, 7.4 in this example
 {"OrpSetPoint":750.0}            -> set the Orp setpoint, 750mV in this example
-{"WSetPoint":27.0}               -> set the water temperature setpoint, 27.0deg in this example (for future use. Water heating not handled yet)
+{"WSetPoint":27.0}               -> set the water temperature setpoint, 27.0deg in this example
 {"WTempLow":10.0}                -> set the water low-temperature threshold below which there is no need to regulate Orp and Ph (ie. in winter)
 {"OrpPIDParams":[4000,0,0]}      -> respectively set Kp,Ki,Kd parameters of the Orp PID loop. In this example they are set to 2857, 0 and 0
 {"PhPIDParams":[2000000,0,0.0]}  -> respectively set Kp,Ki,Kd parameters of the Ph PID loop. In this example they are set to 1330000, 0 and 0.0
@@ -111,6 +113,7 @@ https://github.com/JChristensen/JC_Button (rev 2.1.1)
   #define FILTRATION_PUMP CONTROLLINO_R4  //CONTROLLINO_RELAY_4
   #define PH_PUMP    CONTROLLINO_R3       //CONTROLLINO_RELAY_3
   #define CHL_PUMP   CONTROLLINO_R5       //CONTROLLINO_RELAY_5
+  #define HEAT_ON    CONTROLLINO_R0       //CONTROLLINO_RELAY_0
   
   //Digital input pins connected to Acid and Chl tank level reed switches
   #define CHL_LEVEL  CONTROLLINO_D1       //CONTROLLINO_D1 pin 3
@@ -138,6 +141,7 @@ https://github.com/JChristensen/JC_Button (rev 2.1.1)
   #define FILTRATION_PUMP 38
   #define PH_PUMP         36
   #define CHL_PUMP        42
+  #define HEAT_ON         58
   
   //Digital input pins connected to Acid and Chl tank level reed switches
   #define CHL_LEVEL       28
@@ -182,11 +186,11 @@ https://github.com/JChristensen/JC_Button (rev 2.1.1)
 #include <JC_Button.h>
 
 // Firmware revision
-String Firmw = "3.0.3";
+String Firmw = "3.0.6";
 
 //Version of config stored in Eeprom
 //Random value. Change this value (to any other value) to revert the config to default values
-#define CONFIG_VERSION 110
+#define CONFIG_VERSION 116
 
 //Starting point address where to store the config data in EEPROM
 #define memoryBase 32
@@ -226,7 +230,7 @@ char Payload[PayloadBufferLength];
 struct StoreStruct 
 {
     uint8_t ConfigVersion;   // This is for testing if first time using eeprom or not
-    bool Ph_RegulationOnOff, Orp_RegulationOnOff, AutoMode;
+    bool Ph_RegulationOnOff, Orp_RegulationOnOff, AutoMode, WaterHeat;
     uint8_t FiltrationStart, FiltrationDuration, FiltrationStopMax, FiltrationStop, DelayPIDs;  
     unsigned long PhPumpUpTimeLimit, ChlPumpUpTimeLimit;
     unsigned long PhPIDWindowSize, OrpPIDWindowSize, PhPIDwindowStartTime, OrpPIDwindowStartTime;
@@ -235,17 +239,18 @@ struct StoreStruct
 } storage = 
 {   //default values. Change the value of CONFIG_VERSION in order to restore the default values
     CONFIG_VERSION,
-    0, 0, 1,
-    8, 12, 20, 20, 59,
+    0, 0, 1, 0,
+    8, 12, 20, 20, 120,
     1800, 1800,
-    3000000, 3600000, 0, 0,
-    7.4, 730.0, 0.5, 0.25, 10.0, 27.0, 3.0, 4.16, -2.1, -1189, 2564, 1.0, 0.0,
-    2000000.0, 0.0, 0.0, 20000.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4
+    3000000, 7200000, 0, 0,
+    7.3, 650.0, 0.5, 0.25, 10.0, 27.0, 3.0, 4.3, -2.63, -1189, 2564, 1.0, 0.0,
+    2000000.0, 0.0, 0.0, 2500.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4
 };
 
 bool PSIError = 0;
 
-//The three pumps of the system (instanciate the Pump class)
+//The four pumps of the system (instanciate the Pump class)
+Pump HeatCirculatorPump(HEAT_ON, NO_TANK, FILTRATION_PUMP);
 Pump FiltrationPump(FILTRATION_PUMP, NO_TANK, NO_INTERLOCK);
 Pump PhPump(PH_PUMP, PH_LEVEL, FILTRATION_PUMP);
 Pump ChlPump(CHL_PUMP, CHL_LEVEL, FILTRATION_PUMP);
@@ -304,8 +309,8 @@ EthernetClient net;             //Ethernet client to connect to MQTT server
 MQTTClient MQTTClient;
 const char* MqttServerIP = "192.168.0.38";
 const char* MqttServerClientID = "ArduinoPool2"; // /!\ choose a client ID which is unique to this Arduino board
-const char* MqttServerLogin = "XXXXXXXXXX";
-const char* MqttServerPwd = "XXXXXXXXXXXX";
+const char* MqttServerLogin = "XXXXX";  //replace by const char* MqttServerLogin = nullptr; in case broker does not require a login/pwd
+const char* MqttServerPwd = "XXXXX"; //replace by const char* MqttServerPwd = nullptr; in case broker does not require a login/pwd
 const char* PoolTopic = "Home/Pool";
 const char* PoolTopicAPI = "Home/Pool/API";
 const char* PoolTopicStatus = "Home/Pool/status";
@@ -332,14 +337,12 @@ void OrpRegulationCallback(Task* me);
 void PHRegulationCallback(Task* me);
 void GenericCallback(Task* me);
 void PublishDataCallback(Task* me);
-void LCDCallback(Task* me);
 
 Task t1(500, EthernetClientCallback);         //Check for Ethernet client every 0.5 secs
 Task t2(1000, OrpRegulationCallback);         //ORP regulation loop every 1 sec
 Task t3(1100, PHRegulationCallback);          //PH regulation loop every 1.1 sec
 Task t4(30000, PublishDataCallback);          //Publish data to MQTT broker every 30 secs
 Task t5(600, GenericCallback);                //Various things handled/updated in this loop every 0.6 secs
-//Task t6(6000, LCDCallback);                   //Toggle between LCD screens every 6 secs
 
 
 void setup()
@@ -395,6 +398,7 @@ void setup()
     pinMode(CHL_PUMP, OUTPUT);
     pinMode(GREEN_LED_PIN, OUTPUT);
     pinMode(RED_LED_PIN, OUTPUT);
+    pinMode(HEAT_ON, OUTPUT);
 
     pinMode(CHL_LEVEL, INPUT_PULLUP);
     pinMode(PH_LEVEL, INPUT_PULLUP);
@@ -435,6 +439,7 @@ void setup()
     storage.OrpPIDwindowStartTime = millis();
 
     //Limit the PIDs output range in order to limit max. pumps runtime (safety first...)
+    PhPID.SetSampleTime(600000);
     PhPID.SetTunings(storage.Ph_Kp, storage.Ph_Ki, storage.Ph_Kd);
     PhPID.SetOutputLimits(0, 600000);//Whatever happens, don't allow continuous injection of Acid for more than 10mins within a PID Window
     OrpPID.SetTunings(storage.Orp_Kp, storage.Orp_Ki, storage.Orp_Kd);
@@ -446,6 +451,7 @@ void setup()
 
     //Initialize pumps
     FiltrationPump.SetMaxUpTime(0); //no runtime limit for the filtration pump
+    HeatCirculatorPump.SetMaxUpTime(0); //no runtime limit for the Heating system circulator pump
     PhPump.SetMaxUpTime(storage.PhPumpUpTimeLimit*1000);
     ChlPump.SetMaxUpTime(storage.ChlPumpUpTimeLimit*1000);
 
@@ -467,9 +473,6 @@ void setup()
 
     //Generic loop
     SoftTimer.add(&t5);
-
-    //LCD loop
-    //SoftTimer.add(&t6);
 
     //display remaining RAM space. For debug
     Serial<<F("[memCheck]: ")<<freeRam()<<F("b")<<_endl;
@@ -587,6 +590,7 @@ void GenericCallback(Task* me)
       digitalWrite(bRED_LED_PIN, false);
 
     //update pumps
+    HeatCirculatorPump.loop();
     FiltrationPump.loop();
     PhPump.loop();
     ChlPump.loop();
@@ -598,6 +602,7 @@ void GenericCallback(Task* me)
     //reset time counters at midnight
     if((hour() == 0) && (minute() == 0))
     {
+      HeatCirculatorPump.ResetUpTime();
       FiltrationPump.ResetUpTime();
       PhPump.ResetUpTime();
       ChlPump.ResetUpTime(); 
@@ -624,6 +629,29 @@ void GenericCallback(Task* me)
         //Start PIDs
         SetPhPID(true);
         SetOrpPID(true);
+    }
+
+    //If water heating is desired and filtration has been running for over 5mins (so that measured water temp is accurate), open/close the HEAT_ON relay as required
+    //in order to regulate the water temp. When closing the HEAT_ON relay, my house heating system switches to a fixed water temperature mode and starts the pool water
+    //circulator in order to heat-up the heat exchanger located on the pool filtration water circuit  
+    if(storage.WaterHeat && FiltrationPump.IsRunning())
+    {
+      if(FiltrationPump.UpTime/1000/60 > 5)
+      {
+          if(storage.TempValue < (storage.WaterTemp_SetPoint - 0.2))
+          {
+            HeatCirculatorPump.Start();
+          }
+          else
+          if(storage.TempValue > (storage.WaterTemp_SetPoint + 0.2))
+          {
+            HeatCirculatorPump.Stop();
+          }
+      }
+    }
+    else
+    {
+      HeatCirculatorPump.Stop();
     }
         
     //stop filtration pump and PIDs as scheduled unless we are in AntiFreeze mode
@@ -836,6 +864,7 @@ void EncodeBitmap()
     BitMap2 |= (PhPID.GetMode() & 1) << 7;
     BitMap2 |= (OrpPID.GetMode() & 1) << 6;
     BitMap2 |= (storage.AutoMode & 1) << 5;
+    BitMap2 |= (storage.WaterHeat & 1) << 4;
 }
   
 //Update temperature, Ph and Orp values
@@ -881,7 +910,8 @@ bool loadConfig()
 {
   EEPROM.readBlock(configAdress, storage);
 
-  Serial<<storage.ConfigVersion<<", "<<storage.Ph_RegulationOnOff<<", "<<storage.Orp_RegulationOnOff<<'\n';
+  Serial<<storage.ConfigVersion<<'\n';
+  Serial<<storage.Ph_RegulationOnOff<<", "<<storage.Orp_RegulationOnOff<<", "<<storage.AutoMode<<'\n';
   Serial<<storage.FiltrationStart<<", "<<storage.FiltrationDuration<<", "<<storage.FiltrationStopMax<<", "<<storage.FiltrationStop<<", "<<storage.DelayPIDs<<'\n';  
   Serial<<storage.PhPumpUpTimeLimit<<", "<<storage.ChlPumpUpTimeLimit<<'\n';
 //  Serial<<storage.FiltrationPumpTimeCounter<<", "<<storage.PhPumpTimeCounter<<", "<<storage.ChlPumpTimeCounter<<", "<<storage.FiltrationPumpTimeCounterStart<<", "<<storage.PhPumpTimeCounterStart<<", "<<storage.ChlPumpTimeCounterStart<<'\n';
@@ -1123,6 +1153,20 @@ void ProcessCommand(String JSONCommand)
             else
             {
               storage.AutoMode = 1;
+            }
+            saveConfig();
+        }
+        else //"Heat" command which starts/stops water heating
+        if (command.containsKey("Heat"))
+        {
+            if((int)command["Heat"]==0)
+            {
+              storage.WaterHeat = false;
+              HeatCirculatorPump.Stop();   
+            }
+            else
+            {
+              storage.WaterHeat = true;
             }
             saveConfig();
         }
