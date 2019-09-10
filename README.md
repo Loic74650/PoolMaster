@@ -9,6 +9,7 @@
 <p>Four main metrics are measured and periodically reported over MQTT and an LCD display: water temperature and pressure, pH and ORP values.<br />
 Pumps states, tank-level states and other parameters are also periodically reported<br />
 Two PID regulation loops are running in parallel: one for PH, one for ORP<br />
+An additional simple (on/off) regulation loop is handling the water temperature (it starts/stops the house-heating system circulator which brings heat to a heat exchanger mounted on the pool water pipes)<br />
 pH is regulated by injecting Acid from a tank into the pool water (a relay starts/stops the Acid peristaltic pump)<br />
 ORP is regulated by injecting Chlorine from a tank into the pool water (a relay starts/stops the Chlorine peristaltic pump)<br />
 Defined time-slots and water temperature are used to start/stop the filtration pump for a daily given amount of time (a relay starts/stops the filtration pump)<br />
@@ -44,7 +45,8 @@ IO2: a variable of type BYTE where each individual bit is the state of a digital
 <ul>
 <li>pHPID: current state of pH PID regulation loop (1=on, 0=off)</li>
 <li>OrpPID: current state of Orp PID regulation loop (1=on, 0=off)</li>
-<li>Mode: (0=manual, 1=auto)</li>
+<li>Mode: state of pH and Orp regulation mode (0=manual, 1=auto)</li>
+<li>Heat: state of water heat command (0=off, 1=on)</li>
 </ul><br />
 
 
@@ -93,6 +95,7 @@ e/ the response time of ORP sensors can be fast in reference buffer solutions (1
 Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see hardcoded in code) in Json format in order to launch actions on the Arduino:<br />
 <ul>
 <li>{"Mode":1} or {"Mode":0}         -> set "Mode" to manual (0) or Auto (1). In Auto, filtration starts/stops at set times of the day and pH and Orp are regulated</li> 
+<li>{"Heat":1} or {"Heat":0}         -> start/stop the regulation of the pool water temperature</li>
 <li>{"FiltPump":1} or {"FiltPump":0} -> manually start/stop the filtration pump</li>
 <li>{"ChlPump":1} or {"ChlPump":0}   -> manually start/stop the Chl pump to add more Chlorine</li>
 <li>{"PhPump":1} or {"PhPump":0}     -> manually start/stop the Acid pump to lower the Ph</li>
