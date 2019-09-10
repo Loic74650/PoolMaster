@@ -1,4 +1,4 @@
-<h2>PoolMaster 3.0.3</h2>
+<h2>PoolMaster 3.1.0</h2>
 <h2>Arduino Mega2560/Controllino-Maxi based Ph/Orp (Chlorine) regulation system for home pools</h2>
 
 <br />
