@@ -1,5 +1,17 @@
 PoolMaster: change log
 =======================
+v3.1.0
+-------
+
+* new regulation loop to regulate the water temperature. It starts/stops the house-heating system circulator which brings heat to a heat exchanger mounted on the pool water pipes
+* new API function to switch on/off the water heating regulation loop
+
+v3.0.3
+-------
+
+* Added support for a front panel push-button with a red LED-ring. It enables toggling between LCD screens (short press) and clearing errors (long-press). When a system-error occurs (eg. empty chemical tank, low-water pressure or chemical-pump overtime) the front-panel push-button red LED-ring starts blinking, calling for attention.
+* Adjusted default PID constants
+
 v3.0.1
 -------
 

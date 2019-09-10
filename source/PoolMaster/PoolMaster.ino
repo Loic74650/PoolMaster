@@ -186,7 +186,7 @@ https://github.com/JChristensen/JC_Button (rev 2.1.1)
 #include <JC_Button.h>
 
 // Firmware revision
-String Firmw = "3.0.6";
+String Firmw = "3.1.0";
 
 //Version of config stored in Eeprom
 //Random value. Change this value (to any other value) to revert the config to default values
