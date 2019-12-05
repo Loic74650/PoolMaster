@@ -128,17 +128,17 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see hard
 <h4>Hardware</h4>
 <p>
 <ul>
-<li><a title="https://www.controllino.biz/controllino-maxi/maxi-and-maxi-pure/" href="https://www.controllino.biz/controllino-maxi/maxi-and-maxi-pure/">CONTROLLINO MAXI (ATmega2560)</a> or Arduino Mega 2560 + Ethernet shield + relay shield + RTC module</li>
-<li><a title="https://www.phidgets.com/docs/1130_User_Guide#Measuring_the_pH" href="https://www.phidgets.com/docs/1130_User_Guide#Measuring_the_pH">Phidgets PH/ORB amplifier modules</a></li> 
-<li><a title="https://www.dfrobot.com/product-1621.html" href="https://www.dfrobot.com/product-1621.html">Galvanic isolator for the pH and Orp probes</a></li> 
-<li><a title="https://www.trattamento-acque.net/dosaggio/pompe-peristaltiche/pompe-a-portata-fissa/pompa-serie-mp2-p-detail.html" href="https://www.trattamento-acque.net/dosaggio/pompe-peristaltiche/pompe-a-portata-fissa/pompa-serie-mp2-p-detail.html">Peristaltic pumps</a></li>
-<li><a title="http://electrolyseur.fr/pool-terre.html" href="http://electrolyseur.fr/pool-terre.html">Water grounding</a></li>
-<li><a title="http://electrolyseur.fr/kit-sonde-DS18B20-filtration-piscine.html" href="http://electrolyseur.fr/kit-sonde-DS18B20-filtration-piscine.html">Water temperature probe (DS18B20)</a></li>
-<li><a title="https://www.adafruit.com/product/198" href="https://www.adafruit.com/product/198">Standard LCD 20x4</a></li>
-<li><a title="https://www.adafruit.com/product/559" href="https://www.adafruit.com/product/559">Rugged front panel metal push button with red LED ring</a></li>
+<li><a title="https://www.controllino.biz/controllino-maxi/maxi-and-maxi-pure/" href="https://www.controllino.biz/controllino-maxi/maxi-and-maxi-pure/">x1 CONTROLLINO MAXI (ATmega2560)</a> or Arduino Mega 2560 + Ethernet shield + relay shield + RTC module</li>
+<li><a title="https://www.phidgets.com/?tier=3&catid=11&pcid=9&prodid=103" href="https://www.phidgets.com/?tier=3&catid=11&pcid=9&prodid=103">x2 Phidgets PH/ORB amplifier modules</a></li> 
+<li><a title="https://www.dfrobot.com/product-1621.html" href="https://www.dfrobot.com/product-1621.html">x2 Galvanic isolator for the pH and Orp probes</a></li> 
+<li><a title="https://www.trattamento-acque.net/dosaggio/pompe-peristaltiche/pompe-a-portata-fissa/pompa-serie-mp2-p-detail.html" href="https://www.trattamento-acque.net/dosaggio/pompe-peristaltiche/pompe-a-portata-fissa/pompa-serie-mp2-p-detail.html">x2 Peristaltic pumps</a></li>
+<li><a title="http://electrolyseur.fr/pool-terre.html" href="http://electrolyseur.fr/pool-terre.html">x1 Water grounding</a></li>
+<li><a title="http://electrolyseur.fr/kit-sonde-DS18B20-filtration-piscine.html" href="http://electrolyseur.fr/kit-sonde-DS18B20-filtration-piscine.html">x1 Water temperature probe (DS18B20)</a></li>
+<li><a title="https://www.amazon.com/SainSmart-Serial-Module-Shield-Arduino/dp/B0080DYTZQ" href="https://www.amazon.com/SainSmart-Serial-Module-Shield-Arduino/dp/B0080DYTZQ">x1 Standard LCD 20x4 I2C</a></li>
+<li><a title="https://www.adafruit.com/product/559" href="https://www.adafruit.com/product/559">x1 Rugged front panel metal push button with red LED ring</a></li>
 <li><a title="https://fr.aliexpress.com/item/OOTDTY-G1-4-Pouces-5-v-0-0-5-MPa-Pression-Capteur-Capteur-D-huile-Carburant/32851667666.html?transAbTest=ae803_5&ws_ab_test=searchweb0_0%2Csearchweb201602_3_10065_10068_319_10892_317_10696_10084_453_454_10083_10618_10304_10307_10820_10821_537_10302_536_10902_10843_10059_10884_10887_321_322_10103%2Csearchweb201603_57%2CppcSwitch_0&algo_pvid=2456b33d-d7ee-4515-863d-af0c6b322395&algo_expid=2456b33d-d7ee-4515-863d-af0c6b322395-20
 " href="https://fr.aliexpress.com/item/OOTDTY-G1-4-Pouces-5-v-0-0-5-MPa-Pression-Capteur-Capteur-D-huile-Carburant/32851667666.html?transAbTest=ae803_5&ws_ab_test=searchweb0_0%2Csearchweb201602_3_10065_10068_319_10892_317_10696_10084_453_454_10083_10618_10304_10307_10820_10821_537_10302_536_10902_10843_10059_10884_10887_321_322_10103%2Csearchweb201603_57%2CppcSwitch_0&algo_pvid=2456b33d-d7ee-4515-863d-af0c6b322395&algo_expid=2456b33d-d7ee-4515-863d-af0c6b322395-20
-">Pressure sensor</a></li>
+">x1 Pressure sensor</a></li>
 </ul>
 </p><br />
 
