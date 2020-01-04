@@ -1,0 +1,470 @@
+[
+    {
+        "id": "7e97e945.323d28",
+        "type": "blynk-ws-in-write",
+        "z": "f12e8a0a.1aa5c",
+        "name": "Filtration ON/OFF",
+        "pin": "3",
+        "pin_all": false,
+        "client": "52f071e8.d90a9",
+        "x": 108.00003051757812,
+        "y": 72.4285659790039,
+        "wires": [
+            [
+                "30ed05f1.2f6002"
+            ]
+        ]
+    },
+    {
+        "id": "256e3395.cfeed4",
+        "type": "mqtt out",
+        "z": "f12e8a0a.1aa5c",
+        "name": "MQTT Broker",
+        "topic": "Home/Pool/API",
+        "qos": "1",
+        "retain": "",
+        "broker": "99099cd5.b5ffa8",
+        "x": 815.2833251953125,
+        "y": 74.28333282470703,
+        "wires": []
+    },
+    {
+        "id": "30ed05f1.2f6002",
+        "type": "function",
+        "z": "f12e8a0a.1aa5c",
+        "name": "Blynk input to JSON",
+        "func": "if(msg.payload == \"0\")\n    msg.payload = {\"FiltPump\":0};\nelse\n    msg.payload = {\"FiltPump\":1};\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 513.2833251953125,
+        "y": 77.28333282470703,
+        "wires": [
+            [
+                "256e3395.cfeed4"
+            ]
+        ]
+    },
+    {
+        "id": "38290b8d.49f004",
+        "type": "mqtt in",
+        "z": "f12e8a0a.1aa5c",
+        "name": "JSON from PoolMaster",
+        "topic": "Home/Pool",
+        "qos": "1",
+        "broker": "99099cd5.b5ffa8",
+        "x": 120.28334045410156,
+        "y": 235,
+        "wires": [
+            [
+                "7573043.a3fc4fc"
+            ]
+        ]
+    },
+    {
+        "id": "7573043.a3fc4fc",
+        "type": "function",
+        "z": "f12e8a0a.1aa5c",
+        "name": "Split JSON",
+        "func": "var msgarray = msg.payload.split(',');\n\nvar msg0={};\nvar msg1={};\nvar msg2={};\nvar msg3={};\nvar msg4={};\nvar msg5={};\nvar msg6={};\nvar msg7={};\nvar msg8={};\n\nmsg0.payload = msgarray[0].split(':')[1]/100.0;//W temp\nmsg1.payload = msgarray[1].split(':')[1]/100.0;//pH\nmsg2.payload = msgarray[2].split(':')[1]/100.0;//PSI\nmsg3.payload = msgarray[3].split(':')[1];//Orp\nmsg4.payload = msgarray[4].split(':')[1]/60;//Filtration Uptime\nmsg5.payload = msgarray[5].split(':')[1]/60;//pH Uptime\nmsg6.payload = msgarray[6].split(':')[1]/60;//Chl Uptime\nmsg7.payload = msgarray[7].split(':')[1];//IO\nvar tmp = msgarray[8].split(':')[1];//IO2\nmsg8.payload = tmp.substring(0, tmp.length - 1);\n\nreturn [msg0,msg1,msg2,msg3,msg4,msg5,msg6,msg7,msg8]",
+        "outputs": 9,
+        "noerr": 0,
+        "x": 336.2833251953125,
+        "y": 235,
+        "wires": [
+            [
+                "38774502.b0601a"
+            ],
+            [
+                "56bea23a.7c276c"
+            ],
+            [],
+            [
+                "3db83c40.35dd84"
+            ],
+            [
+                "e2ed4845.8ad09"
+            ],
+            [
+                "4e9e400c.7dde1"
+            ],
+            [
+                "f7c046bf.539c3"
+            ],
+            [
+                "5bd93f79.627f98"
+            ],
+            [
+                "325f9088.8189a"
+            ]
+        ]
+    },
+    {
+        "id": "38774502.b0601a",
+        "type": "blynk-ws-out-write",
+        "z": "f12e8a0a.1aa5c",
+        "name": "Water temp",
+        "pin": "8",
+        "pinmode": 0,
+        "client": "52f071e8.d90a9",
+        "x": 562.2833251953125,
+        "y": 156.30010986328125,
+        "wires": []
+    },
+    {
+        "id": "56bea23a.7c276c",
+        "type": "blynk-ws-out-write",
+        "z": "f12e8a0a.1aa5c",
+        "name": "pH",
+        "pin": "1",
+        "pinmode": 0,
+        "client": "52f071e8.d90a9",
+        "x": 543.2833251953125,
+        "y": 193.44989013671875,
+        "wires": []
+    },
+    {
+        "id": "3db83c40.35dd84",
+        "type": "blynk-ws-out-write",
+        "z": "f12e8a0a.1aa5c",
+        "name": "Orp",
+        "pin": "2",
+        "pinmode": 0,
+        "client": "52f071e8.d90a9",
+        "x": 542.2833251953125,
+        "y": 231.2333984375,
+        "wires": []
+    },
+    {
+        "id": "e2ed4845.8ad09",
+        "type": "blynk-ws-out-write",
+        "z": "f12e8a0a.1aa5c",
+        "name": "Filt Uptime",
+        "pin": "11",
+        "pinmode": 0,
+        "client": "52f071e8.d90a9",
+        "x": 561.2833251953125,
+        "y": 269.199951171875,
+        "wires": []
+    },
+    {
+        "id": "4e9e400c.7dde1",
+        "type": "blynk-ws-out-write",
+        "z": "f12e8a0a.1aa5c",
+        "name": "pH Uptime",
+        "pin": "9",
+        "pinmode": 0,
+        "client": "52f071e8.d90a9",
+        "x": 562.2833251953125,
+        "y": 307.300048828125,
+        "wires": []
+    },
+    {
+        "id": "f7c046bf.539c3",
+        "type": "blynk-ws-out-write",
+        "z": "f12e8a0a.1aa5c",
+        "name": "Chl Uptime",
+        "pin": "10",
+        "pinmode": 0,
+        "client": "52f071e8.d90a9",
+        "x": 562.2833251953125,
+        "y": 342.933349609375,
+        "wires": []
+    },
+    {
+        "id": "5bd93f79.627f98",
+        "type": "function",
+        "z": "f12e8a0a.1aa5c",
+        "name": "Split IO mask",
+        "func": "var mask = parseInt(msg.payload, 10);\n\nvar msg0={};\nvar msg1={};\nvar msg2={};\nvar msg3={};\nvar msg4={};\nvar msg5={};\nvar msg6={};\nvar msg7={};\n\nmsg0.payload = (mask & 128) == 128 ? 1:0;\nmsg1.payload = (mask & 64) == 64 ? 1:0;\nmsg2.payload = (mask & 32) == 32 ? 1:0;\nmsg3.payload = (mask & 16) == 16 ? 1:0;\nmsg4.payload = (mask & 8) == 8 ? 1:0;\nmsg5.payload = (mask & 4) == 4 ? 1:0;\nmsg6.payload = (mask & 2) == 2 ? 1:0;\nmsg7.payload = (mask & 1) == 1 ? 1:0;\n\nreturn [msg0,msg1,msg2,msg3,msg4,msg5,msg6,msg7]",
+        "outputs": 8,
+        "noerr": 0,
+        "x": 560.2833251953125,
+        "y": 485.916748046875,
+        "wires": [
+            [
+                "939a2d4.6ad5dd"
+            ],
+            [
+                "f95f5bab.57c21"
+            ],
+            [
+                "6d173a5b.236e94"
+            ],
+            [
+                "95a1f5aa.181f8"
+            ],
+            [
+                "48143e3b.27d63"
+            ],
+            [],
+            [],
+            []
+        ]
+    },
+    {
+        "id": "939a2d4.6ad5dd",
+        "type": "function",
+        "z": "f12e8a0a.1aa5c",
+        "name": "IO/Filtration state",
+        "func": "var msg0={};\nvar msg1={};\nmsg0.payload = msg.payload;\nmsg1.payload = msg0.payload * 200;\nreturn [msg0,msg1]",
+        "outputs": 2,
+        "noerr": 0,
+        "x": 772.2833251953125,
+        "y": 386.4666748046875,
+        "wires": [
+            [
+                "77f37c21.f239dc"
+            ],
+            [
+                "f0cc0d96.0d6f08"
+            ]
+        ]
+    },
+    {
+        "id": "f0cc0d96.0d6f08",
+        "type": "blynk-ws-out-write",
+        "z": "f12e8a0a.1aa5c",
+        "name": "Filtration LED",
+        "pin": "4",
+        "pinmode": 0,
+        "client": "52f071e8.d90a9",
+        "x": 983.2833251953125,
+        "y": 395.4666748046875,
+        "wires": []
+    },
+    {
+        "id": "77f37c21.f239dc",
+        "type": "blynk-ws-out-write",
+        "z": "f12e8a0a.1aa5c",
+        "name": "Filtration button",
+        "pin": "3",
+        "pinmode": 0,
+        "client": "52f071e8.d90a9",
+        "x": 985.140380859375,
+        "y": 334.40478515625,
+        "wires": []
+    },
+    {
+        "id": "95a1f5aa.181f8",
+        "type": "function",
+        "z": "f12e8a0a.1aa5c",
+        "name": "IO/pH Level",
+        "func": "msg.payload *= 200;\nreturn msg",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 757.2833251953125,
+        "y": 550.2833251953125,
+        "wires": [
+            [
+                "b026393f.e68248"
+            ]
+        ]
+    },
+    {
+        "id": "b026393f.e68248",
+        "type": "blynk-ws-out-write",
+        "z": "f12e8a0a.1aa5c",
+        "name": "pH Level",
+        "pin": "6",
+        "pinmode": 0,
+        "client": "52f071e8.d90a9",
+        "x": 945.42626953125,
+        "y": 550.2618408203125,
+        "wires": []
+    },
+    {
+        "id": "48143e3b.27d63",
+        "type": "function",
+        "z": "f12e8a0a.1aa5c",
+        "name": "IO/Chl Level",
+        "func": "msg.payload *= 200;\nreturn msg",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 758.2833251953125,
+        "y": 600.2833251953125,
+        "wires": [
+            [
+                "7a6493f8.996ca4"
+            ]
+        ]
+    },
+    {
+        "id": "7a6493f8.996ca4",
+        "type": "blynk-ws-out-write",
+        "z": "f12e8a0a.1aa5c",
+        "name": "Chl Level",
+        "pin": "5",
+        "pinmode": 0,
+        "client": "52f071e8.d90a9",
+        "x": 947.42626953125,
+        "y": 606.2619018554688,
+        "wires": []
+    },
+    {
+        "id": "325f9088.8189a",
+        "type": "function",
+        "z": "f12e8a0a.1aa5c",
+        "name": "Split IO2 mask",
+        "func": "var mask = parseInt(msg.payload, 10);\n\nvar msg0={};\nvar msg1={};\nvar msg2={};\nvar msg3={};\nvar msg4={};\nvar msg5={};\nvar msg6={};\nvar msg7={};\n\nmsg0.payload = (mask & 128) == 128 ? 1:0;\nmsg1.payload = (mask & 64) == 64 ? 1:0;\nmsg2.payload = (mask & 32) == 32 ? 1:0;\nmsg3.payload = (mask & 16) == 16 ? 1:0;\nmsg4.payload = (mask & 8) == 8 ? 1:0;\nmsg5.payload = (mask & 4) == 4 ? 1:0;\nmsg6.payload = (mask & 2) == 2 ? 1:0;\nmsg7.payload = (mask & 1) == 1 ? 1:0;\n\nreturn [msg0,msg1,msg2,msg3,msg4,msg5,msg6,msg7]",
+        "outputs": 8,
+        "noerr": 0,
+        "x": 559.2833251953125,
+        "y": 682.2833251953125,
+        "wires": [
+            [],
+            [],
+            [
+                "b4abd66a.56e1a8"
+            ],
+            [],
+            [],
+            [],
+            [],
+            []
+        ]
+    },
+    {
+        "id": "b4abd66a.56e1a8",
+        "type": "function",
+        "z": "f12e8a0a.1aa5c",
+        "name": "IO2/Mode",
+        "func": "var mode = parseInt(msg.payload, 10);\nmsg.payload = mode == 1 ? \"Auto\":\"Manu\";\nreturn msg",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 752.2833404541016,
+        "y": 663.283332824707,
+        "wires": [
+            [
+                "9c15d2fb.b2d098"
+            ]
+        ]
+    },
+    {
+        "id": "9c15d2fb.b2d098",
+        "type": "blynk-ws-out-write",
+        "z": "f12e8a0a.1aa5c",
+        "name": "Mode Label",
+        "pin": "7",
+        "pinmode": 0,
+        "client": "52f071e8.d90a9",
+        "x": 935.2833404541016,
+        "y": 663.283332824707,
+        "wires": []
+    },
+    {
+        "id": "15aec74d.728d41",
+        "type": "blynk-ws-out-write",
+        "z": "f12e8a0a.1aa5c",
+        "name": "pH-Pump",
+        "pin": "20",
+        "pinmode": 0,
+        "client": "52f071e8.d90a9",
+        "x": 945.2833251953125,
+        "y": 448.2833251953125,
+        "wires": []
+    },
+    {
+        "id": "63aa237f.b2f42c",
+        "type": "blynk-ws-out-write",
+        "z": "f12e8a0a.1aa5c",
+        "name": "Chl-Pump",
+        "pin": "19",
+        "pinmode": 0,
+        "client": "52f071e8.d90a9",
+        "x": 944.2833251953125,
+        "y": 502.2833251953125,
+        "wires": []
+    },
+    {
+        "id": "f95f5bab.57c21",
+        "type": "function",
+        "z": "f12e8a0a.1aa5c",
+        "name": "pH Pump state",
+        "func": "msg.payload *= 200;\nreturn msg",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 779,
+        "y": 449.5,
+        "wires": [
+            [
+                "15aec74d.728d41",
+                "7cb80247.4ddd4c"
+            ]
+        ]
+    },
+    {
+        "id": "6d173a5b.236e94",
+        "type": "function",
+        "z": "f12e8a0a.1aa5c",
+        "name": "Chl Pump state",
+        "func": "msg.payload *= 200;\nreturn msg",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 776,
+        "y": 493.5,
+        "wires": [
+            [
+                "63aa237f.b2f42c"
+            ]
+        ]
+    },
+    {
+        "id": "7cb80247.4ddd4c",
+        "type": "debug",
+        "z": "f12e8a0a.1aa5c",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "x": 1132,
+        "y": 448,
+        "wires": []
+    },
+    {
+        "id": "52f071e8.d90a9",
+        "type": "blynk-ws-client",
+        "z": "",
+        "name": "Blynk Cloud",
+        "path": "ws://blynk-cloud.com/websockets",
+        "key": "xxxxxxxxxxxxxxxxxxx",
+        "dbg_all": true,
+        "dbg_read": false,
+        "dbg_write": false,
+        "dbg_notify": false,
+        "dbg_mail": false,
+        "dbg_prop": false,
+        "dbg_sync": false,
+        "dbg_bridge": false,
+        "dbg_low": false,
+        "dbg_pins": "",
+        "multi_cmd": true,
+        "proxy_type": "no",
+        "proxy_url": "",
+        "enabled": true
+    },
+    {
+        "id": "99099cd5.b5ffa8",
+        "type": "mqtt-broker",
+        "z": "",
+        "name": "Local Broker",
+        "broker": "192.168.0.xx",
+        "port": "1883",
+        "clientid": "XXXXXX",
+        "usetls": false,
+        "compatmode": true,
+        "keepalive": "60",
+        "cleansession": true,
+        "birthTopic": "Home/NodeRed",
+        "birthQos": "1",
+        "birthRetain": "true",
+        "birthPayload": "online",
+        "closeTopic": "",
+        "closePayload": "",
+        "willTopic": "Home/NodeRed",
+        "willQos": "0",
+        "willRetain": "true",
+        "willPayload": "offline"
+    }
+]
