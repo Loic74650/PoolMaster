@@ -144,7 +144,7 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see hard
 
 <h4>Wiring</h4>
 <p>
-Below is a (quick and dirty) wiring diagram with the Controllino MAXI. right click and display image in full screen to see the details.
+Below is a (quick and dirty) wiring diagram with the Controllino MAXI. Right click and display image in full screen to see the details.
 <p align="center"> <img src="/docs/Wiring.jpg" width="702" title="Wiring"> </p> <br />
 </p>
 
