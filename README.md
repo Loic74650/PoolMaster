@@ -142,6 +142,12 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see hard
 </ul>
 </p><br />
 
+<h4>Wiring</h4>
+<p>
+Below is a (sketchy) wiring diagram. right click and display image in full screen to see the details.
+<p align="center"> <img src="/docs/Wiring.jpg" width="702" title="Wiring"> </p> <br />
+</p>
+
 <h4>Cloud integration example (<a title="https://blynk.io/" href="https://blynk.io/">BLYNK</a>)</h4>
 <p>
 See NodeRed folder for more info and code
