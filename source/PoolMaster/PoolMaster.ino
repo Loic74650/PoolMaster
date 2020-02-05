@@ -1,6 +1,6 @@
 /*
 Arduino/Controllino-Maxi/ATmega2560 based Ph/ORP regulator for home pool sysem
-(c) Loic74 <loic74650@gmail.com> 2018-2019
+(c) Loic74 <loic74650@gmail.com> 2018-2020
 
 ***how to compile***
 - select the target board type in the Arduino IDE (either "Arduino Mega 2560" or "Controllino Maxi")
@@ -186,7 +186,7 @@ https://github.com/JChristensen/JC_Button (rev 2.1.1)
 #include <JC_Button.h>
 
 // Firmware revision
-String Firmw = "3.1.0";
+String Firmw = "3.1.1";
 
 //Version of config stored in Eeprom
 //Random value. Change this value (to any other value) to revert the config to default values
@@ -250,10 +250,12 @@ struct StoreStruct
 bool PSIError = 0;
 
 //The four pumps of the system (instanciate the Pump class)
-Pump HeatCirculatorPump(HEAT_ON, NO_TANK, FILTRATION_PUMP);
-Pump FiltrationPump(FILTRATION_PUMP, NO_TANK, NO_INTERLOCK);
-Pump PhPump(PH_PUMP, PH_LEVEL, FILTRATION_PUMP);
-Pump ChlPump(CHL_PUMP, CHL_LEVEL, FILTRATION_PUMP);
+//In this case, all pumps start/Stop are managed by the Arduino relays
+//In the case of the filtration pump not being managed by the Arduino, the two first pin parameters "FILTRATION_PUMP" might differ (see Pump class for more details)
+Pump HeatCirculatorPump(HEAT_ON, HEAT_ON, NO_TANK, FILTRATION_PUMP);
+Pump FiltrationPump(FILTRATION_PUMP, FILTRATION_PUMP, NO_TANK, NO_INTERLOCK);
+Pump PhPump(PH_PUMP, PH_PUMP, PH_LEVEL, FILTRATION_PUMP);
+Pump ChlPump(CHL_PUMP, CHL_PUMP, CHL_LEVEL, FILTRATION_PUMP);
 
 //Tank level error flags
 bool PhLevelError = 0;
@@ -295,11 +297,11 @@ RunningMedian samples_Orp = RunningMedian(10);
 RunningMedian samples_PSI = RunningMedian(3);
 
 //MAC Address of DS18b20 water temperature sensor
-DeviceAddress DS18b20_0 = { 0x28, 0x92, 0x25, 0x41, 0x0A, 0x00, 0x00, 0xEE };
+DeviceAddress DS18b20_0 = { 0x28, 0x92, 0x25, 0x41, 0x0A, 0x00, 0x00, 0xEE } -> change to your unique sensor address!; 
 String sDS18b20_0;
                                                  
 // MAC address of Ethernet shield (in case of Controllino board, set an arbitrary MAC address)
-byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED }-> change to your unique sensor address!;
 String sArduinoMac;
 IPAddress ip(192, 168, 0, 21);  //IP address, needs to be adapted depending on local network topology
 EthernetServer server(80);      //Create a server at port 80
@@ -309,8 +311,8 @@ EthernetClient net;             //Ethernet client to connect to MQTT server
 MQTTClient MQTTClient;
 const char* MqttServerIP = "192.168.0.38";
 const char* MqttServerClientID = "ArduinoPool2"; // /!\ choose a client ID which is unique to this Arduino board
-const char* MqttServerLogin = "XXXXX";  //replace by const char* MqttServerLogin = nullptr; in case broker does not require a login/pwd
-const char* MqttServerPwd = "XXXXX"; //replace by const char* MqttServerPwd = nullptr; in case broker does not require a login/pwd
+const char* MqttServerLogin = "admin";  //replace by const char* MqttServerLogin = nullptr; in case broker does not require a login/pwd
+const char* MqttServerPwd = "XXXXXXX"; //replace by const char* MqttServerPwd = nullptr; in case broker does not require a login/pwd
 const char* PoolTopic = "Home/Pool";
 const char* PoolTopicAPI = "Home/Pool/API";
 const char* PoolTopicStatus = "Home/Pool/status";
