@@ -186,7 +186,7 @@ https://github.com/JChristensen/JC_Button (rev 2.1.1)
 #include <JC_Button.h>
 
 // Firmware revision
-String Firmw = "3.1.1";
+String Firmw = "3.1.2";
 
 //Version of config stored in Eeprom
 //Random value. Change this value (to any other value) to revert the config to default values
@@ -754,7 +754,7 @@ void PHRegulationCallback(Task* me)
 {
  //do not compute PID if filtration pump is not running
  //because if Ki was non-zero that would let the OutputError increase
- if(FiltrationPump.IsRunning())
+ if(FiltrationPump.IsRunning() && (PhPID.GetMode() == AUTOMATIC))
   {
     PhPID.Compute(); 
   
@@ -778,7 +778,7 @@ void OrpRegulationCallback(Task* me)
 {
   //do not compute PID if filtration pump is not running
   //because if Ki was non-zero that would let the OutputError increase
-  if(FiltrationPump.IsRunning())
+  if(FiltrationPump.IsRunning() && (OrpPID.GetMode() == AUTOMATIC))
   {
     OrpPID.Compute(); 
   
