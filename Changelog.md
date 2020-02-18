@@ -1,5 +1,10 @@
 PoolMaster: change log
 =======================
+v3.1.2
+-------
+
+* fixed bug preventing from operating the pH and Orp pumps manually when MODE was in MANUAL mode
+
 v3.1.0
 -------
 
