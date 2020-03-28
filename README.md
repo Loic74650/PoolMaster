@@ -4,6 +4,9 @@
 <br />
 <p align="center"> <img src="/docs/PoolMaster_2.jpg" width="802" title="Overview"> </p> <br /><br />
 
+<br />
+<p align="center"> <img src="/docs/Grafana.png" width="802" title="Dashboard"> </p> <br /><br />
+
 <h4>Brief description</h4>
 	
 <p>Four main metrics are measured and periodically reported over MQTT and an LCD display: water temperature and pressure, pH and ORP values.<br />
@@ -153,6 +156,11 @@ Below is a (quick and dirty) wiring diagram with the Controllino MAXI. Right cli
 See NodeRed folder for more info and code
 <p align="center"> <img src="/docs/Blynk2.jpg" width="302" title="Blynk"> </p> <br />
 <p align="center"> <img src="/NodeRed/NodeRed-to-Blynk.jpg" width="702" title="Blynk"> </p> <br />
+</p>
+
+<h4>Non-cloud home automation integration example (Node-Red + InfluxDB + Grafana)</h4>
+<p>
+<p align="center"> <img src="/docs/Grafana.png" width="702" title="Overview"> </p> <br />
 </p>
 
 <h4>Non-cloud home automation integration example (<a title="https://www.jeedom.com" href="https://www.jeedom.com">JEEDOM</a>)</h4>
