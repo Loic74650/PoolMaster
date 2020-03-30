@@ -52,11 +52,11 @@ IO2: a variable of type BYTE where each individual bit is the state of a digital
 <li>Mode: state of pH and Orp regulation mode (0=manual, 1=auto)</li>
 <li>Heat: state of water heat command (0=off, 1=on)</li>
 </ul><br />
-pHSP: pH set point stored in Eeprom<br />
-OrpSP: Orp set point stored in Eeprom<br />
-WSP: Water temperature stored in Eeprom<br />
-AcidF: percentage fill estimate of acid tank ("pHTank" function must have been called when a new acid tank was set in place in order to have accurate value)<br />
-ChlF: percentage fill estimate of Chlorine tank ("ChlTank" function must have been called when a new Chlorine tank was set in place in order to have accurate value)<br />
+pHSP: pH set point stored in Eeprom x100 (7.40 in the above example payload)<br />
+OrpSP: Orp set point stored in Eeprom in mV (750mV in the above example payload)<br />
+WSP: Water temperature stored in Eeprom in °C x100 (29.00°C in the above example payload)<br />
+AcidF: percentage fill estimate of acid tank, 100% in the above example payload ("pHTank" function must have been called when a new acid tank was set in place in order to have accurate value)<br />
+ChlF: percentage fill estimate of Chlorine tank, 100% in the above example payload ("ChlTank" function must have been called when a new Chlorine tank was set in place in order to have accurate value)<br />
 
 <h4>How to compile</h4>
 <p>
