@@ -93,7 +93,7 @@ e/ the response time of ORP sensors can be fast in reference buffer solutions (1
 
 <p align="center"> <img src="/docs/PoolMaster.jpg" width="702" title="Overview"> </p> <br /><br />
 <p align="center"> <img src="/docs/PoolMasterBox_pf.jpg" width="702" title="Overview"> </p> <br /><br />
-<p align="center"> <img src="/docs/LCD_Screens.jpg" width="702" title="Overview"> </p> <br />
+<p align="center"> <img src="/docs/LCD_Screens2.jpg" width="702" title="Overview"> </p> <br />
 <p align="center"> <img src="/docs/Web.jpg" width="702" title="Overview"> </p> <br /><br />
 <p align="center"> <img src="/docs/WebXML.jpg" width="702" title="Overview"> </p> <br />
 
