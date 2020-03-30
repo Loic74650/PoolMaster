@@ -51,12 +51,15 @@
         "name": "JSON from PoolMaster",
         "topic": "Home/Pool",
         "qos": "1",
+        "datatype": "json",
         "broker": "99099cd5.b5ffa8",
         "x": 120.28334045410156,
         "y": 235,
         "wires": [
             [
-                "7573043.a3fc4fc"
+                "7573043.a3fc4fc",
+                "58bd9ea8.646dd",
+                "6679fce8.af4b5c"
             ]
         ]
     },
@@ -65,7 +68,7 @@
         "type": "function",
         "z": "f12e8a0a.1aa5c",
         "name": "Split JSON",
-        "func": "var msgarray = msg.payload.split(',');\n\nvar msg0={};\nvar msg1={};\nvar msg2={};\nvar msg3={};\nvar msg4={};\nvar msg5={};\nvar msg6={};\nvar msg7={};\nvar msg8={};\n\nmsg0.payload = msgarray[0].split(':')[1]/100.0;//W temp\nmsg1.payload = msgarray[1].split(':')[1]/100.0;//pH\nmsg2.payload = msgarray[2].split(':')[1]/100.0;//PSI\nmsg3.payload = msgarray[3].split(':')[1];//Orp\nmsg4.payload = msgarray[4].split(':')[1]/60;//Filtration Uptime\nmsg5.payload = msgarray[5].split(':')[1]/60;//pH Uptime\nmsg6.payload = msgarray[6].split(':')[1]/60;//Chl Uptime\nmsg7.payload = msgarray[7].split(':')[1];//IO\nvar tmp = msgarray[8].split(':')[1];//IO2\nmsg8.payload = tmp.substring(0, tmp.length - 1);\n\nreturn [msg0,msg1,msg2,msg3,msg4,msg5,msg6,msg7,msg8]",
+        "func": "if(typeof msg.payload.Tmp !== 'undefined')\n{\n    var msg0={};\n    var msg1={};\n    var msg2={};\n    var msg3={};\n    var msg4={};\n    var msg5={};\n    var msg6={};\n    var msg7={};\n    var msg8={};\n    \n    msg0.payload = msg.payload.Tmp/100.0;//W temp\n    msg1.payload = msg.payload.pH/100.0;//pH\n    msg2.payload = msg.payload.PSI/100.0;//PSI\n    msg3.payload = msg.payload.Orp;//Orp\n    msg4.payload = msg.payload.FilUpT/60.0;//Filtration Uptime\n    msg5.payload = msg.payload.pHUpT/60.0;//pH Uptime\n    msg6.payload = msg.payload.ChlUpT/60.0;//Chl Uptime\n    msg7.payload = msg.payload.IO;//IO\n    msg8.payload = msg.payload.IO2;//IO2;\n    \n    return [msg0,msg1,msg2,msg3,msg4,msg5,msg6,msg7,msg8]\n}\n\n",
         "outputs": 9,
         "noerr": 0,
         "x": 336.2833251953125,
@@ -175,7 +178,7 @@
         "type": "function",
         "z": "f12e8a0a.1aa5c",
         "name": "Split IO mask",
-        "func": "var mask = parseInt(msg.payload, 10);\n\nvar msg0={};\nvar msg1={};\nvar msg2={};\nvar msg3={};\nvar msg4={};\nvar msg5={};\nvar msg6={};\nvar msg7={};\n\nmsg0.payload = (mask & 128) == 128 ? 1:0;\nmsg1.payload = (mask & 64) == 64 ? 1:0;\nmsg2.payload = (mask & 32) == 32 ? 1:0;\nmsg3.payload = (mask & 16) == 16 ? 1:0;\nmsg4.payload = (mask & 8) == 8 ? 1:0;\nmsg5.payload = (mask & 4) == 4 ? 1:0;\nmsg6.payload = (mask & 2) == 2 ? 1:0;\nmsg7.payload = (mask & 1) == 1 ? 1:0;\n\nreturn [msg0,msg1,msg2,msg3,msg4,msg5,msg6,msg7]",
+        "func": "var mask = msg.payload;\n\nvar msg0={};\nvar msg1={};\nvar msg2={};\nvar msg3={};\nvar msg4={};\nvar msg5={};\nvar msg6={};\nvar msg7={};\n\nmsg0.payload = (mask >> 7) & 1;\nmsg1.payload = (mask >> 6) & 1;\nmsg2.payload = (mask >> 5) & 1;\nmsg3.payload = (mask >> 4) & 1;\nmsg4.payload = (mask >> 3) & 1;\nmsg5.payload = (mask >> 2) & 1;\nmsg6.payload = (mask >> 1) & 1;\nmsg7.payload = (mask >> 0) & 1;\n\nreturn [msg0,msg1,msg2,msg3,msg4,msg5,msg6,msg7]",
         "outputs": 8,
         "noerr": 0,
         "x": 560.2833251953125,
@@ -305,7 +308,7 @@
         "type": "function",
         "z": "f12e8a0a.1aa5c",
         "name": "Split IO2 mask",
-        "func": "var mask = parseInt(msg.payload, 10);\n\nvar msg0={};\nvar msg1={};\nvar msg2={};\nvar msg3={};\nvar msg4={};\nvar msg5={};\nvar msg6={};\nvar msg7={};\n\nmsg0.payload = (mask & 128) == 128 ? 1:0;\nmsg1.payload = (mask & 64) == 64 ? 1:0;\nmsg2.payload = (mask & 32) == 32 ? 1:0;\nmsg3.payload = (mask & 16) == 16 ? 1:0;\nmsg4.payload = (mask & 8) == 8 ? 1:0;\nmsg5.payload = (mask & 4) == 4 ? 1:0;\nmsg6.payload = (mask & 2) == 2 ? 1:0;\nmsg7.payload = (mask & 1) == 1 ? 1:0;\n\nreturn [msg0,msg1,msg2,msg3,msg4,msg5,msg6,msg7]",
+        "func": "var mask = msg.payload;\n\nvar msg0={};\nvar msg1={};\nvar msg2={};\nvar msg3={};\nvar msg4={};\nvar msg5={};\nvar msg6={};\nvar msg7={};\n\nmsg0.payload = (mask >> 7) & 1;\nmsg1.payload = (mask >> 6) & 1;\nmsg2.payload = (mask >> 5) & 1;\nmsg3.payload = (mask >> 4) & 1;\nmsg4.payload = (mask >> 3) & 1;\nmsg5.payload = (mask >> 2) & 1;\nmsg6.payload = (mask >> 1) & 1;\nmsg7.payload = (mask >> 0) & 1;\n\nreturn [msg0,msg1,msg2,msg3,msg4,msg5,msg6,msg7]",
         "outputs": 8,
         "noerr": 0,
         "x": 559.2833251953125,
@@ -423,12 +426,70 @@
         "wires": []
     },
     {
+        "id": "ad612c0a.14cbd",
+        "type": "influxdb out",
+        "z": "f12e8a0a.1aa5c",
+        "influxdb": "45a93ed5.79a518",
+        "name": "PoolMaster",
+        "measurement": "PoolMaster",
+        "precision": "",
+        "retentionPolicy": "",
+        "x": 626.255615234375,
+        "y": 824.5166015625,
+        "wires": []
+    },
+    {
+        "id": "8b8f8000.a3e598",
+        "type": "debug",
+        "z": "f12e8a0a.1aa5c",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "x": 618.0333862304688,
+        "y": 875.1277465820312,
+        "wires": []
+    },
+    {
+        "id": "58bd9ea8.646dd",
+        "type": "function",
+        "z": "f12e8a0a.1aa5c",
+        "name": "Decode MySensor Message",
+        "func": "if(typeof msg.payload.IO !== 'undefined')\n{\n    var mask = msg.payload.IO;\n    var mask2 = msg.payload.IO2;\n    \n    msg.payload.FiltState = (mask >> 7) & 1;\n    msg.payload.pHPumpState = (mask >> 6) & 1;\n    msg.payload.ChlPumpState = (mask >> 5) & 1;\n    msg.payload.pHLevel = (mask >> 4) & 1;\n    msg.payload.ChlLevel = (mask >> 3) & 1;\n    msg.payload.PSIError = (mask >> 2) & 1;\n    msg.payload.pHPumpUpTimeErr = (mask >> 1) & 1;\n    msg.payload.ChlPumpUpTimeErr = (mask >> 0) & 1;\n    \n    msg.payload.pHPIDMode = (mask2 >> 7) & 1;\n    msg.payload.ChlPIDMode = (mask2 >> 6) & 1;\n    msg.payload.AutoMode = (mask2 >> 5) & 1;\n    msg.payload.WaterHeat = (mask2 >> 4) & 1;\n}\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 403.1444091796875,
+        "y": 824.4054565429688,
+        "wires": [
+            [
+                "8b8f8000.a3e598",
+                "ad612c0a.14cbd"
+            ]
+        ]
+    },
+    {
+        "id": "6679fce8.af4b5c",
+        "type": "debug",
+        "z": "f12e8a0a.1aa5c",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "x": 337.5,
+        "y": 341.875,
+        "wires": []
+    },
+    {
         "id": "52f071e8.d90a9",
         "type": "blynk-ws-client",
         "z": "",
         "name": "Blynk Cloud",
         "path": "ws://blynk-cloud.com/websockets",
-        "key": "xxxxxxxxxxxxxxxxxxx",
+        "key": "cca39e78c5494531a626615644be4b9a",
         "dbg_all": true,
         "dbg_read": false,
         "dbg_write": false,
@@ -449,9 +510,9 @@
         "type": "mqtt-broker",
         "z": "",
         "name": "Local Broker",
-        "broker": "192.168.0.xx",
+        "broker": "192.168.0.38",
         "port": "1883",
-        "clientid": "XXXXXX",
+        "clientid": "CharNodeRed",
         "usetls": false,
         "compatmode": true,
         "keepalive": "60",
@@ -466,5 +527,17 @@
         "willQos": "0",
         "willRetain": "true",
         "willPayload": "offline"
+    },
+    {
+        "id": "45a93ed5.79a518",
+        "type": "influxdb",
+        "z": "",
+        "hostname": "127.0.0.1",
+        "port": "8086",
+        "protocol": "http",
+        "database": "POOL",
+        "name": "Pool",
+        "usetls": false,
+        "tls": ""
     }
 ]
