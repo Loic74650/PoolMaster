@@ -19,7 +19,7 @@ Also the default Kp values were adjusted for a 50m3 pool volume. You might have 
 
 ***Brief description:***
 Four main metrics are measured and periodically reported over MQTT: water temperature and pressure, PH and ORP values
-Pumps states, tank-level states and other parmaters are also periodically reported
+Pumps states, tank-level estimates and other parmaters are also periodically reported
 Two PID regulation loops are running in parallel: one for PH, one for ORP
 An additional simple on/off regulation loop is handling the water temperature (starts/stops the heating system circulator)
 PH is regulated by injecting Acid from a tank into the pool water (a relay starts/stops the Acid peristaltic pump)
@@ -31,6 +31,7 @@ Communication with the system is performed using the MQTT protocol over an Ether
 Every 30 seconds (by default), the system will publish on the "PoolTopic" (see in code below) the following payloads in Json format:
 
 {"Tmp":818,"pH":321,"PSI":56,"Orp":583,"FilUpT":8995,"PhUpT":0,"ChlUpT":0,"IO":11,"IO2":0}
+{"pHSP":740,"OrpSP":750,"WSP":2900,"AcidF":100,"ChlF":100}
 
 Tmp: measured Water temperature value in °C x100 (8.18°C in the above example payload)
 pH: measured pH value x100 (3.21 in the above example payload)
@@ -41,21 +42,28 @@ PhUpT: current running time of Ph pump in seconds (reset every 24h. 0secs in the
 ChlUpT: current running time of Chl pump in seconds (reset every 24h. 0secs in the above example payload)
 IO: a variable of type BYTE where each individual bit is the state of a digital input on the Arduino. These are :
 
-FiltPump: current state of Filtration Pump (0=on, 1=off)
-PhPump: current state of Ph Pump (0=on, 1=off)
-ChlPump: current state of Chl Pump (0=on, 1=off)
-PhlLevel: current state of Acid tank level (0=empty, 1=ok)
-ChlLevel: current state of Chl tank level (0=empty, 1=ok)
-PSIError: over-pressure error
-pHErr: pH pump overtime error flag
-ChlErr: Chl pump overtime error flag
+    FiltPump: current state of Filtration Pump (0=on, 1=off)
+    PhPump: current state of Ph Pump (0=on, 1=off)
+    ChlPump: current state of Chl Pump (0=on, 1=off)
+    PhlLevel: current state of Acid tank level (0=empty, 1=ok)
+    ChlLevel: current state of Chl tank level (0=empty, 1=ok)
+    PSIError: over-pressure error
+    pHErr: pH pump overtime error flag
+    ChlErr: Chl pump overtime error flag
 
 IO2: a variable of type BYTE where each individual bit is the state of a digital input on the Arduino. These are :
 
-pHPID: current state of pH PID regulation loop (1=on, 0=off)
-OrpPID: current state of Orp PID regulation loop (1=on, 0=off)
-Mode: state of pH and Orp regulation mode (0=manual, 1=auto)
-Heat: state of water heat command (0=off, 1=on)
+    pHPID: current state of pH PID regulation loop (1=on, 0=off)
+    OrpPID: current state of Orp PID regulation loop (1=on, 0=off)
+    Mode: state of pH and Orp regulation mode (0=manual, 1=auto)
+    Heat: state of water heat command (0=off, 1=on)
+
+pHSP: pH set point stored in Eeprom
+OrpSP: Orp set point stored in Eeprom
+WSP: Water temperature stored in Eeprom
+AcidF: percentage fill estimate of acid tank ("pHTank" function must have been called when a new acid tank was set in place in order to have accurate value)
+ChlF: percentage fill estimate of Chlorine tank ("ChlTank" function must have been called when a new Chlorine tank was set in place in order to have accurate value)
+
 
 ***MQTT API***
 Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see in code below) in Json format in order to launch actions on the Arduino:
@@ -85,6 +93,8 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see in c
 {"DelayPID":60}                  -> Delay (in mins) after FiltT0 before the PID regulation loops will start. This is to let the Orp and pH readings stabilize first. 30mins in this example. Should not be > 59mins
 {"TempExt":4.2}                  -> Provide the external temperature. Should be updated regularly and will be used to start filtration when outside air temperature is <-2.0deg. 4.2deg in this example
 {"PSIHigh":1.0}                  -> set the water high-pressure threshold (1.0bar in this example). When water pressure is over that threshold, an error flag is set.
+{"pHTank":[20,100]}              -> call this function when the Acid tank is replaced or refilled. First parameter is the tank volume, second parameter is its percentage fill (100% when full)
+{"ChlTank":[20,100]}             -> call this function when the Chlorine tank is replaced or refilled. First parameter is the tank volume, second parameter is its percentage fill (100% when full)
 
 ***Dependencies and respective revisions used to compile this project***
 https://github.com/256dpi/arduino-mqtt/releases (rev 2.4.3)
@@ -105,6 +115,7 @@ https://github.com/adafruit/RTClib (rev 1.2.0)
 https://github.com/JChristensen/JC_Button (rev 2.1.1)
 
 */
+
 #if defined(CONTROLLINO_MAXI) //Controllino Maxi board specifics
 
   #include <Controllino.h>
@@ -186,11 +197,11 @@ https://github.com/JChristensen/JC_Button (rev 2.1.1)
 #include <JC_Button.h>
 
 // Firmware revision
-String Firmw = "3.1.2";
+String Firmw = "4.0.0";
 
 //Version of config stored in Eeprom
 //Random value. Change this value (to any other value) to revert the config to default values
-#define CONFIG_VERSION 116
+#define CONFIG_VERSION 120
 
 //Starting point address where to store the config data in EEPROM
 #define memoryBase 32
@@ -236,6 +247,7 @@ struct StoreStruct
     unsigned long PhPIDWindowSize, OrpPIDWindowSize, PhPIDwindowStartTime, OrpPIDwindowStartTime;
     double Ph_SetPoint, Orp_SetPoint, PSI_HighThreshold, PSI_MedThreshold, WaterTempLowThreshold, WaterTemp_SetPoint, TempExternal, pHCalibCoeffs0, pHCalibCoeffs1, OrpCalibCoeffs0, OrpCalibCoeffs1, PSICalibCoeffs0, PSICalibCoeffs1;
     double Ph_Kp, Ph_Ki, Ph_Kd, Orp_Kp, Orp_Ki, Orp_Kd, PhPIDOutput, OrpPIDOutput, TempValue, PhValue, OrpValue, PSIValue;
+    double AcidFill, ChlFill, pHTankVol, ChlTankVol, pHPumpFR, ChlPumpFR;
 } storage = 
 {   //default values. Change the value of CONFIG_VERSION in order to restore the default values
     CONFIG_VERSION,
@@ -243,8 +255,9 @@ struct StoreStruct
     8, 12, 20, 20, 120,
     1800, 1800,
     3000000, 7200000, 0, 0,
-    7.3, 650.0, 0.5, 0.25, 10.0, 27.0, 3.0, 4.3, -2.63, -1189, 2564, 1.0, 0.0,
-    2000000.0, 0.0, 0.0, 2500.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4
+    7.3, 750.0, 0.5, 0.25, 10.0, 27.0, 3.0, 4.3, -2.63, -1189, 2564, 1.0, 0.0,
+    2000000.0, 0.0, 0.0, 2500.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4,
+    100.0, 100.0, 20.0, 20.0, 1.5, 3.0
 };
 
 bool PSIError = 0;
@@ -252,10 +265,10 @@ bool PSIError = 0;
 //The four pumps of the system (instanciate the Pump class)
 //In this case, all pumps start/Stop are managed by the Arduino relays
 //In the case of the filtration pump not being managed by the Arduino, the two first pin parameters "FILTRATION_PUMP" might differ (see Pump class for more details)
-Pump HeatCirculatorPump(HEAT_ON, HEAT_ON, NO_TANK, FILTRATION_PUMP);
-Pump FiltrationPump(FILTRATION_PUMP, FILTRATION_PUMP, NO_TANK, NO_INTERLOCK);
-Pump PhPump(PH_PUMP, PH_PUMP, PH_LEVEL, FILTRATION_PUMP);
-Pump ChlPump(CHL_PUMP, CHL_PUMP, CHL_LEVEL, FILTRATION_PUMP);
+Pump HeatCirculatorPump(HEAT_ON, HEAT_ON, NO_TANK, FILTRATION_PUMP, 0.0, 0.0);
+Pump FiltrationPump(FILTRATION_PUMP, FILTRATION_PUMP, NO_TANK, NO_INTERLOCK, 0.0, 0.0);
+Pump PhPump(PH_PUMP, PH_PUMP, PH_LEVEL, FILTRATION_PUMP, storage.pHPumpFR, storage.pHTankVol);
+Pump ChlPump(CHL_PUMP, CHL_PUMP, CHL_LEVEL, FILTRATION_PUMP, storage.ChlPumpFR, storage.ChlTankVol);
 
 //Tank level error flags
 bool PhLevelError = 0;
@@ -297,11 +310,11 @@ RunningMedian samples_Orp = RunningMedian(10);
 RunningMedian samples_PSI = RunningMedian(3);
 
 //MAC Address of DS18b20 water temperature sensor
-DeviceAddress DS18b20_0 = { 0x28, 0x92, 0x25, 0x41, 0x0A, 0x00, 0x00, 0xEE } -> change to your unique sensor address!; 
+DeviceAddress DS18b20_0 = { 0x28, 0x92, 0x25, 0x41, 0x0A, 0x00, 0x00, 0xEE };
 String sDS18b20_0;
                                                  
 // MAC address of Ethernet shield (in case of Controllino board, set an arbitrary MAC address)
-byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED }-> change to your unique sensor address!;
+byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 String sArduinoMac;
 IPAddress ip(192, 168, 0, 21);  //IP address, needs to be adapted depending on local network topology
 EthernetServer server(80);      //Create a server at port 80
@@ -312,7 +325,7 @@ MQTTClient MQTTClient;
 const char* MqttServerIP = "192.168.0.38";
 const char* MqttServerClientID = "ArduinoPool2"; // /!\ choose a client ID which is unique to this Arduino board
 const char* MqttServerLogin = "admin";  //replace by const char* MqttServerLogin = nullptr; in case broker does not require a login/pwd
-const char* MqttServerPwd = "XXXXXXX"; //replace by const char* MqttServerPwd = nullptr; in case broker does not require a login/pwd
+const char* MqttServerPwd = "XXXXX"; //replace by const char* MqttServerPwd = nullptr; in case broker does not require a login/pwd
 const char* PoolTopic = "Home/Pool";
 const char* PoolTopicAPI = "Home/Pool/API";
 const char* PoolTopicStatus = "Home/Pool/status";
@@ -372,7 +385,13 @@ void setup()
       Serial<<F("Stored config version: ")<<CONFIG_VERSION<<F(". Loading default settings, not from eeprom")<<_endl;
       saveConfig();//First time use. Save default values to eeprom
     }
-      
+
+    //Initialize pump objects with stored config data
+    PhPump.SetFlowRate(storage.pHPumpFR);
+    PhPump.SetTankVolume(storage.pHTankVol);
+    ChlPump.SetFlowRate(storage.ChlPumpFR);
+    ChlPump.SetTankVolume(storage.ChlTankVol);
+          
     // set up the I2C LCD
     lcd.init();                      // initialize the lcd 
     lcd.backlight();
@@ -604,6 +623,11 @@ void GenericCallback(Task* me)
     //reset time counters at midnight
     if((hour() == 0) && (minute() == 0))
     {
+      //First store current Chl and Acid consumptions of the day in Eeprom
+      storage.AcidFill = storage.AcidFill - PhPump.GetTankUsage();
+      storage.ChlFill = storage.ChlFill - ChlPump.GetTankUsage();
+      saveConfig();
+      
       HeatCirculatorPump.ResetUpTime();
       FiltrationPump.ResetUpTime();
       PhPump.ResetUpTime();
@@ -655,7 +679,21 @@ void GenericCallback(Task* me)
     {
       HeatCirculatorPump.Stop();
     }
-        
+
+
+    //The circulator of the pool water heating circuit needs to run regularly to avoid blocking
+    //Let it run every day at noon for 2 mins
+    if(storage.AutoMode && ((hour() == 12) && (minute() == 0)))
+    {
+        HeatCirculatorPump.Start();
+    }
+    
+    if(storage.AutoMode && ((hour() == 12) && (minute() == 2)))
+    {
+        HeatCirculatorPump.Stop();
+    }
+
+          
     //stop filtration pump and PIDs as scheduled unless we are in AntiFreeze mode
     if(storage.AutoMode && FiltrationPump.IsRunning() && !AntiFreezeFiltering && ((hour() == storage.FiltrationStop) && (minute() == 0)))
     {
@@ -748,13 +786,58 @@ void PublishDataCallback(Task* me)
       else
       Serial<<F("Failed to connect to the MQTT broker")<<_endl;
 
+      //Second MQTT publish to limit size of payload at once
+      if(MQTTClient.connected())
+      {
+        //send a JSON to MQTT broker. /!\ Split JSON if longer than 128 bytes
+        //Will publish something like {"pHSP":740,"OrpSP":750,"WSP":2900,"AcidF":100,"ChlF":100}
+        StaticJsonBuffer<200> jsonBuffer;
+        JsonObject& root = jsonBuffer.createObject();
+  
+        root.set<int>("pHSP", (int)(storage.Ph_SetPoint*100));
+        root.set<int>("OrpSP", (int)(storage.Orp_SetPoint));  
+        root.set<int>("WSP", (int)(storage.WaterTemp_SetPoint*100));  
+        root.set<int>("AcidF", (int)(storage.AcidFill - PhPump.GetTankUsage()));  
+        root.set<int>("ChlF", (int)(storage.ChlFill - ChlPump.GetTankUsage()));  
+
+
+         Serial<<F("ChlPumpTank uptime: ")<<ChlPump.UpTime<<_endl;
+         Serial<<F("storage.ChlFill: ")<<storage.ChlFill<<_endl;
+         Serial<<F("ChlPumpTank flowrate: ")<<ChlPump.flowrate<<_endl;
+         Serial<<F("ChlPumpTank tankvolume: ")<<ChlPump.tankvolume<<_endl;
+         Serial<<F("ChlPumpTank Usage: ")<<ChlPump.GetTankUsage()<<_endl; 
+         Serial<<F("PhPumpTank Usage: ")<<PhPump.GetTankUsage()<<_endl;
+          
+        //char Payload[PayloadBufferLength];
+        if(jsonBuffer.size() < PayloadBufferLength)
+        {
+          root.printTo(Payload,PayloadBufferLength);
+          if(MQTTClient.publish(PoolTopic,Payload,strlen(Payload),false,LWMQTT_QOS1))
+          {   
+            Serial<<F("Payload: ")<<Payload<<F(" - ");
+            Serial<<F("Payload size: ")<<jsonBuffer.size()<<_endl;   
+          }
+          else
+          {
+            Serial<<F("Unable to publish the following payload: ")<<Payload<<_endl;
+            Serial<<F("MQTTClient.lastError() returned: ")<<MQTTClient.lastError()<<F(" - MQTTClient.returnCode() returned: ")<<MQTTClient.returnCode()<<_endl;
+          }       
+        }
+        else
+        {
+          Serial<<F("MQTT Payload buffer overflow! - ");
+          Serial<<F("Payload size: ")<<jsonBuffer.size()<<_endl;  
+        }
+      }
+      else
+      Serial<<F("Failed to connect to the MQTT broker")<<_endl;
 }
 
 void PHRegulationCallback(Task* me)
 {
  //do not compute PID if filtration pump is not running
  //because if Ki was non-zero that would let the OutputError increase
- if(FiltrationPump.IsRunning() && (PhPID.GetMode() == AUTOMATIC))
+ if(FiltrationPump.IsRunning()  && (PhPID.GetMode() == AUTOMATIC))
   {
     PhPID.Compute(); 
   
@@ -913,14 +996,15 @@ bool loadConfig()
   EEPROM.readBlock(configAdress, storage);
 
   Serial<<storage.ConfigVersion<<'\n';
-  Serial<<storage.Ph_RegulationOnOff<<", "<<storage.Orp_RegulationOnOff<<", "<<storage.AutoMode<<'\n';
+  Serial<<storage.Ph_RegulationOnOff<<", "<<storage.Orp_RegulationOnOff<<", "<<storage.AutoMode<<", "<<storage.WaterHeat<<'\n';
   Serial<<storage.FiltrationStart<<", "<<storage.FiltrationDuration<<", "<<storage.FiltrationStopMax<<", "<<storage.FiltrationStop<<", "<<storage.DelayPIDs<<'\n';  
   Serial<<storage.PhPumpUpTimeLimit<<", "<<storage.ChlPumpUpTimeLimit<<'\n';
 //  Serial<<storage.FiltrationPumpTimeCounter<<", "<<storage.PhPumpTimeCounter<<", "<<storage.ChlPumpTimeCounter<<", "<<storage.FiltrationPumpTimeCounterStart<<", "<<storage.PhPumpTimeCounterStart<<", "<<storage.ChlPumpTimeCounterStart<<'\n';
   Serial<<storage.PhPIDWindowSize<<", "<<storage.OrpPIDWindowSize<<", "<<storage.PhPIDwindowStartTime<<", "<<storage.OrpPIDwindowStartTime<<'\n';
   Serial<<storage.Ph_SetPoint<<", "<<storage.Orp_SetPoint<<", "<<storage.PSI_HighThreshold<<", "<<storage.PSI_MedThreshold<<", "<<storage.WaterTempLowThreshold<<", "<<storage.WaterTemp_SetPoint<<", "<<storage.TempExternal<<", "<<storage.pHCalibCoeffs0<<", "<<storage.pHCalibCoeffs1<<", "<<storage.OrpCalibCoeffs0<<", "<<storage.OrpCalibCoeffs1<<", "<<storage.PSICalibCoeffs0<<", "<<storage.PSICalibCoeffs1<<'\n';
   Serial<<storage.Ph_Kp<<", "<<storage.Ph_Ki<<", "<<storage.Ph_Kd<<", "<<storage.Orp_Kp<<", "<<storage.Orp_Ki<<", "<<storage.Orp_Kd<<", "<<storage.PhPIDOutput<<", "<<storage.OrpPIDOutput<<", "<<storage.TempValue<<", "<<storage.PhValue<<", "<<storage.OrpValue<<", "<<storage.PSIValue<<'\n';
-
+  Serial<<storage.AcidFill<<", "<<storage.ChlFill<<'\n';
+  
   return (storage.ConfigVersion == CONFIG_VERSION);
 }
 
@@ -961,34 +1045,6 @@ void LCDScreen1()
   if(TNb <= sizeof(LCD_Buffer))
     lcd.print(LCD_Buffer);
 }
-/*
-// Print Screen1 to the LCD.
-void LCDScreen1()
-{ 
-  //Concatenate data into one buffer then print it ot the 20x4 LCD
-  ///!\LCD driver wrapps lines in a strange order: line 1, then 3, then 2 then 4
-  //Here we reuse the MQTT Payload buffer while it is not being used
-  lcd.setCursor(0, 0);
-  memset(Payload, 0, sizeof(Payload));
-  char *p = &Payload[0];
-  char buff2[10];
-  char *p2 = &buff2[0];
-      
-  p += sprintf(p, "Redox:%4dmV   ",(int)storage.OrpValue);
-  p += sprintf(p, "(%3d)",(int)storage.Orp_SetPoint);
-  dtostrf(storage.TempValue,5,2,buff2);
-  p += sprintf(p, "Water:%5sC  ",buff2);
-  p += sprintf(p, "ON:%2dh",storage.FiltrationStart);
-  dtostrf(storage.PhValue,4,2,buff2);
-  p += sprintf(p, "pH:    %4s   ",buff2);
-  dtostrf(storage.Ph_SetPoint,3,1,buff2);
-  p += sprintf(p, " (%3s)",buff2);
-  dtostrf(storage.TempExternal,6,2,buff2);
-  p += sprintf(p, "Air: %6sC  ",buff2);
-  p += sprintf(p, "OF:%2dh",storage.FiltrationStop);
-  lcd.print(Payload);
-}
-*/
 
 // Print Screen2 to the LCD.
 void LCDScreen2()
@@ -1008,8 +1064,8 @@ void LCDScreen2()
   Nb = sprintf(p, " Err:%d",ChlPump.UpTimeError); p += Nb; TNb += Nb;
   Nb = sprintf(p, "pH pump:%2dmn  ",(int)(PhPump.UpTime/1000/60)); p += Nb; TNb += Nb;
   Nb = sprintf(p, " Err:%d",PhPump.UpTimeError); p += Nb; TNb += Nb;
-  Nb = sprintf(p, "pHTank : %d  ",PhPump.TankLevel()); p += Nb; TNb += Nb;
-  Nb = sprintf(p, "ClTank:%d",ChlPump.TankLevel());  TNb += Nb;
+  Nb = sprintf(p, "pHTk:%3d%%  ",(int)(storage.AcidFill - PhPump.GetTankUsage())); p += Nb; TNb += Nb;
+  Nb = sprintf(p, "ClTk:%3d%%",(int)(storage.ChlFill - ChlPump.GetTankUsage()));  TNb += Nb;
 
   if(TNb <= sizeof(LCD_Buffer))
     lcd.print(LCD_Buffer);
@@ -1246,6 +1302,26 @@ void ProcessCommand(String JSONCommand)
            storage.WaterTemp_SetPoint = (float)command["WSetPoint"];
            saveConfig();
         }   
+        else 
+        //"pHTank" command which is called when the pH tank is changed or refilled
+        //First parameter is volume of tank in Liters, second parameter is percentage Fill of the tank (typically 100% when new) 
+        if(command.containsKey("pHTank"))
+        {      
+           PhPump.SetTankVolume((float)command["pHTank"][0]);
+           storage.AcidFill = (float)command["pHTank"][1];
+           PhPump.ResetUpTime();
+           saveConfig();
+        } 
+        else 
+        //"ChlTank" command which is called when the Chl tank is changed or refilled
+        //First parameter is volume of tank in Liters, second parameter is percentage Fill of the tank (typically 100% when new) 
+        if(command.containsKey("ChlTank"))
+        {      
+           ChlPump.SetTankVolume((float)command["ChlTank"][0]);
+           storage.ChlFill = (float)command["ChlTank"][1];
+           ChlPump.ResetUpTime();
+           saveConfig();
+        }       
         else
         if(command.containsKey("WTempLow"))//"WTempLow" command which sets the setpoint for Water temp low threshold
         {          

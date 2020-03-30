@@ -1,4 +1,4 @@
-<h2>PoolMaster 3.1.0</h2>
+<h2>PoolMaster 4.0.0</h2>
 <h2>Arduino Mega2560/Controllino-Maxi based Ph/Orp (Chlorine) regulation system for home pools</h2>
 
 <br />
@@ -10,7 +10,7 @@
 <h4>Brief description</h4>
 	
 <p>Four main metrics are measured and periodically reported over MQTT and an LCD display: water temperature and pressure, pH and ORP values.<br />
-Pumps states, tank-level states and other parameters are also periodically reported<br />
+Pumps states, tank-levels estimates and other parameters are also periodically reported<br />
 Two PID regulation loops are running in parallel: one for PH, one for ORP<br />
 An additional simple (on/off) regulation loop is handling the water temperature (it starts/stops the house-heating system circulator which brings heat to a heat exchanger mounted on the pool water pipes)<br />
 pH is regulated by injecting Acid from a tank into the pool water (a relay starts/stops the Acid peristaltic pump)<br />
@@ -21,9 +21,10 @@ An API function enables telling the system what the outside air temperature is. 
 A lightweight webserver provides a simple dynamic webpage with a summary of all system parameters. An XML file with more info is available at http://ARDUINO_LOCAL_IP/Info<br />
 Communication with the system is performed using the MQTT protocol over an Ethernet connection to the local network/MQTT broker.<br /><br />
 
-Every 30 seconds (by default), the system will publish on the "PoolTopic" (hardcoded, see code) the following payload in Json format:<br />
+Every 30 seconds (by default), the system will publish on the "PoolTopic" (see in code below) the following payloads in Json format:<br />
 
 {"Tmp":818,"pH":321,"PSI":56,"Orp":583,"FilUpT":8995,"PhUpT":0,"ChlUpT":0,"IO":11,"IO2":0}
+{"pHSP":740,"OrpSP":750,"WSP":2900,"AcidF":100,"ChlF":100}
 
 
 Tmp: measured Water temperature value in °C x100 (8.18°C in the above example payload)<br />
@@ -51,7 +52,11 @@ IO2: a variable of type BYTE where each individual bit is the state of a digital
 <li>Mode: state of pH and Orp regulation mode (0=manual, 1=auto)</li>
 <li>Heat: state of water heat command (0=off, 1=on)</li>
 </ul><br />
-
+pHSP: pH set point stored in Eeprom<br />
+OrpSP: Orp set point stored in Eeprom<br />
+WSP: Water temperature stored in Eeprom<br />
+AcidF: percentage fill estimate of acid tank ("pHTank" function must have been called when a new acid tank was set in place in order to have accurate value)<br />
+ChlF: percentage fill estimate of Chlorine tank ("ChlTank" function must have been called when a new Chlorine tank was set in place in order to have accurate value)<br />
 
 <h4>How to compile</h4>
 <p>
@@ -122,7 +127,9 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see hard
 <li>{"Clear":1}                      -> reset the pH and Orp pumps overtime error flags in order to let the regulation loops continue. "Mode" also needs to be switched back to Auto (1) after an error flag was raised</li>
 <li>{"DelayPID":30}                  -> Delay (in mins) after FiltT0 before the PID regulation loops will start. This is to let the Orp and pH readings stabilize first. 30mins in this example. Should not be > 59mins</li>
 <li>{"TempExt":4.2}                  -> Provide the system with the external temperature. Should be updated regularly and will be used to start filtration when temperature is less than 2°C. 4.2deg in this example</li>
-{"PSIHigh":1.0}                  -> set the water high-pressure threshold (1.0bar in this example). When water pressure is over that threshold, an error flag is set.
+<li>{"PSIHigh":1.0}                  -> set the water high-pressure threshold (1.0bar in this example). When water pressure is over that threshold, an error flag is set</li>
+<li>{"pHTank":[20,100]}              -> call this function when the Acid tank is replaced or refilled. First parameter is the tank volume, second parameter is its percentage fill (100% when full)</li>
+<li>{"ChlTank":[20,100]}             -> call this function when the Chlorine tank is replaced or refilled. First parameter is the tank volume, second parameter is its percentage fill (100% when full)</li>
 
 </ul>
 </p><br />
