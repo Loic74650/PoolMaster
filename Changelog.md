@@ -1,5 +1,24 @@
 PoolMaster: change log
 =======================
+v4.0.2
+-------
+
+*Added calibration function for the water pressure sensor {"PSICalib":[0,0,0.71,0.6]}
+
+v4.0.0
+-------
+
+*Starting and stopping PIDs when filtration is manually started/stopped. This is useful in spring when the water is cold, filtrations tops early, however one might wish to manually start it in the afternoon and have the PIDs regulating the water quality
+
+v4.0.0
+-------
+
+*Acid and Chlorine tank levels are now estimated and reported in % fill (estimation based on the running-time of each pump)
+* /!\ API change. MQTT published payloads now also include stored Orp, pH and Water temp setpoints as well as tank-level estimates. Two separate publishes are used in order to reduce the payload size of each publish
+* A daily 2 minutes cycling of the water heating circulator has been added in order to maintain it in good condition when not being used for long period of times (eg. in winter)
+* Pump class now support setups in which PoolMaster does not manage the filtration pump (eg. in cases where an already-installed automate handles it). See Pump class for more info
+* Node Red code example now includes feeding the MQTT data into an InfluxBD database in order to generate a Grafana Dashboard (code for the node red flow and the Grafana dashboard is provided)
+
 v3.1.2
 -------
 

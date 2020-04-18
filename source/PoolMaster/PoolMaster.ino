@@ -76,6 +76,7 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see in c
 {"OrpPID":1} or {"OrpPID":0}     -> start/stop the Orp PID regulation loop
 {"PhCalib":[4.02,3.8,9.0,9.11]}  -> multi-point linear regression calibration (minimum 1 point-couple, 6 max.) in the form [ProbeReading_0, BufferRating_0, xx, xx, ProbeReading_n, BufferRating_n]
 {"OrpCalib":[450,465,750,784]}   -> multi-point linear regression calibration (minimum 1 point-couple, 6 max.) in the form [ProbeReading_0, BufferRating_0, xx, xx, ProbeReading_n, BufferRating_n]
+{"PSICalib":[0,0,0.71,0.6]}      -> multi-point linear regression calibration (minimum 2 point-couple, 6 max.) in the form [ElectronicPressureSensorReading_0, MechanicalPressureSensorReading_0, xx, xx, ElectronicPressureSensorReading_n, ElectronicPressureSensorReading_n]. Mechanical pressure sensor is typically located on the sand filter
 {"PhSetPoint":7.4}               -> set the Ph setpoint, 7.4 in this example
 {"OrpSetPoint":750.0}            -> set the Orp setpoint, 750mV in this example
 {"WSetPoint":27.0}               -> set the water temperature setpoint, 27.0deg in this example
@@ -93,8 +94,8 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see in c
 {"DelayPID":60}                  -> Delay (in mins) after FiltT0 before the PID regulation loops will start. This is to let the Orp and pH readings stabilize first. 30mins in this example. Should not be > 59mins
 {"TempExt":4.2}                  -> Provide the external temperature. Should be updated regularly and will be used to start filtration when outside air temperature is <-2.0deg. 4.2deg in this example
 {"PSIHigh":1.0}                  -> set the water high-pressure threshold (1.0bar in this example). When water pressure is over that threshold, an error flag is set.
-{"pHTank":[20,100]}              -> call this function when the Acid tank is replaced or refilled. First parameter is the tank volume, second parameter is its percentage fill (100% when full)
-{"ChlTank":[20,100]}             -> call this function when the Chlorine tank is replaced or refilled. First parameter is the tank volume, second parameter is its percentage fill (100% when full)
+{"pHTank":[20,100]}              -> call this function when the Acid tank is replaced or refilled. First parameter is the tank volume in Liters, second parameter is its percentage fill (100% when full)
+{"ChlTank":[20,100]}             -> call this function when the Chlorine tank is replaced or refilled. First parameter is the tank volume in Liters, second parameter is its percentage fill (100% when full)
 
 ***Dependencies and respective revisions used to compile this project***
 https://github.com/256dpi/arduino-mqtt/releases (rev 2.4.3)
@@ -197,11 +198,11 @@ https://github.com/JChristensen/JC_Button (rev 2.1.1)
 #include <JC_Button.h>
 
 // Firmware revision
-String Firmw = "4.0.0";
+String Firmw = "4.0.2";
 
 //Version of config stored in Eeprom
 //Random value. Change this value (to any other value) to revert the config to default values
-#define CONFIG_VERSION 120
+#define CONFIG_VERSION 121
 
 //Starting point address where to store the config data in EEPROM
 #define memoryBase 32
@@ -255,7 +256,7 @@ struct StoreStruct
     8, 12, 20, 20, 120,
     1800, 1800,
     3000000, 7200000, 0, 0,
-    7.3, 750.0, 0.5, 0.25, 10.0, 27.0, 3.0, 4.3, -2.63, -1189, 2564, 1.0, 0.0,
+    7.4, 750.0, 0.5, 0.25, 10.0, 27.0, 3.0, 4.3, -2.63, -1189, 2564, 1.11, 0.0,
     2000000.0, 0.0, 0.0, 2500.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4,
     100.0, 100.0, 20.0, 20.0, 1.5, 3.0
 };
@@ -314,15 +315,17 @@ DeviceAddress DS18b20_0 = { 0x28, 0x92, 0x25, 0x41, 0x0A, 0x00, 0x00, 0xEE };
 String sDS18b20_0;
                                                  
 // MAC address of Ethernet shield (in case of Controllino board, set an arbitrary MAC address)
-byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+//byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+byte mac[] = { 0xA8, 0x61, 0x0A, 0xAE, 0x2C, 0x68 };
 String sArduinoMac;
-IPAddress ip(192, 168, 0, 21);  //IP address, needs to be adapted depending on local network topology
+//IPAddress ip(192, 168, 0, 201);  //IP address, needs to be adapted depending on local network topology
 EthernetServer server(80);      //Create a server at port 80
 EthernetClient net;             //Ethernet client to connect to MQTT server
 
 //MQTT stuff including local broker/server IP address, login and pwd
 MQTTClient MQTTClient;
 const char* MqttServerIP = "192.168.0.38";
+//const char* MqttServerIP = "broker.mqttdashboard.com";//cloud-based MQTT broker to test when node-red and MQTT broker are not installed locally (/!\ public and unsecure!)
 const char* MqttServerClientID = "ArduinoPool2"; // /!\ choose a client ID which is unique to this Arduino board
 const char* MqttServerLogin = "admin";  //replace by const char* MqttServerLogin = nullptr; in case broker does not require a login/pwd
 const char* MqttServerPwd = "XXXXX"; //replace by const char* MqttServerPwd = nullptr; in case broker does not require a login/pwd
@@ -363,7 +366,7 @@ Task t5(600, GenericCallback);                //Various things handled/updated i
 void setup()
 {
    //Serial port for debug info
-    Serial.begin(9600);
+    Serial.begin(57600);
     delay(200);
 
     //Initialize Eeprom
@@ -436,7 +439,9 @@ void setup()
     wdt_enable(WDTO_8S);
     
     // initialize Ethernet device  
-    Ethernet.begin(mac, ip); 
+    //Ethernet.begin(mac, ip); 
+    Ethernet.begin(mac); //Use DHCP. Helps avoiding issues when trying to connect to an external MQTT broker 
+    delay(1500);
     
     // start to listen for clients
     server.begin();  
@@ -504,7 +509,9 @@ void setup()
 //"status" will switch to "offline". Very useful to check that the Arduino is alive and functional
 void MQTTConnect() 
 {
-  MQTTClient.connect(MqttServerClientID, MqttServerLogin, MqttServerPwd);
+  //MQTTClient.connect(MqttServerClientID);
+  MQTTClient.connect(MqttServerClientID);
+  //MQTTClient.connect(MqttServerClientID, MqttServerLogin, MqttServerPwd);
 /*  int8_t Count=0;
   while (!MQTTClient.connect(MqttServerClientID, MqttServerLogin, MqttServerPwd) && (Count<4))
   {
@@ -1197,6 +1204,43 @@ void ProcessCommand(String JSONCommand)
             Serial<<F("Calibration completed. Coeffs are: ")<<storage.OrpCalibCoeffs0<<F(",")<<storage.OrpCalibCoeffs1<<_endl;   
           }   
         }
+        else
+        //"PSICalib" command which computes and sets the calibration coefficients of the Electronic Pressure sensor response based on a linear regression and a reference mechanical sensor (typically located on the sand filter)
+        //{"PSICalib":[0,0,0.71,0.6]}   -> multi-point linear regression calibration (minimum 2 point-couple, 6 max.) in the form [ElectronicPressureSensorReading_0, MechanicalPressureSensorReading_0, xx, xx, ElectronicPressureSensorReading_n, ElectronicPressureSensorReading_n]
+        if (command.containsKey("PSICalib"))
+        {
+          float CalibPoints[12];//Max six calibration point-couples! Should be plenty enough, typically use two point-couples (filtration ON and filtration OFF)
+          int NbPoints = command["PSICalib"].as<JsonArray>().copyTo(CalibPoints);
+          Serial<<F("PSICalib command - ")<<NbPoints<<F(" points received: ");
+          for(int i=0;i<NbPoints;i+=2)
+            Serial<<CalibPoints[i]<<F(",")<<CalibPoints[i+1]<<F(" - ");
+          Serial<<_endl;
+
+          if((NbPoints>3) && (NbPoints%2 == 0))//we have at least 4 points as well as an even number of points. Perform a linear regression calibration
+          {         
+            Serial<<NbPoints/2<<F(" points. Performing a linear regression calibration")<<_endl;
+
+            float xCalibPoints[NbPoints/2];
+            float yCalibPoints[NbPoints/2];
+
+            //generate array of x sensor values (in volts) and y rated buffer values
+            //storage.OrpValue = (storage.OrpCalibCoeffs0 * orp_sensor_value) + storage.OrpCalibCoeffs1;
+            //storage.PSIValue = (storage.PSICalibCoeffs0 * psi_sensor_value) + storage.PSICalibCoeffs1;  
+            for(int i=0;i<NbPoints;i+=2)
+            {
+              xCalibPoints[i/2] = (CalibPoints[i] - storage.PSICalibCoeffs1)/storage.PSICalibCoeffs0;
+              yCalibPoints[i/2] = CalibPoints[i+1];
+            }
+
+            //Compute linear regression coefficients
+            simpLinReg(xCalibPoints, yCalibPoints, storage.PSICalibCoeffs0, storage.PSICalibCoeffs1, NbPoints/2);
+
+            //Store the new coefficients in eeprom
+            saveConfig();
+           
+            Serial<<F("Calibration completed. Coeffs are: ")<<storage.PSICalibCoeffs0<<F(",")<<storage.PSICalibCoeffs1<<_endl;   
+          }   
+        }
         else //"Mode" command which sets regulation and filtration to manual or auto modes
         if (command.containsKey("Mode"))
         {
@@ -1232,9 +1276,19 @@ void ProcessCommand(String JSONCommand)
         if (command.containsKey("FiltPump")) //"FiltPump" command which starts or stops the filtration pump
         {
             if((int)command["FiltPump"]==0)
+            {
               FiltrationPump.Stop();  //stop filtration pump
+              //Start PIDs
+              SetPhPID(false);
+              SetOrpPID(false);
+            }
             else
+            {
               FiltrationPump.Start();   //start filtration pump
+              //Start PIDs
+              SetPhPID(true);
+              SetOrpPID(true);
+            }
         }
         else  
         if(command.containsKey("PhPump"))//"PhPump" command which starts or stops the Acid pump
