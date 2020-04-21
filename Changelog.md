@@ -1,9 +1,10 @@
 PoolMaster: change log
 =======================
-v4.0.2
+v4.0.3
 -------
 
 *Added calibration function for the water pressure sensor {"PSICalib":[0,0,0.71,0.6]}
+*Added generic function {"Relay":[1,1]} to actuate spare relays. Useful to add custom control features to the project such as lighting, etc
 
 v4.0.0
 -------

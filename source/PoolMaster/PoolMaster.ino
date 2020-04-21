@@ -96,6 +96,8 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see in c
 {"PSIHigh":1.0}                  -> set the water high-pressure threshold (1.0bar in this example). When water pressure is over that threshold, an error flag is set.
 {"pHTank":[20,100]}              -> call this function when the Acid tank is replaced or refilled. First parameter is the tank volume in Liters, second parameter is its percentage fill (100% when full)
 {"ChlTank":[20,100]}             -> call this function when the Chlorine tank is replaced or refilled. First parameter is the tank volume in Liters, second parameter is its percentage fill (100% when full)
+{"Relay":[1,1]}                  -> call this generic function to actuate relays from the CONTROLLINO. Parameter 1 is the relay number (R1 in this example), parameter 2 is the relay state (ON in this example). This function is useful to use spare relays for additional features (lighting, etc). Available relay numbers are 1,2,6,7,8,9
+
 
 ***Dependencies and respective revisions used to compile this project***
 https://github.com/256dpi/arduino-mqtt/releases (rev 2.4.3)
@@ -126,7 +128,14 @@ https://github.com/JChristensen/JC_Button (rev 2.1.1)
   #define PH_PUMP    CONTROLLINO_R3       //CONTROLLINO_RELAY_3
   #define CHL_PUMP   CONTROLLINO_R5       //CONTROLLINO_RELAY_5
   #define HEAT_ON    CONTROLLINO_R0       //CONTROLLINO_RELAY_0
-  
+
+  #define RELAY_R1   CONTROLLINO_R1       //CONTROLLINO_RELAY_1
+  #define RELAY_R2   CONTROLLINO_R2       //CONTROLLINO_RELAY_2
+  #define RELAY_R6   CONTROLLINO_R6       //CONTROLLINO_RELAY_6
+  #define RELAY_R7   CONTROLLINO_R7       //CONTROLLINO_RELAY_7
+  #define RELAY_R8   CONTROLLINO_R8       //CONTROLLINO_RELAY_8
+  #define RELAY_R9   CONTROLLINO_R9       //CONTROLLINO_RELAY_9
+
   //Digital input pins connected to Acid and Chl tank level reed switches
   #define CHL_LEVEL  CONTROLLINO_D1       //CONTROLLINO_D1 pin 3
   #define PH_LEVEL   CONTROLLINO_D3       //CONTROLLINO_D3 pin 5
@@ -154,6 +163,14 @@ https://github.com/JChristensen/JC_Button (rev 2.1.1)
   #define PH_PUMP         36
   #define CHL_PUMP        42
   #define HEAT_ON         58
+
+  #define RELAY_R1   37
+  #define RELAY_R2   31
+  #define RELAY_R6   32
+  #define RELAY_R7   33
+  #define RELAY_R8   34
+  #define RELAY_R9   35
+
   
   //Digital input pins connected to Acid and Chl tank level reed switches
   #define CHL_LEVEL       28
@@ -198,7 +215,7 @@ https://github.com/JChristensen/JC_Button (rev 2.1.1)
 #include <JC_Button.h>
 
 // Firmware revision
-String Firmw = "4.0.2";
+String Firmw = "4.0.3";
 
 //Version of config stored in Eeprom
 //Random value. Change this value (to any other value) to revert the config to default values
@@ -328,7 +345,7 @@ const char* MqttServerIP = "192.168.0.38";
 //const char* MqttServerIP = "broker.mqttdashboard.com";//cloud-based MQTT broker to test when node-red and MQTT broker are not installed locally (/!\ public and unsecure!)
 const char* MqttServerClientID = "ArduinoPool2"; // /!\ choose a client ID which is unique to this Arduino board
 const char* MqttServerLogin = "admin";  //replace by const char* MqttServerLogin = nullptr; in case broker does not require a login/pwd
-const char* MqttServerPwd = "XXXXX"; //replace by const char* MqttServerPwd = nullptr; in case broker does not require a login/pwd
+const char* MqttServerPwd = "xxxxxx"; //replace by const char* MqttServerPwd = nullptr; in case broker does not require a login/pwd
 const char* PoolTopic = "Home/Pool";
 const char* PoolTopicAPI = "Home/Pool/API";
 const char* PoolTopicStatus = "Home/Pool/status";
@@ -424,6 +441,13 @@ void setup()
     pinMode(RED_LED_PIN, OUTPUT);
     pinMode(HEAT_ON, OUTPUT);
 
+    pinMode(RELAY_R1, OUTPUT);
+    pinMode(RELAY_R2, OUTPUT);
+    pinMode(RELAY_R6, OUTPUT);
+    pinMode(RELAY_R7, OUTPUT);
+    pinMode(RELAY_R8, OUTPUT);
+    pinMode(RELAY_R9, OUTPUT);
+    
     pinMode(CHL_LEVEL, INPUT_PULLUP);
     pinMode(PH_LEVEL, INPUT_PULLUP);
     pinMode(PUSH_BUTTON_PIN, INPUT_PULLUP);
@@ -1477,6 +1501,34 @@ void ProcessCommand(String JSONCommand)
           storage.PSI_HighThreshold = (float)command["PSIHigh"];
           saveConfig();
         }
+        else 
+        //"Relay" command which is called to actuate relays from the CONTROLLINO. 
+        //Parameter 1 is the relay number (R0 in this example), parameter 2 is the relay state (ON in this example). 
+        if(command.containsKey("Relay"))
+        {   
+          switch((int)command["Relay"][0])
+          {
+            case 1:
+              (bool)command["Relay"][1] ? digitalWrite(RELAY_R1, true) : digitalWrite(RELAY_R1, false);
+            break;
+            case 2:
+              (bool)command["Relay"][1] ? digitalWrite(RELAY_R2, true) : digitalWrite(RELAY_R2, false);
+            break;
+            case 6:
+              (bool)command["Relay"][1] ? digitalWrite(RELAY_R6, true) : digitalWrite(RELAY_R6, false);
+            break;               
+            case 7:
+              (bool)command["Relay"][1] ? digitalWrite(RELAY_R7, true) : digitalWrite(RELAY_R7, false);
+            break;               
+            case 8:
+              (bool)command["Relay"][1] ? digitalWrite(RELAY_R8, true) : digitalWrite(RELAY_R8, false);
+            break;               
+            case 9:
+              (bool)command["Relay"][1] ? digitalWrite(RELAY_R9, true) : digitalWrite(RELAY_R9, false);
+            break;
+            
+          }
+        } 
                         
         //Publish/Update on the MQTT broker the status of our variables
         PublishDataCallback(NULL);    
