@@ -1450,6 +1450,11 @@ void ProcessCommand(String JSONCommand)
         {         
           #if defined(CONTROLLINO_MAXI)
            Controllino_SetTimeDate((uint8_t)command["Date"][0],(uint8_t)command["Date"][1],(uint8_t)command["Date"][2],(uint8_t)command["Date"][3],(uint8_t)command["Date"][4],(uint8_t)command["Date"][5],(uint8_t)command["Date"][6]); // set initial values to the RTC chip. (Day of the month, Day of the week, Month, Year, Hour, Minute, Second) 
+          #else //Mega2560 board specifics
+            // This line sets the RTC with an explicit date & time, for example to set
+            // January 21, 2014 at 3am you would call:
+            // rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
+            rtc.adjust(DateTime((uint8_t)command["Date"][3],(uint8_t)command["Date"][2],(uint8_t)command["Date"][0],(uint8_t)command["Date"][4],(uint8_t)command["Date"][5],(uint8_t)command["Date"][6]));
           #endif
 
           setTime((uint8_t)command["Date"][4],(uint8_t)command["Date"][5],(uint8_t)command["Date"][6],(uint8_t)command["Date"][0],(uint8_t)command["Date"][2],(uint8_t)command["Date"][3]); //(Day of the month, Day of the week, Month, Year, Hour, Minute, Second)    
