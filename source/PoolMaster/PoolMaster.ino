@@ -534,8 +534,8 @@ void setup()
 void MQTTConnect() 
 {
   //MQTTClient.connect(MqttServerClientID);
-  MQTTClient.connect(MqttServerClientID);
-  //MQTTClient.connect(MqttServerClientID, MqttServerLogin, MqttServerPwd);
+  //MQTTClient.connect(MqttServerClientID);
+  MQTTClient.connect(MqttServerClientID, MqttServerLogin, MqttServerPwd);
 /*  int8_t Count=0;
   while (!MQTTClient.connect(MqttServerClientID, MqttServerLogin, MqttServerPwd) && (Count<4))
   {
