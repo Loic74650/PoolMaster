@@ -489,7 +489,7 @@
         "z": "",
         "name": "Blynk Cloud",
         "path": "ws://blynk-cloud.com/websockets",
-        "key": "cca39e78c5494531a626615644be4b9a",
+        "key": "",
         "dbg_all": true,
         "dbg_read": false,
         "dbg_write": false,
