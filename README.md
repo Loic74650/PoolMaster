@@ -64,7 +64,7 @@ ChlF: percentage fill estimate of Chlorine tank, 100% in the above example paylo
 - this code was developped for two main hardware configurations (list in the hardware section below):<br /> 
 <ul>
 <li>Controllino-Maxi or</li> 
-<li>Arduino Mega 2560 + Ethernet shield + relay shield + RTC module (NB: not yet tested on that platform)</li></ul>
+<li>Arduino Mega 2560 + Ethernet shield + relay shield + RTC module</li></ul>
 - select the target board type in the Arduino IDE (either "Arduino Mega 2560" or "Controllino Maxi") code should compile for both types<br />
 
 
@@ -139,7 +139,7 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see hard
 <h4>Hardware</h4>
 <p>
 <ul>
-<li><a title="https://www.controllino.biz/controllino-maxi/maxi-and-maxi-pure/" href="https://www.controllino.biz/controllino-maxi/maxi-and-maxi-pure/">x1 CONTROLLINO MAXI (ATmega2560)</a> or Arduino Mega 2560 + Ethernet shield + relay shield + RTC module</li>
+<li><a title="https://www.controllino.biz/product/controllino-maxi/" href="https://www.controllino.biz/product/controllino-maxi/">x1 CONTROLLINO MAXI (ATmega2560)</a> or Arduino Mega 2560 + Ethernet shield + relay shield + RTC module</li>
 <li><a title="https://www.phidgets.com/?tier=3&catid=11&pcid=9&prodid=103" href="https://www.phidgets.com/?tier=3&catid=11&pcid=9&prodid=103">x2 Phidgets PH/ORB amplifier modules</a></li> 
 <li><a title="https://www.dfrobot.com/product-1621.html" href="https://www.dfrobot.com/product-1621.html">x2 Galvanic isolator for the pH and Orp probes</a></li> 
 <li><a title="https://www.trattamento-acque.net/dosaggio/pompe-peristaltiche/pompe-a-portata-fissa/pompa-serie-mp2-p-detail.html" href="https://www.trattamento-acque.net/dosaggio/pompe-peristaltiche/pompe-a-portata-fissa/pompa-serie-mp2-p-detail.html">x2 Peristaltic pumps, suction lances for tanks, pH and Orp probes</a></li>
