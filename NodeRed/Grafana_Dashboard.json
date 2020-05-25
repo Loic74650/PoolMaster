@@ -50,6 +50,7 @@
   "annotations": {
     "list": [
       {
+        "$$hashKey": "object:7",
         "builtIn": 1,
         "datasource": "-- Grafana --",
         "enable": true,
@@ -798,93 +799,6 @@
       }
     },
     {
-      "datasource": "${DS_INFLUXDB}",
-      "gridPos": {
-        "h": 7,
-        "w": 3,
-        "x": 19,
-        "y": 12
-      },
-      "id": 24,
-      "options": {
-        "displayMode": "lcd",
-        "fieldOptions": {
-          "calcs": [
-            "last"
-          ],
-          "defaults": {
-            "mappings": [],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "dark-red",
-                  "value": null
-                },
-                {
-                  "color": "semi-dark-green",
-                  "value": 20
-                }
-              ]
-            },
-            "title": "",
-            "unit": "percent"
-          },
-          "overrides": [],
-          "values": false
-        },
-        "orientation": "auto",
-        "showUnfilled": true
-      },
-      "pluginVersion": "6.7.1",
-      "targets": [
-        {
-          "alias": "ChlTank",
-          "groupBy": [],
-          "measurement": "PoolMaster",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "A",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "ChlF"
-                ],
-                "type": "field"
-              }
-            ]
-          ],
-          "tags": []
-        },
-        {
-          "alias": "AcidTank",
-          "groupBy": [],
-          "measurement": "PoolMaster",
-          "orderByTime": "ASC",
-          "policy": "default",
-          "refId": "B",
-          "resultFormat": "time_series",
-          "select": [
-            [
-              {
-                "params": [
-                  "AcidF"
-                ],
-                "type": "field"
-              }
-            ]
-          ],
-          "tags": []
-        }
-      ],
-      "timeFrom": null,
-      "timeShift": null,
-      "title": "Tank levels",
-      "type": "bargauge"
-    },
-    {
       "cacheTimeout": null,
       "colorBackground": true,
       "colorValue": false,
@@ -1211,7 +1125,7 @@
       "gridPos": {
         "h": 2,
         "w": 3,
-        "x": 13,
+        "x": 8,
         "y": 17
       },
       "id": 21,
@@ -1314,7 +1228,7 @@
       "gridPos": {
         "h": 2,
         "w": 3,
-        "x": 16,
+        "x": 11,
         "y": 17
       },
       "id": 22,
@@ -1395,6 +1309,93 @@
         }
       ],
       "valueName": "current"
+    },
+    {
+      "datasource": "${DS_INFLUXDB}",
+      "gridPos": {
+        "h": 2,
+        "w": 5,
+        "x": 14,
+        "y": 17
+      },
+      "id": 24,
+      "options": {
+        "displayMode": "lcd",
+        "fieldOptions": {
+          "calcs": [
+            "last"
+          ],
+          "defaults": {
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "dark-red",
+                  "value": null
+                },
+                {
+                  "color": "semi-dark-green",
+                  "value": 20
+                }
+              ]
+            },
+            "title": "",
+            "unit": "percent"
+          },
+          "overrides": [],
+          "values": false
+        },
+        "orientation": "horizontal",
+        "showUnfilled": true
+      },
+      "pluginVersion": "6.7.1",
+      "targets": [
+        {
+          "alias": "ChlTank",
+          "groupBy": [],
+          "measurement": "PoolMaster",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "ChlF"
+                ],
+                "type": "field"
+              }
+            ]
+          ],
+          "tags": []
+        },
+        {
+          "alias": "AcidTank",
+          "groupBy": [],
+          "measurement": "PoolMaster",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "refId": "B",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "AcidF"
+                ],
+                "type": "field"
+              }
+            ]
+          ],
+          "tags": []
+        }
+      ],
+      "timeFrom": null,
+      "timeShift": null,
+      "title": "Tank levels",
+      "type": "bargauge"
     }
   ],
   "refresh": "5s",
@@ -1428,5 +1429,5 @@
   "variables": {
     "list": []
   },
-  "version": 159
+  "version": 162
 }
