@@ -428,10 +428,11 @@ void setup()
       }
       else
       {  
-        DateTime now = rtc.now();
-        setTime(now.hour(),(uint8_t)now.minute(),(uint8_t)now.second(),(uint8_t)now.day(),(uint8_t)now.month(),(uint16_t)now.year());     
+        setSyncProvider(&syncTimeRTC);
+        //setSyncInterval(30); // in seconds, default 300
       }      
     #endif
+
     
     //Define pins directions
     pinMode(FILTRATION_PUMP, OUTPUT);
@@ -527,6 +528,17 @@ void setup()
     //display remaining RAM space. For debug
     Serial<<F("[memCheck]: ")<<freeRam()<<F("b")<<_endl;
 }
+
+// provide function to sync time with RTC time
+time_t syncTimeRTC(){
+  DateTime now = rtc.now();
+
+  //convert Datetime to time_t
+  time_t tt = now.unixtime();
+
+  return tt;
+}
+
 
 //Connect to MQTT broker and subscribe to the PoolTopicAPI topic in order to receive future commands
 //then publish the "online" message on the "status" topic. If Ethernet connection is ever lost
