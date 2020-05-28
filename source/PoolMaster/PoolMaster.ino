@@ -1,5 +1,4 @@
 /*
-
 Arduino/Controllino-Maxi/ATmega2560 based Ph/ORP regulator for home pool sysem
 (c) Loic74 <loic74650@gmail.com> 2018-2020
 ***how to compile***
