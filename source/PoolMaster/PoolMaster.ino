@@ -1,12 +1,10 @@
 /*
- * 
+
 Arduino/Controllino-Maxi/ATmega2560 based Ph/ORP regulator for home pool sysem
 (c) Loic74 <loic74650@gmail.com> 2018-2020
-
 ***how to compile***
 - select the target board type in the Arduino IDE (either "Arduino Mega 2560" or "Controllino Maxi")
 - in the section below holding all the #define, change the following to refelect the board selected in the IDE (either "#define BOARD CONTRO_MAXI" or "#define BOARD MEGA_2560")
-
 ***Compatibility***
 For this sketch to work on your setup you must change the following in the code:
 - possibly the pinout definitions in case you are not using a CONTROLLINO MAXI board
@@ -17,7 +15,6 @@ For this sketch to work on your setup you must change the following in the code:
 - the Kp,Ki,Kd parameters for both PID loops in case your peristaltic pumps have a different throughput than 1.5Liters/hour for the pH pump and 3.0Liters/hour for the Chlorine pump. 
 Also the default Kp values were adjusted for a 50m3 pool volume. You might have to adjust the Kp values in case of a different pool volume and/or peristaltic pumps throughput
 (start by adjusting it proportionally). In any case these parameters are likely to require adjustments for every pool
-
 ***Brief description:***
 Four main metrics are measured and periodically reported over MQTT: water temperature and pressure, PH and ORP values
 Pumps states, tank-level estimates and other parmaters are also periodically reported
@@ -28,12 +25,9 @@ ORP is regulated by injecting Chlorine from a tank into the pool water (a relay 
 Defined time-slots and water temperature are used to start/stop the filtration pump for a daily given amount of time (a relay starts/stops the filtration pump) 
 A lightweight webserver provides a simple dynamic webpage with a summary of all system parameters
 Communication with the system is performed using the MQTT protocol over an Ethernet connection to the local network/MQTT broker.
-
 Every 30 seconds (by default), the system will publish on the "PoolTopic" (see in code below) the following payloads in Json format:
-
 {"Tmp":818,"pH":321,"PSI":56,"Orp":583,"FilUpT":8995,"PhUpT":0,"ChlUpT":0,"IO":11,"IO2":0}
 {"pHSP":740,"OrpSP":750,"WSP":2900,"AcidF":100,"ChlF":100}
-
 Tmp: measured Water temperature value in °C x100 (8.18°C in the above example payload)
 pH: measured pH value x100 (3.21 in the above example payload)
 Orp: measured Orp (aka Redox) value in mV (583mV in the above example payload)
@@ -42,7 +36,6 @@ FiltUpT: current running time of Filtration pump in seconds (reset every 24h. 89
 PhUpT: current running time of Ph pump in seconds (reset every 24h. 0secs in the above example payload)
 ChlUpT: current running time of Chl pump in seconds (reset every 24h. 0secs in the above example payload)
 IO: a variable of type BYTE where each individual bit is the state of a digital input on the Arduino. These are :
-
     FiltPump: current state of Filtration Pump (0=on, 1=off)
     PhPump: current state of Ph Pump (0=on, 1=off)
     ChlPump: current state of Chl Pump (0=on, 1=off)
@@ -51,21 +44,16 @@ IO: a variable of type BYTE where each individual bit is the state of a digital 
     PSIError: over-pressure error
     pHErr: pH pump overtime error flag
     ChlErr: Chl pump overtime error flag
-
 IO2: a variable of type BYTE where each individual bit is the state of a digital input on the Arduino. These are :
-
     pHPID: current state of pH PID regulation loop (1=on, 0=off)
     OrpPID: current state of Orp PID regulation loop (1=on, 0=off)
     Mode: state of pH and Orp regulation mode (0=manual, 1=auto)
     Heat: state of water heat command (0=off, 1=on)
-
 pHSP: pH set point stored in Eeprom
 OrpSP: Orp set point stored in Eeprom
 WSP: Water temperature stored in Eeprom
 AcidF: percentage fill estimate of acid tank ("pHTank" function must have been called when a new acid tank was set in place in order to have accurate value)
 ChlF: percentage fill estimate of Chlorine tank ("ChlTank" function must have been called when a new Chlorine tank was set in place in order to have accurate value)
-
-
 ***MQTT API***
 Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see in code below) in Json format in order to launch actions on the Arduino:
 {"Mode":1} or {"Mode":0}         -> set "Mode" to manual (0) or Auto (1). In Auto, filtration starts/stops at set times of the day 
@@ -73,7 +61,7 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see in c
 {"FiltPump":1} or {"FiltPump":0} -> manually start/stop the filtration pump. 
 {"ChlPump":1} or {"ChlPump":0}   -> manually start/stop the Chl pump to add more Chlorine
 {"PhPump":1} or {"PhPump":0}     -> manually start/stop the Acid pump to lower the Ph
-{"PhPID":1} or {"PhPID":0}       -> start/stop the Ph PID regulation loop
+{"PhPID":1} or {"FiltPump":0}    -> start/stop the Ph PID regulation loop
 {"OrpPID":1} or {"OrpPID":0}     -> start/stop the Orp PID regulation loop
 {"PhCalib":[4.02,3.8,9.0,9.11]}  -> multi-point linear regression calibration (minimum 1 point-couple, 6 max.) in the form [ProbeReading_0, BufferRating_0, xx, xx, ProbeReading_n, BufferRating_n]
 {"OrpCalib":[450,465,750,784]}   -> multi-point linear regression calibration (minimum 1 point-couple, 6 max.) in the form [ProbeReading_0, BufferRating_0, xx, xx, ProbeReading_n, BufferRating_n]
@@ -85,7 +73,7 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see in c
 {"OrpPIDParams":[4000,0,0]}      -> respectively set Kp,Ki,Kd parameters of the Orp PID loop. In this example they are set to 2857, 0 and 0
 {"PhPIDParams":[2000000,0,0.0]}  -> respectively set Kp,Ki,Kd parameters of the Ph PID loop. In this example they are set to 1330000, 0 and 0.0
 {"OrpPIDWSize":3600000}          -> set the window size of the Orp PID loop (in msec), 60mins in this example
-{"PhPIDWSize":3600000}            -> set the window size of the Ph PID loop (in msec), 60mins in this example
+{"PhPIDWSize":3600000}           -> set the window size of the Ph PID loop (in msec), 60mins in this example
 {"Date":[1,1,1,18,13,32,0]}      -> set date/time of RTC module in the following format: (Day of the month, Day of the week, Month, Year, Hour, Minute, Seconds), in this example: Monday 1st January 2018 - 13h32mn00secs
 {"FiltT0":9}                     -> set the earliest hour (9:00 in this example) to run filtration pump. Filtration pump will not run beofre that hour
 {"FiltT1":20}                    -> set the latest hour (20:00 in this example) to run filtration pump. Filtration pump will not run after that hour
@@ -98,8 +86,6 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see in c
 {"pHTank":[20,100]}              -> call this function when the Acid tank is replaced or refilled. First parameter is the tank volume in Liters, second parameter is its percentage fill (100% when full)
 {"ChlTank":[20,100]}             -> call this function when the Chlorine tank is replaced or refilled. First parameter is the tank volume in Liters, second parameter is its percentage fill (100% when full)
 {"Relay":[1,1]}                  -> call this generic function to actuate relays from the CONTROLLINO. Parameter 1 is the relay number (R1 in this example), parameter 2 is the relay state (ON in this example). This function is useful to use spare relays for additional features (lighting, etc). Available relay numbers are 1,2,6,7,8,9
-
-
 ***Dependencies and respective revisions used to compile this project***
 https://github.com/256dpi/arduino-mqtt/releases (rev 2.4.3)
 https://github.com/CONTROLLINO-PLC/CONTROLLINO_Library (rev 3.0.4)
@@ -116,14 +102,15 @@ https://github.com/sdesalas/Arduino-Queue.h (rev )
 https://github.com/Loic74650/Pump (rev 0.0.1)
 https://github.com/PaulStoffregen/Time (rev 1.5)
 https://github.com/adafruit/RTClib (rev 1.2.0)
-https://github.com/JChristensen/JC_Button (rev 2.1.1)
+https://github.com/thomasfredericks/Bounce2 (rev 2.5.2)
+https://github.com/fasteddy516/ButtonEvents  (rev 1.0.1)
 
 */
 
 #if defined(CONTROLLINO_MAXI) //Controllino Maxi board specifics
 
   #include <Controllino.h>
-  
+
   //output relays pin definitions
   #define FILTRATION_PUMP CONTROLLINO_R4  //CONTROLLINO_RELAY_4
   #define PH_PUMP    CONTROLLINO_R3       //CONTROLLINO_RELAY_3
@@ -147,24 +134,33 @@ https://github.com/JChristensen/JC_Button (rev 2.1.1)
   #define PH_MEASURE  CONTROLLINO_A4      //CONTROLLINO_A4 pin A4 on pin header connector, not on screw terminal (/!\)
   
   //Analog input pin connected to pressure sensor
-  #define PSI_MEASURE CONTROLLINO_A9      //CONTROLLINO_A9 pin A9 on pin header connector, not on screw terminal (/!\)
+  #define PSI_MEASURE CONTROLLINO_A3      //CONTROLLINO_A3 pin A9 on pin header connector, not on screw terminal (/!\)
 
   //Front panel push button switch
   #define PUSH_BUTTON_PIN  CONTROLLINO_A5   //CONTROLLINO_A5 pin A5. Connect a button switch from this pin to ground
   #define GREEN_LED_PIN    CONTROLLINO_D0  //CONTROLLINO_D0). Digital output pin to switch ON/OFF Green LED of push button
-  #define RED_LED_PIN      CONTROLLINO_D2  //CONTROLLINO_D1). Digital output pin to switch ON/OFF Red LED of push button
+  #define RED_LED_PIN      CONTROLLINO_D2  //CONTROLLINO_D2). Digital output pin to switch ON/OFF Red LED of push button
 
 #else //Mega2560 board specifics
+  
 
+  
   #include <Wire.h>
   #include "RTClib.h"
   RTC_DS3231 rtc;
+  
+  #if !( defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560) )
+  #error This code is intended to run only on the Arduino Mega 1280/2560 boards ! Please check your Tools->Board setting.
+  #endif
+  // #define EspSerial Serial3
+  #define EEPROM_START      512
+  // #include <Esp8266_AT_WM_Lite.h>
 
-  #define FILTRATION_PUMP 38
+  #define FILTRATION_PUMP A14
   #define PH_PUMP         36
   #define CHL_PUMP        42
   #define HEAT_ON         58
-
+  
   #define RELAY_R1   37
   #define RELAY_R2   31
   #define RELAY_R6   32
@@ -179,16 +175,16 @@ https://github.com/JChristensen/JC_Button (rev 2.1.1)
   
   //Analog input pins connected to Phidgets 1130_0 pH/ORP Adapters. 
   //Galvanic isolation circuitry between Adapters and Arduino required!
-  #define ORP_MEASURE     A9
-  #define PH_MEASURE      A8
+  #define ORP_MEASURE     A2
+  #define PH_MEASURE      A0
   
   //Analog input pin connected to pressure sensor
-  #define PSI_MEASURE     A7
+  #define PSI_MEASURE     A10
 
   //Front panel push button switch
-  #define PUSH_BUTTON_PIN  40   //Connect a button switch from this pin to ground
-  #define GREEN_LED_PIN    54  //Digital output pin to switch ON/OFF Green LED of push button
-  #define RED_LED_PIN      56  //Digital output pin to switch ON/OFF Red LED of push button
+  #define PUSH_BUTTON_PIN  A12   //Connect a button switch from this pin to ground
+  #define GREEN_LED_PIN    2  //Digital output pin to switch ON/OFF Green LED of push button
+  #define RED_LED_PIN      4  //Digital output pin to switch ON/OFF Red LED of push button
   
 #endif
 
@@ -212,15 +208,17 @@ https://github.com/JChristensen/JC_Button (rev 2.1.1)
 #include <EEPROMex.h>
 #include <Queue.h>
 #include <Time.h>
-#include "Pump.h"
-#include <JC_Button.h>
+#include <Pump.h>
+#include <ButtonEvents.h>
+#include <Bounce2.h>
+
 
 // Firmware revision
 String Firmw = "4.0.3";
 
 //Version of config stored in Eeprom
 //Random value. Change this value (to any other value) to revert the config to default values
-#define CONFIG_VERSION 121
+#define CONFIG_VERSION 120
 
 //Starting point address where to store the config data in EEPROM
 #define memoryBase 32
@@ -241,8 +239,10 @@ const byte
     bGREEN_LED_PIN(GREEN_LED_PIN),             // Connect cathode of push button green LED to this pin. /!\ select appropriate ballast resistor in series! 
     bRED_LED_PIN(RED_LED_PIN);                 // Connect cathode of push butotn red LED to this pin. /!\ select appropriate ballast resistor in series!
 
-Button PushButton(bBUTTON_PIN);               // define the button
-bool LongPressed = false;
+ButtonEvents myButton; //create an instance of the ButtonEvents class to attach to our button
+
+bool EmergencyStopFiltPump = false;             // flag will be (re)set by double-tapp button
+
 bool RedPushButtonLedToggle = false;
 
 //buffers for MQTT string payload
@@ -274,7 +274,7 @@ struct StoreStruct
     8, 12, 20, 20, 120,
     1800, 1800,
     3000000, 7200000, 0, 0,
-    7.4, 750.0, 0.5, 0.25, 10.0, 27.0, 3.0, 4.3, -2.63, -1189, 2564, 1.11, 0.0,
+    7.3, 750.0, 0.5, 0.25, 10.0, 27.0, 3.0, 4.3, -2.63, -1189, 2564, 1.0, 0.0,
     2000000.0, 0.0, 0.0, 2500.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4,
     100.0, 100.0, 20.0, 20.0, 1.5, 3.0
 };
@@ -329,28 +329,28 @@ RunningMedian samples_Orp = RunningMedian(10);
 RunningMedian samples_PSI = RunningMedian(3);
 
 //MAC Address of DS18b20 water temperature sensor
-DeviceAddress DS18b20_0 = { 0x28, 0x92, 0x25, 0x41, 0x0A, 0x00, 0x00, 0xEE };
+DeviceAddress DS18b20_0 = { 0x28, 0x74, 0x8A, 0xC9, 0x0B, 0x00, 0x00, 0x47 };
 String sDS18b20_0;
-                                                 
-// MAC address of Ethernet shield (in case of Controllino board, set an arbitrary MAC address)
-//byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
-byte mac[] = { 0xA8, 0x61, 0x0A, 0xAE, 0x2C, 0x68 };
+
+//MAC address of Ethernet shield (in case of Controllino board, set an arbitrary MAC address)
+byte mac[] = { 0xAA, 0x06, 0x66, 0x34, 0x78, 0x77 };
 String sArduinoMac;
-//IPAddress ip(192, 168, 0, 201);  //IP address, needs to be adapted depending on local network topology
+IPAddress ip(192, 168, 1, 31);  //IP address, needs to be adapted depending on local network topology
 EthernetServer server(80);      //Create a server at port 80
 EthernetClient net;             //Ethernet client to connect to MQTT server
 
+
 //MQTT stuff including local broker/server IP address, login and pwd
 MQTTClient MQTTClient;
-const char* MqttServerIP = "192.168.0.38";
-//const char* MqttServerIP = "broker.mqttdashboard.com";//cloud-based MQTT broker to test when node-red and MQTT broker are not installed locally (/!\ public and unsecure!)
-const char* MqttServerClientID = "ArduinoPool2"; // /!\ choose a client ID which is unique to this Arduino board
-const char* MqttServerLogin = "admin";  //replace by const char* MqttServerLogin = nullptr; in case broker does not require a login/pwd
-const char* MqttServerPwd = "xxxxxx"; //replace by const char* MqttServerPwd = nullptr; in case broker does not require a login/pwd
-const char* PoolTopic = "Home/Pool";
-const char* PoolTopicAPI = "Home/Pool/API";
-const char* PoolTopicStatus = "Home/Pool/status";
-const char* PoolTopicError = "Home/Pool/Err";
+const char* MqttServerIP = "192.168.1.35";
+const char* MqttServerClientID = "ArduinoPool_TEST"; // /!\ choose a client ID which is unique to this Arduino board
+const char* MqttServerLogin = nullptr;  //replace by const char* MqttServerLogin = nullptr; in case broker does not require a login/pwd
+const char* MqttServerPwd = "nullptr"; //replace by const char* MqttServerPwd = nullptr; in case broker does not require a login/pwd
+const char* PoolTopic = "Home/Pool_TEST";
+const char* PoolTopicAPI = "Home/Pool_TEST/API";
+const char* PoolTopicStatus = "Home/Pool_TEST/status";
+const char* PoolTopicError = "Home/Pool_TEST/Err";
+
 
 //Date-Time variables for use with internal RTC (Real Time Clock) module
 char TimeBuffer[25];
@@ -372,14 +372,15 @@ void EthernetClientCallback(Task* me);
 void OrpRegulationCallback(Task* me);
 void PHRegulationCallback(Task* me);
 void GenericCallback(Task* me);
+void ButtonCallback(Task* me);
 void PublishDataCallback(Task* me);
 
 Task t1(500, EthernetClientCallback);         //Check for Ethernet client every 0.5 secs
 Task t2(1000, OrpRegulationCallback);         //ORP regulation loop every 1 sec
 Task t3(1100, PHRegulationCallback);          //PH regulation loop every 1.1 sec
 Task t4(30000, PublishDataCallback);          //Publish data to MQTT broker every 30 secs
-Task t5(600, GenericCallback);                //Various things handled/updated in this loop every 0.6 secs
-
+Task t5(600, GenericCallback);                 //Various things handled/updated in this loop every 0.6 secs
+Task t6(10, ButtonCallback);                    //Check Button every 0.01 sec (fast to detect double-tap)
 
 void setup()
 {
@@ -429,11 +430,10 @@ void setup()
       }
       else
       {  
-        setSyncProvider(&syncTimeRTC);
-        //setSyncInterval(30); // in seconds, default 300
+        DateTime now = rtc.now();
+        setTime(now.hour(),(uint8_t)now.minute(),(uint8_t)now.second(),(uint8_t)now.day(),(uint8_t)now.month(),(uint16_t)now.year());     
       }      
     #endif
-
     
     //Define pins directions
     pinMode(FILTRATION_PUMP, OUTPUT);
@@ -442,7 +442,7 @@ void setup()
     pinMode(GREEN_LED_PIN, OUTPUT);
     pinMode(RED_LED_PIN, OUTPUT);
     pinMode(HEAT_ON, OUTPUT);
-
+    
     pinMode(RELAY_R1, OUTPUT);
     pinMode(RELAY_R2, OUTPUT);
     pinMode(RELAY_R6, OUTPUT);
@@ -459,14 +459,14 @@ void setup()
     pinMode(PSI_MEASURE, INPUT);
 
     //String for MAC address of Ethernet shield for the log & XML file
-    sArduinoMac = F("0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED");
+    sArduinoMac = F("0xAA, 0x06, 0x66, 0x34, 0x78, 0x78");
 
     //8 seconds watchdog timer to reset system in case it freezes for more than 8 seconds
     wdt_enable(WDTO_8S);
     
     // initialize Ethernet device  
-    //Ethernet.begin(mac, ip); 
-    Ethernet.begin(mac); //Use DHCP. Helps avoiding issues when trying to connect to an external MQTT broker 
+    Ethernet.begin(mac, ip); 
+    // Ethernet.begin(mac); //Use DHCP. Helps avoiding issues when trying to connect to an external MQTT broker 
     delay(1500);
     
     // start to listen for clients
@@ -475,17 +475,48 @@ void setup()
     //Start temperature measurement state machine
     gettemp.next(gettemp_start);
 
+    // Set status LEDS Correct at power-on
+    if(!PSIError && !PhPump.UpTimeError && !ChlPump.UpTimeError){
+      digitalWrite(bGREEN_LED_PIN, true);
+    }
+    else {
+      digitalWrite(bRED_LED_PIN, true);
+    }
+
+    //start filtration pump at power-on if within scheduled time slots -- You can choose not to do this and start pump manually
+        if(storage.AutoMode && (hour() >= storage.FiltrationStart) && (hour() < storage.FiltrationStop))
+          FiltrationPump.Start();
+    
     //Init MQTT
     MQTTClient.setOptions(60,false,10000);
     MQTTClient.setWill(PoolTopicStatus,"offline",true,LWMQTT_QOS1);
     MQTTClient.begin(MqttServerIP, net);
+    // MQTTClient.setHost(MqttServerIP, 21883);
     MQTTClient.onMessage(messageReceived);
     MQTTConnect();
 
    
     //Initialize the front panel push-button object
-    PushButton.begin();              
 
+    myButton.attach(PUSH_BUTTON_PIN);
+     //If your button is connected such that pressing it generates a low signal on the pin, you can specify
+    // that it is "active low", or don't bother, since this is the default setting anyway.
+    myButton.activeHigh();  
+    // By default, the raw signal on the input pin has a 35ms debounce applied to it.  You can change the
+    // debounce time if necessary.
+    myButton.debounceTime(50); //apply 50ms debounce
+    // The double-tap detection window is set to 150ms by default.  Decreasing this value will result in
+    // more responsive single-tap events, but requires really fast tapping to trigger a double-tap event.
+    // Increasing this value will allow slower taps to still trigger a double-tap event, but will make
+    // single-tap events more laggy, and can cause taps that were meant to be separate to be treated as
+    // double-taps.  The necessary timing really depends on your use case, but I have found 150ms to be a
+    // reasonable starting point.  If you need to change the double-tap detection window, you can do so
+    // as follows:
+    myButton.doubleTapTime(250); // set double-tap detection window to 250ms
+    // The hold duration can be increased to require longer holds before an event is triggered, or reduced to
+    // have hold events trigger more quickly.
+    myButton.holdTime(2000); // require button to be held for 2000ms before triggering a hold event
+    
     //Initialize PIDs
     storage.PhPIDwindowStartTime = millis();
     storage.OrpPIDwindowStartTime = millis();
@@ -525,21 +556,13 @@ void setup()
 
     //Generic loop
     SoftTimer.add(&t5);
+    
+    //Button loop
+    SoftTimer.add(&t6);
 
     //display remaining RAM space. For debug
     Serial<<F("[memCheck]: ")<<freeRam()<<F("b")<<_endl;
 }
-
-// provide function to sync time with RTC time
-time_t syncTimeRTC(){
-  DateTime now = rtc.now();
-
-  //convert Datetime to time_t
-  time_t tt = now.unixtime();
-
-  return tt;
-}
-
 
 //Connect to MQTT broker and subscribe to the PoolTopicAPI topic in order to receive future commands
 //then publish the "online" message on the "status" topic. If Ethernet connection is ever lost
@@ -591,27 +614,48 @@ void messageReceived(String &topic, String &payload)
   }
 }
 
-//Loop where various tasks are updated/handled
-void GenericCallback(Task* me)
+//Loop to check Button
+void ButtonCallback(Task* me)
 {
-    //clear watchdog timer
-    wdt_reset();
-    //Serial<<F("Watchdog Reset")<<_endl;
+//Read the front panel push-button
 
-    //request temp reading
-    gettemp.run();
+  // The update() method returns true if an event or state change occurred.  It serves as a passthru
+  // to the Bounce2 library update() function as well, so it will stll return true if a press/release
+  // is detected but has not triggered a tap/double-tap/hold event
+  if (myButton.update() == true) {
 
-    //Update MQTT thread
-    MQTTClient.loop(); 
+    // The event() method returns tap, doubleTap, hold or none depending on which event was detected
+    // the last time the update() method was called.  The following code accomplishes the same thing
+    // we did in the 'Basic' example, but I personally prefer this arrangement.
+    switch(myButton.event()) {
+      
+      // things to do if the button was tapped (single tap)
+      case (tap) : {
+        Serial.println("TAP event detected");  
+        LCDToggle = !LCDToggle; //toggle LCD screen
+        Serial<<F("Push-Button short press. Toggling LCD screen")<<endl;               
+        break;
+      }
 
-    //Read the front panel push-button
-    PushButton.read();
-
-    //If long press more than 2secs, clear system errors and switch push-button LED back to Green
-    if (PushButton.pressedFor(2000) & !LongPressed)    // if the button was released, change the LED state
-    {
-        LongPressed = true;
-        
+      // things to do if the button was double-tapped
+      case (doubleTap) : {
+        Serial.println("DOUBLE-TAP event detected");
+        if (FiltrationPump.IsRunning()){
+          EmergencyStopFiltPump = true;
+          FiltrationPump.Stop();  
+        }
+        else {
+          EmergencyStopFiltPump = false;
+          //start filtration pump even without scheduled time slots
+          if(storage.AutoMode && !PSIError && !PhLevelError && !ChlLevelError)
+          FiltrationPump.Start();
+        }
+        break;
+      }
+   
+      // things to do if the button was held
+      case (hold) : {
+        Serial.println("HOLD event detected");
         if(PSIError)
           PSIError = false;
             
@@ -627,22 +671,30 @@ void GenericCallback(Task* me)
         MQTTClient.publish(PoolTopicError,"",true,LWMQTT_QOS1);
 
         //start filtration pump if within scheduled time slots
-        if(storage.AutoMode && (hour() >= storage.FiltrationStart) && (hour() < storage.FiltrationStop))
+        if(!EmergencyStopFiltPump && storage.AutoMode && (hour() >= storage.FiltrationStart) && (hour() < storage.FiltrationStop))
           FiltrationPump.Start();
-    }
-
-    //Button released after short press -> toggle LCD screen
-    //Button released after long press -> reset long press
-    if(PushButton.wasReleased())
-    {
-      if(LongPressed) 
-        LongPressed = false;
-      else  
-      {    
-        LCDToggle = !LCDToggle; //toggle LCD screen
-        Serial<<F("Push-Button short press. Toggling LCD screen")<<endl;
+          PSIError = PSIError;
+        break;
       }
+      
     }
+  }    
+
+}
+
+//Loop where various tasks are updated/handled
+void GenericCallback(Task* me)
+{
+    //clear watchdog timer
+    wdt_reset();
+    //Serial<<F("Watchdog Reset")<<_endl;
+
+    //request temp reading
+    gettemp.run();
+
+    //Update MQTT thread
+    MQTTClient.loop(); 
+
 
     //If any error flag is true, blink Red push-button LED
     if(PhPump.UpTimeError || ChlPump.UpTimeError || PSIError || !PhPump.TankLevel() || !ChlPump.TankLevel())
@@ -690,8 +742,9 @@ void GenericCallback(Task* me)
     }
 
     //start filtration pump as scheduled
-    if(storage.AutoMode && !PSIError && (hour() == storage.FiltrationStart) && (minute() == 0))
+    if(!EmergencyStopFiltPump && storage.AutoMode && !PSIError && (hour() == storage.FiltrationStart) && (minute() == 0))
         FiltrationPump.Start();
+        PSIError = PSIError;
         
     //start PIDs with delay after FiltrationStart in order to let the readings stabilize
     if(storage.AutoMode && !PhPID.GetMode() && (FiltrationPump.UpTime/1000/60 > storage.DelayPIDs) && (hour() >= storage.FiltrationStart) && (hour() < storage.FiltrationStop))
@@ -747,7 +800,7 @@ void GenericCallback(Task* me)
     }
 
     //Outside regular filtration hours, start filtration in case of cold Air temperatures (<-2.0deg)
-    if(storage.AutoMode && !PSIError && !FiltrationPump.IsRunning() && ((hour() < storage.FiltrationStart) || (hour() > storage.FiltrationStop)) && (storage.TempExternal<-2.0))
+    if(!EmergencyStopFiltPump && storage.AutoMode && !PSIError && !FiltrationPump.IsRunning() && ((hour() < storage.FiltrationStart) || (hour() > storage.FiltrationStop)) && (storage.TempExternal<-2.0))
     {
         FiltrationPump.Start();
         AntiFreezeFiltering = true;
@@ -1326,8 +1379,7 @@ void ProcessCommand(String JSONCommand)
               SetPhPID(true);
               SetOrpPID(true);
             }
-        }
-        else  
+        }  
         if(command.containsKey("PhPump"))//"PhPump" command which starts or stops the Acid pump
         {          
             if((int)command["PhPump"]==0)
@@ -1567,7 +1619,7 @@ int freeRam () {
 void gettemp_start()
 {
     //String containing MAC address of temp sensor to be written to XML file
-    sDS18b20_0 = F("<DS18b20_0 Mac='0x28, 0x92, 0x25, 0x41, 0x0A, 0x00, 0x00, 0xEE'>");
+    sDS18b20_0 = F("<DS18b20_0 Mac='0x28, 0x2F, 0x2C, 0x79, 0xA2, 0x00, 0x03, 0x35'>");
     
     // Start up the library
     sensors_A.begin();
