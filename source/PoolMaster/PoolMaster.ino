@@ -116,6 +116,7 @@ https://github.com/Loic74650/Pump (rev 0.0.1)
 https://github.com/PaulStoffregen/Time (rev 1.5)
 https://github.com/adafruit/RTClib (rev 1.2.0)
 https://github.com/JChristensen/JC_Button (rev 2.1.1)
+http://arduiniana.org/libraries/streaming/ (rev 5)
 
 */
 
