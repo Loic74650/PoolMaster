@@ -106,94 +106,10 @@ https://github.com/thomasfredericks/Bounce2 (rev 2.5.2)
 https://github.com/fasteddy516/ButtonEvents  (rev 1.0.1)
 
 */
-
-#if defined(CONTROLLINO_MAXI) //Controllino Maxi board specifics
-
-  #include <Controllino.h>
-
-  //output relays pin definitions
-  #define FILTRATION_PUMP CONTROLLINO_R4  //CONTROLLINO_RELAY_4
-  #define PH_PUMP    CONTROLLINO_R3       //CONTROLLINO_RELAY_3
-  #define CHL_PUMP   CONTROLLINO_R5       //CONTROLLINO_RELAY_5
-  #define HEAT_ON    CONTROLLINO_R0       //CONTROLLINO_RELAY_0
-
-  #define RELAY_R1   CONTROLLINO_R1       //CONTROLLINO_RELAY_1
-  #define RELAY_R2   CONTROLLINO_R2       //CONTROLLINO_RELAY_2
-  #define RELAY_R6   CONTROLLINO_R6       //CONTROLLINO_RELAY_6
-  #define RELAY_R7   CONTROLLINO_R7       //CONTROLLINO_RELAY_7
-  #define RELAY_R8   CONTROLLINO_R8       //CONTROLLINO_RELAY_8
-  #define RELAY_R9   CONTROLLINO_R9       //CONTROLLINO_RELAY_9
-
-  //Digital input pins connected to Acid and Chl tank level reed switches
-  #define CHL_LEVEL  CONTROLLINO_D1       //CONTROLLINO_D1 pin 3
-  #define PH_LEVEL   CONTROLLINO_D3       //CONTROLLINO_D3 pin 5
-  
-  //Analog input pins connected to Phidgets 1130_0 pH/ORP Adapters. 
-  //Galvanic isolation circuitry between Adapters and Arduino required!
-  #define ORP_MEASURE CONTROLLINO_A2      //CONTROLLINO_A2 pin A2 on pin header connector, not on screw terminal (/!\)
-  #define PH_MEASURE  CONTROLLINO_A4      //CONTROLLINO_A4 pin A4 on pin header connector, not on screw terminal (/!\)
-  
-  //Analog input pin connected to pressure sensor
-  #define PSI_MEASURE CONTROLLINO_A9      //CONTROLLINO_A9 pin A9 on pin header connector, not on screw terminal (/!\)
-
-  //Front panel push button switch
-  #define PUSH_BUTTON_PIN  CONTROLLINO_A5   //CONTROLLINO_A5 pin A5. Connect a button switch from this pin to ground
-  #define GREEN_LED_PIN    CONTROLLINO_D0  //CONTROLLINO_D0). Digital output pin to switch ON/OFF Green LED of push button
-  #define RED_LED_PIN      CONTROLLINO_D2  //CONTROLLINO_D2). Digital output pin to switch ON/OFF Red LED of push button
-
-#else //Mega2560 board specifics
-  
-
-  
-  #include <Wire.h>
-  #include "RTClib.h"
-  RTC_DS3231 rtc;
-  
-  #if !( defined(ARDUINO_AVR_MEGA) || defined(ARDUINO_AVR_MEGA2560) )
-  #error This code is intended to run only on the Arduino Mega 1280/2560 boards ! Please check your Tools->Board setting.
-  #endif
-  // #define EspSerial Serial3
-  #define EEPROM_START      512
-  // #include <Esp8266_AT_WM_Lite.h>
-
-  #define FILTRATION_PUMP A14
-  #define PH_PUMP         36
-  #define CHL_PUMP        42
-  #define HEAT_ON         58
-  
-  #define RELAY_R1   37
-  #define RELAY_R2   31
-  #define RELAY_R6   32
-  #define RELAY_R7   33
-  #define RELAY_R8   34
-  #define RELAY_R9   35
-
-  
-  //Digital input pins connected to Acid and Chl tank level reed switches
-  #define CHL_LEVEL       28
-  #define PH_LEVEL        30
-  
-  //Analog input pins connected to Phidgets 1130_0 pH/ORP Adapters. 
-  //Galvanic isolation circuitry between Adapters and Arduino required!
-  #define ORP_MEASURE     A2
-  #define PH_MEASURE      A0
-  
-  //Analog input pin connected to pressure sensor
-  #define PSI_MEASURE     A10
-
-  //Front panel push button switch
-  #define PUSH_BUTTON_PIN  A12   //Connect a button switch from this pin to ground
-  #define GREEN_LED_PIN    2  //Digital output pin to switch ON/OFF Green LED of push button
-  #define RED_LED_PIN      4  //Digital output pin to switch ON/OFF Red LED of push button
-  
-#endif
-
+#include "Config.h"
 #include <SPI.h>
 #include <Ethernet.h>
-#include <MQTT.h>
 #include <SD.h>
-#include "OneWire.h"
-#include <DallasTemperature.h>
 #include <TimeLib.h>
 #include <RunningMedian.h>
 #include <SoftTimer.h>
@@ -214,11 +130,7 @@ https://github.com/fasteddy516/ButtonEvents  (rev 1.0.1)
 
 
 // Firmware revision
-String Firmw = "4.0.4";
-
-//Version of config stored in Eeprom
-//Random value. Change this value (to any other value) to revert the config to default values
-#define CONFIG_VERSION 120
+String Firmw = "4.0.5";
 
 //Starting point address where to store the config data in EEPROM
 #define memoryBase 32
@@ -308,19 +220,6 @@ uint8_t BitMap2 = 0;
 //MQTT publishing periodicity of system info, in msecs
 unsigned long PublishPeriod = 30000;
 
-//One wire bus for the water temperature measurement
-//Data wire is connected to input digital pin 6 on the Arduino
-#define ONE_WIRE_BUS_A 6
-
-// Setup a oneWire instance to communicate with any OneWire devices
-OneWire oneWire_A(ONE_WIRE_BUS_A);
-
-// Pass our oneWire reference to Dallas Temperature library instance 
-DallasTemperature sensors_A(&oneWire_A);
-
-//12bits (0,06°C) temperature sensor resolution
-#define TEMPERATURE_RESOLUTION 12
-
 //Signal filtering library. Only used in this case to compute the average
 //over multiple measurements but offers other filtering functions such as median, etc. 
 RunningMedian samples_Temp = RunningMedian(10);
@@ -328,29 +227,8 @@ RunningMedian samples_Ph = RunningMedian(10);
 RunningMedian samples_Orp = RunningMedian(10);
 RunningMedian samples_PSI = RunningMedian(3);
 
-//MAC Address of DS18b20 water temperature sensor
-DeviceAddress DS18b20_0 = { 0x28, 0x92, 0x25, 0x41, 0x0A, 0x00, 0x00, 0xEE };
-String sDS18b20_0;
-                                                 
-// MAC address of Ethernet shield (in case of Controllino board, set an arbitrary MAC address)
-//byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
-byte mac[] = { 0xA8, 0x61, 0x0A, 0xAE, 0x2C, 0x68 };
-String sArduinoMac;
-//IPAddress ip(192, 168, 0, 201);  //IP address, needs to be adapted depending on local network topology
 EthernetServer server(80);      //Create a server at port 80
 EthernetClient net;             //Ethernet client to connect to MQTT server
-
-//MQTT stuff including local broker/server IP address, login and pwd
-MQTTClient MQTTClient;
-const char* MqttServerIP = "192.168.0.38";
-//const char* MqttServerIP = "broker.mqttdashboard.com";//cloud-based MQTT broker to test when node-red and MQTT broker are not installed locally (/!\ public and unsecure!)
-const char* MqttServerClientID = "ArduinoPool2"; // /!\ choose a client ID which is unique to this Arduino board
-const char* MqttServerLogin = "admin";  //replace by const char* MqttServerLogin = nullptr; in case broker does not require a login/pwd
-const char* MqttServerPwd = "xxxxxx"; //replace by const char* MqttServerPwd = nullptr; in case broker does not require a login/pwd
-const char* PoolTopic = "Home/Pool";
-const char* PoolTopicAPI = "Home/Pool/API";
-const char* PoolTopicStatus = "Home/Pool/status";
-const char* PoolTopicError = "Home/Pool/Err";
 
 //Date-Time variables for use with internal RTC (Real Time Clock) module
 char TimeBuffer[25];
@@ -488,7 +366,7 @@ void setup()
           FiltrationPump.Start();
     
     //Init MQTT
-    MQTTClient.setOptions(60,false,10000);
+    MQTTClient.setOptions(60,false,2000);
     MQTTClient.setWill(PoolTopicStatus,"offline",true,LWMQTT_QOS1);
     MQTTClient.begin(MqttServerIP, net);
     // MQTTClient.setHost(MqttServerIP, 21883);
@@ -582,7 +460,6 @@ time_t syncTimeRTC(){
 //"status" will switch to "offline". Very useful to check that the Arduino is alive and functional
 void MQTTConnect() 
 {
-  //MQTTClient.connect(MqttServerClientID);
   //MQTTClient.connect(MqttServerClientID);
   MQTTClient.connect(MqttServerClientID, MqttServerLogin, MqttServerPwd);
 /*  int8_t Count=0;

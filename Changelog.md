@@ -1,22 +1,29 @@
 PoolMaster: change log
 =======================
+
+v4.0.5
+-------
+
+* Moved all config parameters (login/password, IP address, MAC address, temp probes addresses, pin numbers, etc) which are specific to each hardware setup to a "Config.h" file, separate from the main sketch. 
+* Reduced timeout of MQTT connect function to 2secs in order to avoid Watchdog Timer from rebooting the controller in case Ethernet connection is lost. Controller still won't boot properly in case Ethernet conenction is not present at boot time (due to long DHCP timeout), this will be handled in a future revision
+
 v4.0.4
 -------
 
-*Added double-tap functionality to front-panel button in order to manually start/stop filtration in case you want to do a backwash or need to do some maintenance on your system (and you don't have a mobile or computer at hand to use the API). 
-*when rebooting controller during filtration hours, filtration starts (bug fix)
-*this code requires two new libraries to compile, see dependencies.txt file
+* Added double-tap functionality to front-panel button in order to manually start/stop filtration in case you want to do a backwash or need to do some maintenance on your system (and you don't have a mobile or computer at hand to use the API). 
+* When rebooting controller during filtration hours, filtration starts (bug fix)
+* This code requires two new libraries to compile, see dependencies.txt file
 
 v4.0.3
 -------
 
-*Added calibration function for the water pressure sensor {"PSICalib":[0,0,0.71,0.6]}
-*Added generic function {"Relay":[1,1]} to actuate spare relays. Useful to add custom control features to the project such as lighting, etc
+* Added calibration function for the water pressure sensor {"PSICalib":[0,0,0.71,0.6]}
+* Added generic function {"Relay":[1,1]} to actuate spare relays. Useful to add custom control features to the project such as lighting, etc
 
 v4.0.0
 -------
 
-*Starting and stopping PIDs when filtration is manually started/stopped. This is useful in spring when the water is cold, filtrations tops early, however one might wish to manually start it in the afternoon and have the PIDs regulating the water quality
+* Starting and stopping PIDs when filtration is manually started/stopped. This is useful in spring when the water is cold, filtrations tops early, however one might wish to manually start it in the afternoon and have the PIDs regulating the water quality
 
 v4.0.0
 -------
