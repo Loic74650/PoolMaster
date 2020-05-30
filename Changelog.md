@@ -1,5 +1,12 @@
 PoolMaster: change log
 =======================
+v4.0.4
+-------
+
+*Added double-tap functionality to front-panel button in order to manually start/stop filtration in case you want to do a backwash or need to do some maintenance on your system (and you don't have a mobile or computer at hand to use the API). 
+*when rebooting controller during filtration hours, filtration starts (bug fix)
+*this code requires two new libraries to compile, see dependencies.txt file
+
 v4.0.3
 -------
 
