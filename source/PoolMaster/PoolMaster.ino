@@ -130,7 +130,7 @@ https://github.com/fasteddy516/ButtonEvents  (rev 1.0.1)
 
 
 // Firmware revision
-String Firmw = "4.0.5";
+String Firmw = "4.0.6";
 
 //Starting point address where to store the config data in EEPROM
 #define memoryBase 32
@@ -725,6 +725,7 @@ void GenericCallback(Task* me)
 //PublishData loop. Publishes system info/data to MQTT broker every XX secs (30 secs by default)
 void PublishDataCallback(Task* me)
 {      
+      DEBUG_PRINT("start");
      //Store the GPIO states in one Byte (more efficient over MQTT)
       EncodeBitmap();
       
@@ -820,6 +821,7 @@ void PublishDataCallback(Task* me)
       }
       else
       Serial<<F("Failed to connect to the MQTT broker")<<_endl;
+      DEBUG_PRINT("stop");
 }
 
 void PHRegulationCallback(Task* me)
