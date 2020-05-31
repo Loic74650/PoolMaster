@@ -85,7 +85,7 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see in c
 {"PSIHigh":1.0}                  -> set the water high-pressure threshold (1.0bar in this example). When water pressure is over that threshold, an error flag is set.
 {"pHTank":[20,100]}              -> call this function when the Acid tank is replaced or refilled. First parameter is the tank volume in Liters, second parameter is its percentage fill (100% when full)
 {"ChlTank":[20,100]}             -> call this function when the Chlorine tank is replaced or refilled. First parameter is the tank volume in Liters, second parameter is its percentage fill (100% when full)
-{"Relay":[1,1]}                  -> call this generic function to actuate relays from the CONTROLLINO. Parameter 1 is the relay number (R1 in this example), parameter 2 is the relay state (ON in this example). This function is useful to use spare relays for additional features (lighting, etc). Available relay numbers are 1,2,6,7,8,9
+{"Relay":[1,1]}                  -> call this generic function to actuate spare relays. Parameter 1 is the relay number (R1 in this example), parameter 2 is the relay state (ON in this example). This function is useful to use spare relays for additional features (lighting, etc). Available relay numbers are 1,2,6,7,8,9
 ***Dependencies and respective revisions used to compile this project***
 https://github.com/256dpi/arduino-mqtt/releases (rev 2.4.3)
 https://github.com/CONTROLLINO-PLC/CONTROLLINO_Library (rev 3.0.4)
@@ -618,6 +618,8 @@ void GenericCallback(Task* me)
       FiltrationPump.ResetUpTime();
       PhPump.ResetUpTime();
       ChlPump.ResetUpTime(); 
+
+      EmergencyStopFiltPump = false;
     }
 
     //compute next Filtering duration and stop time (in hours)
@@ -937,6 +939,11 @@ void EncodeBitmap()
     BitMap2 |= (OrpPID.GetMode() & 1) << 6;
     BitMap2 |= (storage.AutoMode & 1) << 5;
     BitMap2 |= (storage.WaterHeat & 1) << 4;
+    BitMap2 |= (digitalRead(RELAY_R1) & 1) << 3;
+    BitMap2 |= (digitalRead(RELAY_R2) & 1) << 2;
+    BitMap2 |= (digitalRead(RELAY_R6) & 1) << 1;
+    BitMap2 |= (digitalRead(RELAY_R7) & 1) << 0;
+    
 }
   
 //Update temperature, Ph and Orp values
@@ -1259,15 +1266,15 @@ void ProcessCommand(String JSONCommand)
             {
               FiltrationPump.Stop();  //stop filtration pump
               //Start PIDs
-              SetPhPID(false);
-              SetOrpPID(false);
+              //SetPhPID(false);
+              //SetOrpPID(false);
             }
             else
             {
               FiltrationPump.Start();   //start filtration pump
               //Start PIDs
-              SetPhPID(true);
-              SetOrpPID(true);
+              //SetPhPID(true);
+              //SetOrpPID(true);
             }
         }  
         if(command.containsKey("PhPump"))//"PhPump" command which starts or stops the Acid pump
