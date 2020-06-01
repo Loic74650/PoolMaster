@@ -11,7 +11,7 @@ v5.0.0
 	{"Fw":"4.0.7","FSta":8,"FDu":12,"FStoM":20,"FSto":20,"Dpid":59,"pHUTL":30,"ChlUTL":30}
 	{"pHWS":50,"ChlWS":120,"pHSP":740,"OrpSP":600,"WSP":2750,"WLT":1000,"PSIHT":50,"PSIMT":25}
 	{"TE":2262,"pHC0":4.3,"pHC1":-2.63,"OrpC0":-1189,"OrpC1":2564,"PSIC0":1.11,"PSIC1":0}
-	{"pHKp":2000000,"pHKi":0,"pHKd":0,"OrpKp":2500,"OrpKi":0,"OrpKd":0}
+	{"pHKp":2000000,"pHKi":0,"pHKd":0,"OrpKp":2500,"OrpKi":0,"OrpKd":0}                  
 	{"pHTV":20,"ChlTV":20,"pHFR":1.5,"OrpFR":3}
 
  See code of function PublishSettings() for details
