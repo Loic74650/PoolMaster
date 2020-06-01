@@ -1,5 +1,29 @@
 PoolMaster: change log
 =======================
+v5.0.0
+-------
+
+* /!\ API change: Measurements are now published on 2 different topics: PoolTopicMeasurement1 and PoolTopicMeasurement2
+This is necessary because the MQTT library is limited to sending messages with payloads shorter than 100 bytes or so, so all the measurements must be split over 2 MQTT messages. Moreover, in order to have them retained, they must be sent to 2 different topics.
+
+* /!\ API change: PublishSettings() is a new function which publishes the program settings on 5 different topics: PoolTopicSettings1 to PoolTopicSettings5 for the same reasons as above. This function is called at startup and when a setting is changed via the API or the touch screen (in the future). Example published settings are:
+
+{"Fw":"4.0.7","FSta":8,"FDu":12,"FStoM":20,"FSto":20,"Dpid":59,"pHUTL":30,"ChlUTL":30}
+{"pHWS":50,"ChlWS":120,"pHSP":740,"OrpSP":600,"WSP":2750,"WLT":1000,"PSIHT":50,"PSIMT":25}
+{"TE":2262,"pHC0":4.3,"pHC1":-2.63,"OrpC0":-1189,"OrpC1":2564,"PSIC0":1.11,"PSIC1":0}
+{"pHKp":2000000,"pHKi":0,"pHKd":0,"OrpKp":2500,"OrpKi":0,"OrpKd":0}
+{"pHTV":20,"ChlTV":20,"pHFR":1.5,"OrpFR":3}
+
+See code of function PublishSettings() for details
+
+* All MQTT publishes are now in retain mode in order to sync more efficiently MQTT clients with the controller
+
+* Added a new command to reboot the controller: {"Reboot":1}
+
+v4.0.6
+-------
+
+* Added profiling utility to measure duration of PublishCallback. In the Config.h file, uncomment the line #define DEBUG and place DEBUG_PRINT("something") functions in the code. It will output profiling info (timestamp, function name, message) to the serial monitor
 
 v4.0.5
 -------

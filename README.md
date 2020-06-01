@@ -22,20 +22,19 @@ An API function enables telling the system what the outside air temperature is. 
 A lightweight webserver provides a simple dynamic webpage with a summary of all system parameters. An XML file with more info is available at http://ARDUINO_LOCAL_IP/Info<br />
 Communication with the system is performed using the MQTT protocol over an Ethernet connection to the local network/MQTT broker.<br /><br />
 
-Every 30 seconds (by default), the system will publish on the "PoolTopic" (see in code below) the following payloads in Json format:<br />
-
-{"Tmp":818,"pH":321,"PSI":56,"Orp":583,"FilUpT":8995,"PhUpT":0,"ChlUpT":0,"IO":11,"IO2":0}
-{"pHSP":740,"OrpSP":750,"WSP":2900,"AcidF":100,"ChlF":100}
-
-
-Tmp: measured Water temperature value in °C x100 (8.18°C in the above example payload)<br />
-pH: measured pH value x100 (3.21 in the above example payload)<br />
-PSI: measured Water pressure value in bar x100 (0.56bar in the above example payload)<br />
-Orp: measured Orp (aka Redox) value in mV (583mV in the above example payload)<br />
-FiltUpT: current running time of Filtration pump in seconds (reset every 24h. 8995secs in the above example payload)<br />
-PhUpT: current running time of Ph pump in seconds (reset every 24h. 0secs in the above example payload)<br />
-ChlUpT: current running time of Chl pump in seconds (reset every 24h. 0secs in the above example payload)<br />
-IO: a variable of type BYTE where each individual bit is the state of a digital input on the Arduino. These are :<br />
+Every 30 seconds (by default), the system will publish on the "PoolTopicMeas1" and "PoolTopicMeas2"(see in code below) the following payloads in Json format:<br />
+  {"Tmp":818,"pH":321,"PSI":56,"Orp":583,"FilUpT":8995,"PhUpT":0,"ChlUpT":0}<br />
+  {"AcidF":100,"ChlF":100,"IO":11,"IO2":0}<br />
+  Tmp: measured Water temperature value in °C x100 (8.18°C in the above example payload)<br />
+  pH: measured pH value x100 (3.21 in the above example payload)<br />
+  Orp: measured Orp (aka Redox) value in mV (583mV in the above example payload)<br />
+  PSI: measured Water pressure value in bar x100 (0.56bar in the above example payload)<br />
+  FiltUpT: current running time of Filtration pump in seconds (reset every 24h. 8995secs in the above example payload)<br />
+  PhUpT: current running time of Ph pump in seconds (reset every 24h. 0secs in the above example payload)<br />
+  ChlUpT: current running time of Chl pump in seconds (reset every 24h. 0secs in the above example payload)<br />
+  AcidF: percentage fill estimate of acid tank ("pHTank" command must have been called when a new acid tank was set in place in order to have accurate value)<br />
+  ChlF: percentage fill estimate of Chlorine tank ("ChlTank" command must have been called when a new Chlorine tank was set in place in order to have accurate value)<br />
+IO: a variable of type BYTE where each individual bit is the state of a digital input on the Arduino. These are :<br />	
 <ul>
 <li>FiltPump: current state of Filtration Pump (0=on, 1=off)</li>
 <li>PhPump: current state of Ph Pump (0=on, 1=off)</li>
@@ -52,12 +51,11 @@ IO2: a variable of type BYTE where each individual bit is the state of a digital
 <li>OrpPID: current state of Orp PID regulation loop (1=on, 0=off)</li>
 <li>Mode: state of pH and Orp regulation mode (0=manual, 1=auto)</li>
 <li>Heat: state of water heat command (0=off, 1=on)</li>
+<li>R1: state of Relay1 (0=off, 1=on)</li>
+<li>R2: state of Relay2 (0=off, 1=on)</li>
+<li>R6: state of Relay6 (0=off, 1=on)</li>
+<li>R7: state of Relay7 (0=off, 1=on)</li>
 </ul><br />
-pHSP: pH set point stored in Eeprom x100 (7.40 in the above example payload)<br />
-OrpSP: Orp set point stored in Eeprom in mV (750mV in the above example payload)<br />
-WSP: Water temperature stored in Eeprom in °C x100 (29.00°C in the above example payload)<br />
-AcidF: percentage fill estimate of acid tank, 100% in the above example payload ("pHTank" function must have been called when a new acid tank was set in place in order to have accurate value)<br />
-ChlF: percentage fill estimate of Chlorine tank, 100% in the above example payload ("ChlTank" function must have been called when a new Chlorine tank was set in place in order to have accurate value)<br />
 
 <h4>How to compile</h4>
 <p>
