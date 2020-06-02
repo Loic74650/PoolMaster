@@ -514,12 +514,16 @@ void ButtonCallback(Task* me)
           if (FiltrationPump.IsRunning()) {
             EmergencyStopFiltPump = true;
             FiltrationPump.Stop();
+            
+            //switch off the PIDs
+            SetPhPID(false);
+            SetOrpPID(false);
           }
           else {
             EmergencyStopFiltPump = false;
             //start filtration pump even without scheduled time slots
-            if (storage.AutoMode && !PSIError && !PhLevelError && !ChlLevelError)
-              FiltrationPump.Start();
+            //if (storage.AutoMode && !PSIError && !PhLevelError && !ChlLevelError)
+            FiltrationPump.Start();
           }
           break;
         }
@@ -619,7 +623,7 @@ void GenericCallback(Task* me)
   PSIError = PSIError;
 
   //start PIDs with delay after FiltrationStart in order to let the readings stabilize
-  if (storage.AutoMode && !PhPID.GetMode() && (FiltrationPump.UpTime / 1000 / 60 > storage.DelayPIDs) && (hour() >= storage.FiltrationStart) && (hour() < storage.FiltrationStop))
+  if (FiltrationPump.IsRunning() && storage.AutoMode && !PhPID.GetMode() && (FiltrationPump.LastStartTime / 1000 / 60 > storage.DelayPIDs) && (hour() >= storage.FiltrationStart) && (hour() < storage.FiltrationStop))
   {
     //Start PIDs
     SetPhPID(true);
@@ -812,15 +816,15 @@ void PublishSettings()
     StaticJsonBuffer<200> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
 
-    root.set<String>("Fw", Firmw);
-    root.set<uint8_t>("FSta", (uint8_t)storage.FiltrationStart);
-    root.set<uint8_t>("FDu", (uint8_t)storage.FiltrationDuration);
-    root.set<uint8_t>("FStoM", (uint8_t)storage.FiltrationStopMax);
-    root.set<uint8_t>("FSto", (uint8_t)storage.FiltrationStop);
-    root.set<uint8_t>("Dpid", (uint8_t)storage.DelayPIDs);
+    root.set<String>("Fw", Firmw);//firmware revision
+    root.set<uint8_t>("FSta", (uint8_t)storage.FiltrationStart);//Filtration start hour, in the morning (hours)
+    root.set<uint8_t>("FDu", (uint8_t)storage.FiltrationDuration);//Computed filtration duration based on water temperature (hours)
+    root.set<uint8_t>("FStoM", (uint8_t)storage.FiltrationStopMax);//Latest hour for the filtration to run. Whatever happens, filtration won't run later than this hour (hour)
+    root.set<uint8_t>("FSto", (uint8_t)storage.FiltrationStop);//Computed filtration stop hour, equal to FSta + FDu (hour)
+    root.set<uint8_t>("Dpid", (uint8_t)storage.DelayPIDs);//Delay from FSta for the water regulation/PIDs to start (mins)
 
-    root.set<uint8_t>("pHUTL", (uint8_t)(storage.PhPumpUpTimeLimit / 60)); // /!\ in minutes
-    root.set<uint8_t>("ChlUTL", (uint8_t)(storage.ChlPumpUpTimeLimit / 60)); // /!\ in minutes
+    root.set<uint8_t>("pHUTL", (uint8_t)(storage.PhPumpUpTimeLimit / 60)); //Max allowed daily run time for the pH pump (/!\ mins)
+    root.set<uint8_t>("ChlUTL", (uint8_t)(storage.ChlPumpUpTimeLimit / 60)); //Max allowed daily run time for the Chl pump (/!\ mins)
 
     //char Payload[PayloadBufferLength];
     if (jsonBuffer.size() < PayloadBufferLength)
@@ -852,17 +856,17 @@ void PublishSettings()
     StaticJsonBuffer<200> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
 
-    root.set<int>("pHWS", (uint8_t)(storage.PhPIDWindowSize / 1000 / 60)); // /!\ in minutes
-    root.set<int>("ChlWS", (uint8_t)(storage.OrpPIDWindowSize / 1000 / 60)); // /!\ in minutes
+    root.set<int>("pHWS", (uint8_t)(storage.PhPIDWindowSize / 1000 / 60)); //pH PID window size (/!\ mins)
+    root.set<int>("ChlWS", (uint8_t)(storage.OrpPIDWindowSize / 1000 / 60)); //Orp PID window size (/!\ mins)
 
-    root.set<int>("pHSP", (int)(storage.Ph_SetPoint * 100)); // /!\ x100
-    root.set<int>("OrpSP", (int)(storage.Orp_SetPoint));
+    root.set<int>("pHSP", (int)(storage.Ph_SetPoint * 100)); //pH setpoint (/!\ x100)
+    root.set<int>("OrpSP", (int)(storage.Orp_SetPoint));//Orp setpoint (/!\ x100)
 
-    root.set<int>("WSP", (int)(storage.WaterTemp_SetPoint * 100)); // /!\ x100
-    root.set<int>("WLT", (int)(storage.WaterTempLowThreshold * 100)); // /!\ x100
+    root.set<int>("WSP", (int)(storage.WaterTemp_SetPoint * 100)); //Water temperature setpoint (/!\ x100)
+    root.set<int>("WLT", (int)(storage.WaterTempLowThreshold * 100)); //Water temperature low threshold to activate anti-freeze mode (/!\ x100)
 
-    root.set<uint8_t>("PSIHT", (uint8_t)(storage.PSI_HighThreshold * 100)); // /!\ x100
-    root.set<uint8_t>("PSIMT", (uint8_t)(storage.PSI_MedThreshold * 100)); // /!\ x100
+    root.set<uint8_t>("PSIHT", (uint8_t)(storage.PSI_HighThreshold * 100)); //Water pressure high threshold to trigger error (/!\ x100)
+    root.set<uint8_t>("PSIMT", (uint8_t)(storage.PSI_MedThreshold * 100)); //Water pressure medium threshold (unused yet) (/!\ x100)
 
     //char Payload[PayloadBufferLength];
     if (jsonBuffer.size() < PayloadBufferLength)
@@ -896,12 +900,12 @@ void PublishSettings()
 
     root.set<int>("TE", (int)(storage.TempExternal * 100)); // /!\ x100
 
-    root.set<float>("pHC0", (float)(storage.pHCalibCoeffs0));
-    root.set<float>("pHC1", (float)(storage.pHCalibCoeffs1));
-    root.set<float>("OrpC0", (float)(storage.OrpCalibCoeffs0));
-    root.set<float>("OrpC1", (float)(storage.OrpCalibCoeffs1));
-    root.set<float>("PSIC0", (float)(storage.PSICalibCoeffs0));
-    root.set<float>("PSIC1", (float)(storage.PSICalibCoeffs1));
+    root.set<float>("pHC0", (float)(storage.pHCalibCoeffs0));//pH sensor calibration coefficient C0
+    root.set<float>("pHC1", (float)(storage.pHCalibCoeffs1));//pH sensor calibration coefficient C1
+    root.set<float>("OrpC0", (float)(storage.OrpCalibCoeffs0));//Orp sensor calibration coefficient C0
+    root.set<float>("OrpC1", (float)(storage.OrpCalibCoeffs1));//Orp sensor calibration coefficient C1
+    root.set<float>("PSIC0", (float)(storage.PSICalibCoeffs0));//Pressure sensor calibration coefficient C0
+    root.set<float>("PSIC1", (float)(storage.PSICalibCoeffs1));//Pressure sensor calibration coefficient C1
 
     //char Payload[PayloadBufferLength];
     if (jsonBuffer.size() < PayloadBufferLength)
@@ -933,12 +937,12 @@ void PublishSettings()
     StaticJsonBuffer<200> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
 
-    root.set<float>("pHKp", (float)(storage.Ph_Kp));
-    root.set<float>("pHKi", (float)(storage.Ph_Ki));
-    root.set<float>("pHKd", (float)(storage.Ph_Kd));
-    root.set<float>("OrpKp", (float)(storage.Orp_Kp));
-    root.set<float>("OrpKi", (float)(storage.Orp_Ki));
-    root.set<float>("OrpKd", (float)(storage.Orp_Kd));
+    root.set<float>("pHKp", (float)(storage.Ph_Kp));//pH PID coeffcicient Kp
+    root.set<float>("pHKi", (float)(storage.Ph_Ki));//pH PID coeffcicient Ki
+    root.set<float>("pHKd", (float)(storage.Ph_Kd));//pH PID coeffcicient Kd
+    root.set<float>("OrpKp", (float)(storage.Orp_Kp));//Orp PID coeffcicient Kp
+    root.set<float>("OrpKi", (float)(storage.Orp_Ki));//Orp PID coeffcicient Ki
+    root.set<float>("OrpKd", (float)(storage.Orp_Kd));//Orp PID coeffcicient Kd
 
     //char Payload[PayloadBufferLength];
     if (jsonBuffer.size() < PayloadBufferLength)
@@ -970,10 +974,10 @@ void PublishSettings()
     StaticJsonBuffer<200> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
 
-    root.set<uint8_t>("pHTV", (uint8_t)storage.pHTankVol);
-    root.set<uint8_t>("ChlTV", (uint8_t)storage.ChlTankVol);
-    root.set<float>("pHFR", (float)(storage.pHPumpFR));
-    root.set<float>("OrpFR", (float)(storage.ChlPumpFR));
+    root.set<uint8_t>("pHTV", (uint8_t)storage.pHTankVol);//Acid tank nominal volume (Liters)
+    root.set<uint8_t>("ChlTV", (uint8_t)storage.ChlTankVol);//Chl tank nominal volume (Liters)
+    root.set<float>("pHFR", (float)(storage.pHPumpFR));//Acid pump flow rate (L/hour)
+    root.set<float>("OrpFR", (float)(storage.ChlPumpFR));//Chl pump flow rate (L/hour)
 
     //char Payload[PayloadBufferLength];
     if (jsonBuffer.size() < PayloadBufferLength)
@@ -1443,8 +1447,8 @@ void ProcessCommand(String JSONCommand)
                 {
                   FiltrationPump.Stop();  //stop filtration pump
                   //Start PIDs
-                  //SetPhPID(false);
-                  //SetOrpPID(false);
+                  SetPhPID(false);
+                  SetOrpPID(false);
                 }
                 else
                 {
