@@ -89,6 +89,9 @@
   {"ChlTank":[20,100]}             -> call this command when the Chlorine tank is replaced or refilled. First parameter is the tank volume in Liters, second parameter is its percentage fill (100% when full)
   {"Relay":[1,1]}                  -> call this generic command to actuate spare relays. Parameter 1 is the relay number (R1 in this example), parameter 2 is the relay state (ON in this example). This command is useful to use spare relays for additional features (lighting, etc). Available relay numbers are 1,2,6,7,8,9
   {"Reboot":1}                     -> call this command to reboot the controller (after 8 seconds from calling this command)
+  {"pHPumpFR":1.5}                 -> call this command to set pH pump flow rate un L/s. In this example 1.5L/s
+  {"ChlPumpFR":3}                  -> call this command to set Chl pump flow rate un L/s. In this example 3L/s
+
 ***Dependencies and respective revisions used to compile this project***
   https://github.com/256dpi/arduino-mqtt/releases (rev 2.4.3)
   https://github.com/CONTROLLINO-PLC/CONTROLLINO_Library (rev 3.0.4)
@@ -1677,6 +1680,22 @@ void ProcessCommand(String JSONCommand)
             if (command.containsKey("Reboot")) 
             {
               while(1);
+            }
+          else //"PhPumpFR" set flow rate of Ph pump
+            if (command.containsKey("pHPumpFR"))
+           {
+              storage.pHPumpFR = (float)command["pHPumpFR"];
+              PhPump.SetFlowRate((float)command["pHPumpFR"]);
+              saveConfig();
+              PublishSettings()
+            }
+          else //"ChlPumpFR" set flow rate of Chl pump
+            if (command.containsKey("ChlPumpFR"))
+           {
+              storage.ChlPumpFR = (float)command["ChlPumpFR"];
+              ChlPump.SetFlowRate((float)command["ChlpumpFR"]);
+              saveConfig();
+              PublishSettings();
             }
 
     //Publish/Update on the MQTT broker the status of our variables
