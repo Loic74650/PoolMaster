@@ -89,6 +89,9 @@
   {"ChlTank":[20,100]}             -> call this command when the Chlorine tank is replaced or refilled. First parameter is the tank volume in Liters, second parameter is its percentage fill (100% when full)
   {"Relay":[1,1]}                  -> call this generic command to actuate spare relays. Parameter 1 is the relay number (R1 in this example), parameter 2 is the relay state (ON in this example). This command is useful to use spare relays for additional features (lighting, etc). Available relay numbers are 1,2,6,7,8,9
   {"Reboot":1}                     -> call this command to reboot the controller (after 8 seconds from calling this command)
+  {"pHPumpFR":1.5}                 -> call this command to set pH pump flow rate un L/s. In this example 1.5L/s
+  {"ChlPumpFR":3}                  -> call this command to set Chl pump flow rate un L/s. In this example 3L/s
+
 ***Dependencies and respective revisions used to compile this project***
   https://github.com/256dpi/arduino-mqtt/releases (rev 2.4.3)
   https://github.com/CONTROLLINO-PLC/CONTROLLINO_Library (rev 3.0.4)
@@ -1609,6 +1612,7 @@ void ProcessCommand(String JSONCommand)
                     rtc.adjust(DateTime((uint8_t)command["Date"][3], (uint8_t)command["Date"][2], (uint8_t)command["Date"][0], (uint8_t)command["Date"][4], (uint8_t)command["Date"][5], (uint8_t)command["Date"][6]));
 #endif
 
+<<<<<<< HEAD
                     setTime((uint8_t)command["Date"][4], (uint8_t)command["Date"][5], (uint8_t)command["Date"][6], (uint8_t)command["Date"][0], (uint8_t)command["Date"][2], (uint8_t)command["Date"][3]); //(Day of the month, Day of the week, Month, Year, Hour, Minute, Second)
                   }
                   else if (command.containsKey("FiltT0")) //"FiltT0" command which sets the earliest hour when starting Filtration pump
@@ -1689,6 +1693,104 @@ void ProcessCommand(String JSONCommand)
                       {
                         while (1);
                       }
+=======
+          setTime((uint8_t)command["Date"][4], (uint8_t)command["Date"][5], (uint8_t)command["Date"][6], (uint8_t)command["Date"][0], (uint8_t)command["Date"][2], (uint8_t)command["Date"][3]); //(Day of the month, Day of the week, Month, Year, Hour, Minute, Second)
+        }
+        else if (command.containsKey("FiltT0")) //"FiltT0" command which sets the earliest hour when starting Filtration pump
+        {
+          storage.FiltrationStart = (unsigned int)command["FiltT0"];
+          saveConfig();
+          PublishSettings();
+        }
+        else if (command.containsKey("FiltT1")) //"FiltT1" command which sets the latest hour for running Filtration pump
+        {
+          storage.FiltrationStopMax = (unsigned int)command["FiltT1"];
+          saveConfig();
+          PublishSettings();
+        }
+        else if (command.containsKey("PubPeriod")) //"PubPeriod" command which sets the periodicity for publishing system info to MQTT broker
+        {
+          PublishPeriod = (unsigned long)command["PubPeriod"] * 1000; //in secs
+          t4.setPeriodMs(PublishPeriod); //in msecs
+          saveConfig();
+          PublishSettings();
+        }
+        else if (command.containsKey("Clear")) //"Clear" command which clears the UpTime and pressure errors of the Pumps
+        {
+          if (PSIError)
+            PSIError = false;
+
+          if (PhPump.UpTimeError)
+            PhPump.ClearErrors();
+
+          if (ChlPump.UpTimeError)
+            ChlPump.ClearErrors();
+
+          digitalWrite(bRED_LED_PIN, false);
+          digitalWrite(bGREEN_LED_PIN, true);
+          MQTTClient.publish(PoolTopicError, "", true, LWMQTT_QOS1);
+        }
+        else if (command.containsKey("DelayPID")) //"DelayPID" command which sets the delay from filtering start before PID loops start regulating
+        {
+          storage.DelayPIDs = (unsigned int)command["DelayPID"];
+          saveConfig();
+          PublishSettings();
+        }
+        else if (command.containsKey("PSIHigh")) //"PSIHigh" command which sets the water high-pressure threshold
+        {
+          storage.PSI_HighThreshold = (float)command["PSIHigh"];
+          saveConfig();
+          PublishSettings();
+        }
+        else
+          //"Relay" command which is called to actuate relays from the CONTROLLINO.
+          //Parameter 1 is the relay number (R0 in this example), parameter 2 is the relay state (ON in this example).
+          if (command.containsKey("Relay"))
+          {
+            switch ((int)command["Relay"][0])
+            {
+              case 1:
+                (bool)command["Relay"][1] ? digitalWrite(RELAY_R1, true) : digitalWrite(RELAY_R1, false);
+                break;
+              case 2:
+                (bool)command["Relay"][1] ? digitalWrite(RELAY_R2, true) : digitalWrite(RELAY_R2, false);
+                break;
+              case 6:
+                (bool)command["Relay"][1] ? digitalWrite(RELAY_R6, true) : digitalWrite(RELAY_R6, false);
+                break;
+              case 7:
+                (bool)command["Relay"][1] ? digitalWrite(RELAY_R7, true) : digitalWrite(RELAY_R7, false);
+                break;
+              case 8:
+                (bool)command["Relay"][1] ? digitalWrite(RELAY_R8, true) : digitalWrite(RELAY_R8, false);
+                break;
+              case 9:
+                (bool)command["Relay"][1] ? digitalWrite(RELAY_R9, true) : digitalWrite(RELAY_R9, false);
+                break;
+            }
+          }
+          else //"Reboot" command forces a reboot of the controller
+            if (command.containsKey("Reboot")) 
+            {
+              while(1);
+            }
+          else //"PhPumpFR" set flow rate of Ph pump
+            if (command.containsKey("pHPumpFR"))
+           {
+              storage.pHPumpFR = (float)command["pHPumpFR"];
+              PhPump.SetFlowRate((float)command["pHPumpFR"]);
+              saveConfig();
+              PublishSettings();
+            }
+          else //"ChlPumpFR" set flow rate of Chl pump
+            if (command.containsKey("ChlPumpFR"))
+           {
+              storage.ChlPumpFR = (float)command["ChlPumpFR"];
+              ChlPump.SetFlowRate((float)command["ChlpumpFR"]);
+              saveConfig();
+              PublishSettings();
+            }
+>>>>>>> b3be44fb4a6df0ad93d9cf5327ad189764292150
 
     //Publish/Update on the MQTT broker the status of our variables
     PublishDataCallback(NULL);
