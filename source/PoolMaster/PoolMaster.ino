@@ -871,7 +871,7 @@ void PublishSettings()
     root.set<int>("ChlWS", (uint8_t)(storage.OrpPIDWindowSize / 1000 / 60)); //Orp PID window size (/!\ mins)
 
     root.set<int>("pHSP", (int)(storage.Ph_SetPoint * 100)); //pH setpoint (/!\ x100)
-    root.set<int>("OrpSP", (int)(storage.Orp_SetPoint));//Orp setpoint (/!\ x100)
+    root.set<int>("OrpSP", (int)(storage.Orp_SetPoint));//Orp setpoint
 
     root.set<int>("WSP", (int)(storage.WaterTemp_SetPoint * 100)); //Water temperature setpoint (/!\ x100)
     root.set<int>("WLT", (int)(storage.WaterTempLowThreshold * 100)); //Water temperature low threshold to activate anti-freeze mode (/!\ x100)
