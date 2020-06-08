@@ -1,4 +1,4 @@
-<h2>PoolMaster 4.0.0</h2>
+<h2>PoolMaster 5.0.0</h2>
 <h2>Arduino Mega2560/Controllino-Maxi based Ph/Orp (Chlorine) regulation system for home pools</h2>
 
 <br />
@@ -7,9 +7,12 @@
 <br />
 <p align="center"> <img src="/docs/Grafana.png" width="802" title="Dashboard"> </p> <br /><br />
 
+<br />
+<p align="center"> <img src="/docs/Nextion.png" width="802" title="Nextion 3.5" touch screen"> </p> <br /><br />
+
 <h4>Brief description</h4>
 	
-<p>Four main metrics are measured and periodically reported over MQTT and an LCD display: water temperature and pressure, pH and ORP values.<br />
+<p>Four main metrics are measured and periodically reported over MQTT and a 3.5" Nextion touch screen: water temperature and pressure, pH and ORP values.<br />
 Pumps states, tank-levels estimates and other parameters are also periodically reported<br />
 Two PID regulation loops are running in parallel: one for PH, one for ORP<br />
 An additional simple (on/off) regulation loop is handling the water temperature (it starts/stops the house-heating system circulator which brings heat to a heat exchanger mounted on the pool water pipes)<br />
@@ -129,6 +132,10 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see hard
 <li>{"PSIHigh":1.0}                  -> set the water high-pressure threshold (1.0bar in this example). When water pressure is over that threshold, an error flag is set</li>
 <li>{"pHTank":[20,100]}              -> call this function when the Acid tank is replaced or refilled. First parameter is the tank volume in Liters, second parameter is its percentage fill (100% when full)</li>
 <li>{"ChlTank":[20,100]}             -> call this function when the Chlorine tank is replaced or refilled. First parameter is the tank volume in Liters, second parameter is its percentage fill (100% when full)</li>
+<li>{"Relay":[1,1]}                  -> call this generic command to actuate spare relays. Parameter 1 is the relay number (R1 in this example), parameter 2 is the relay state (ON in this example). This command is useful to use spare relays for additional features (lighting, etc). Available relay numbers are 1,2,6,7,8,9</li>
+<li>{"Reboot":1}                     -> call this command to reboot the controller (after 8 seconds from calling this command)</li>
+<li>{"pHPumpFR":1.5}                 -> call this command to set pH pump flow rate un L/s. In this example 1.5L/s</li>
+<li>{"ChlPumpFR":3}                  -> call this command to set Chl pump flow rate un L/s. In this example 3L/s</li>
 
 </ul>
 </p><br />
@@ -148,6 +155,8 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see hard
 <li><a title="https://fr.aliexpress.com/item/OOTDTY-G1-4-Pouces-5-v-0-0-5-MPa-Pression-Capteur-Capteur-D-huile-Carburant/32851667666.html?transAbTest=ae803_5&ws_ab_test=searchweb0_0%2Csearchweb201602_3_10065_10068_319_10892_317_10696_10084_453_454_10083_10618_10304_10307_10820_10821_537_10302_536_10902_10843_10059_10884_10887_321_322_10103%2Csearchweb201603_57%2CppcSwitch_0&algo_pvid=2456b33d-d7ee-4515-863d-af0c6b322395&algo_expid=2456b33d-d7ee-4515-863d-af0c6b322395-20
 " href="https://fr.aliexpress.com/item/OOTDTY-G1-4-Pouces-5-v-0-0-5-MPa-Pression-Capteur-Capteur-D-huile-Carburant/32851667666.html?transAbTest=ae803_5&ws_ab_test=searchweb0_0%2Csearchweb201602_3_10065_10068_319_10892_317_10696_10084_453_454_10083_10618_10304_10307_10820_10821_537_10302_536_10902_10843_10059_10884_10887_321_322_10103%2Csearchweb201603_57%2CppcSwitch_0&algo_pvid=2456b33d-d7ee-4515-863d-af0c6b322395&algo_expid=2456b33d-d7ee-4515-863d-af0c6b322395-20
 ">x1 Pressure sensor</a></li>
+<li><a title="https://www.itead.cc/nextion-nx4832k035.html" href="https://www.itead.cc/nextion-nx4832k035.html">Nextion Enhanced NX4832K035 - Generic 3.5'' HMI Touch Display</a></li>
+
 </ul>
 </p><br />
 
