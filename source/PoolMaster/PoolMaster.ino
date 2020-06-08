@@ -1687,7 +1687,7 @@ void ProcessCommand(String JSONCommand)
               storage.pHPumpFR = (float)command["pHPumpFR"];
               PhPump.SetFlowRate((float)command["pHPumpFR"]);
               saveConfig();
-              PublishSettings()
+              PublishSettings();
             }
           else //"ChlPumpFR" set flow rate of Chl pump
             if (command.containsKey("ChlPumpFR"))
