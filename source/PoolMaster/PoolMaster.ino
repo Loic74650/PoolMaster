@@ -107,6 +107,7 @@
   https://github.com/adafruit/RTClib (rev 1.2.0)
   https://github.com/thomasfredericks/Bounce2 (rev 2.5.2)
   https://github.com/fasteddy516/ButtonEvents  (rev 1.0.1)
+  https://github.com/Seithan/EasyNextionLibrary (rev 1.0.3)
 
 */
 #include "Config.h"
@@ -130,7 +131,7 @@
 #include <Pump.h>
 #include <ButtonEvents.h>
 #include <Bounce2.h>
-
+#include "EasyNextionLibrary.h"  // Include EasyNextionLibrary
 
 // Firmware revision
 String Firmw = "5.0.0";
@@ -142,6 +143,10 @@ const int maxAllowedWrites = 200;//not sure what this is for
 
 //Queue object to store incoming JSON commands (up to 10)
 Queue<String> queue = Queue<String>(10);
+
+//Nextion TFT object. Choose which ever Serial port
+//you wish to connect to (not "Serial" which is used for debug), here Serial1 UART
+EasyNex myNex(Serial1); 
 
 //LCD init.
 LiquidCrystal_I2C lcd(0x27, 20, 4); // set the I2C LCD address to 0x27 for a 20 chars and 4 lines display
@@ -236,7 +241,7 @@ void PublishDataCallback(Task* me);
 Task t1(500, EthernetClientCallback);         //Check for Ethernet client every 0.5 secs
 Task t2(1000, OrpRegulationCallback);         //ORP regulation loop every 1 sec
 Task t3(1100, PHRegulationCallback);          //PH regulation loop every 1.1 sec
-Task t4(30000, PublishDataCallback);          //Publish data to MQTT broker every 30 secs
+Task t4(PublishInterval, PublishDataCallback);          //Publish data to MQTT broker every 30 secs
 Task t5(600, GenericCallback);                 //Various things handled/updated in this loop every 0.6 secs
 Task t6(10, ButtonCallback);                    //Check Button every 0.01 sec (fast to detect double-tap)
 
@@ -245,6 +250,10 @@ void setup()
   //Serial port for debug info
   Serial.begin(57600);
   delay(200);
+
+  //Nextion TFT
+  myNex.begin(9600);
+  ResetTFT();
 
   //Initialize Eeprom
   EEPROM.setMemPool(memoryBase, EEPROMSizeMega);
@@ -402,22 +411,22 @@ void setup()
   storage.FiltrationStop = storage.FiltrationStart + storage.FiltrationDuration;
 
   //Ethernet client check loop
-  SoftTimer.add(&t1);
+//  SoftTimer.add(&t1);
 
   //Orp regulation loop
-  SoftTimer.add(&t2);
+//  SoftTimer.add(&t2);
 
   //PH regulation loop
-  SoftTimer.add(&t3);
+//  SoftTimer.add(&t3);
 
   //Publish loop
-  SoftTimer.add(&t4);
+//  SoftTimer.add(&t4);
 
   //Generic loop
   SoftTimer.add(&t5);
 
   //Button loop
-  SoftTimer.add(&t6);
+//  SoftTimer.add(&t6);
 
   //display remaining RAM space. For debug
   Serial << F("[memCheck]: ") << freeRam() << F("b") << _endl;
@@ -514,7 +523,7 @@ void ButtonCallback(Task* me)
           if (FiltrationPump.IsRunning()) {
             EmergencyStopFiltPump = true;
             FiltrationPump.Stop();
-            
+
             //switch off the PIDs
             SetPhPID(false);
             SetOrpPID(false);
@@ -569,7 +578,11 @@ void GenericCallback(Task* me)
   //Update MQTT thread
   MQTTClient.loop();
 
-
+  //UPdate Nextion TFT
+//  DEBUG_PRINT("start UpdateTFT");
+  UpdateTFT();
+//  DEBUG_PRINT("stop UpdateTFT");
+  
   //If any error flag is true, blink Red push-button LED
   if (PhPump.UpTimeError || ChlPump.UpTimeError || PSIError || !PhPump.TankLevel() || !ChlPump.TankLevel())
   {
@@ -708,7 +721,6 @@ void GenericCallback(Task* me)
 //PublishData loop. Publishes system info/data to MQTT broker every XX secs (30 secs by default)
 void PublishDataCallback(Task* me)
 {
-  DEBUG_PRINT("start");
   //Store the GPIO states in one Byte (more efficient over MQTT)
   EncodeBitmap();
 
@@ -797,7 +809,6 @@ void PublishDataCallback(Task* me)
   }
   else
     Serial << F("Failed to connect to the MQTT broker") << _endl;
-  DEBUG_PRINT("stop");
 }
 
 
@@ -1458,226 +1469,226 @@ void ProcessCommand(String JSONCommand)
                   //SetOrpPID(true);
                 }
               }
-    if (command.containsKey("PhPump")) //"PhPump" command which starts or stops the Acid pump
-    {
-      if ((int)command["PhPump"] == 0)
-        PhPump.Stop();          //stop Acid pump
-      else
-        PhPump.Start();           //start Acid pump
-    }
-    else if (command.containsKey("ChlPump")) //"ChlPump" command which starts or stops the Acid pump
-    {
-      if ((int)command["ChlPump"] == 0)
-        ChlPump.Stop();          //stop Chl pump
-      else
-        ChlPump.Start();           //start Chl pump
-    }
-    else if (command.containsKey("PhPID")) //"PhPID" command which starts or stops the Ph PID loop
-    {
-      if ((int)command["PhPID"] == 0)
-      {
-        //Stop PID
-        SetPhPID(false);
-      }
-      else
-      {
-        //Initialize PIDs StartTime
-        storage.PhPIDwindowStartTime = millis();
-        storage.OrpPIDwindowStartTime = millis();
+              else if (command.containsKey("PhPump")) //"PhPump" command which starts or stops the Acid pump
+              {
+                if ((int)command["PhPump"] == 0)
+                  PhPump.Stop();          //stop Acid pump
+                else
+                  PhPump.Start();           //start Acid pump
+              }
+              else if (command.containsKey("ChlPump")) //"ChlPump" command which starts or stops the Acid pump
+              {
+                if ((int)command["ChlPump"] == 0)
+                  ChlPump.Stop();          //stop Chl pump
+                else
+                  ChlPump.Start();           //start Chl pump
+              }
+              else if (command.containsKey("PhPID")) //"PhPID" command which starts or stops the Ph PID loop
+              {
+                if ((int)command["PhPID"] == 0)
+                {
+                  //Stop PID
+                  SetPhPID(false);
+                }
+                else
+                {
+                  //Initialize PIDs StartTime
+                  storage.PhPIDwindowStartTime = millis();
+                  storage.OrpPIDwindowStartTime = millis();
 
-        //Start PID
-        SetPhPID(true);
-      }
-    }
-    else if (command.containsKey("OrpPID")) //"OrpPID" command which starts or stops the Orp PID loop
-    {
-      if ((int)command["OrpPID"] == 0)
-      {
-        //Stop PID
-        SetOrpPID(false);
-      }
-      else
-      {
-        //Start PID
-        SetOrpPID(true);
-      }
-    }
-    else if (command.containsKey("PhSetPoint")) //"PhSetPoint" command which sets the setpoint for Ph
-    {
-      storage.Ph_SetPoint = (float)command["PhSetPoint"];
-      saveConfig();
-      PublishSettings();
-    }
-    else if (command.containsKey("OrpSetPoint")) //"OrpSetPoint" command which sets the setpoint for ORP
-    {
-      storage.Orp_SetPoint = (float)command["OrpSetPoint"];
-      saveConfig();
-      PublishSettings();
-    }
-    else if (command.containsKey("WSetPoint")) //"WSetPoint" command which sets the setpoint for Water temp (currently not in use)
-    {
-      storage.WaterTemp_SetPoint = (float)command["WSetPoint"];
-      saveConfig();
-      PublishSettings();
-    }
-    else
-      //"pHTank" command which is called when the pH tank is changed or refilled
-      //First parameter is volume of tank in Liters, second parameter is percentage Fill of the tank (typically 100% when new)
-      if (command.containsKey("pHTank"))
-      {
-        PhPump.SetTankVolume((float)command["pHTank"][0]);
-        storage.AcidFill = (float)command["pHTank"][1];
-        PhPump.ResetUpTime();
-        saveConfig();
-        PublishSettings();
-      }
-      else
-        //"ChlTank" command which is called when the Chl tank is changed or refilled
-        //First parameter is volume of tank in Liters, second parameter is percentage Fill of the tank (typically 100% when new)
-        if (command.containsKey("ChlTank"))
-        {
-          ChlPump.SetTankVolume((float)command["ChlTank"][0]);
-          storage.ChlFill = (float)command["ChlTank"][1];
-          ChlPump.ResetUpTime();
-          saveConfig();
-          PublishSettings();
-        }
-        else if (command.containsKey("WTempLow")) //"WTempLow" command which sets the setpoint for Water temp low threshold
-        {
-          storage.WaterTempLowThreshold = (float)command["WTempLow"];
-          saveConfig();
-          PublishSettings();
-        }
-        else if (command.containsKey("PumpsMaxUp")) //"PumpsMaxUp" command which sets the Max UpTime for pumps
-        {
-          storage.PhPumpUpTimeLimit = (unsigned int)command["PumpsMaxUp"];
-          PhPump.SetMaxUpTime(storage.PhPumpUpTimeLimit * 1000);
-          storage.ChlPumpUpTimeLimit = (unsigned int)command["PumpsMaxUp"];
-          ChlPump.SetMaxUpTime(storage.ChlPumpUpTimeLimit * 1000);
-          saveConfig();
-          PublishSettings();
-        }
-        else if (command.containsKey("OrpPIDParams")) //"OrpPIDParams" command which sets the Kp, Ki and Kd values for Orp PID loop
-        {
-          storage.Orp_Kp = (double)command["OrpPIDParams"][0];
-          storage.Orp_Ki = (double)command["OrpPIDParams"][1];
-          storage.Orp_Kd = (double)command["OrpPIDParams"][2];
-          saveConfig();
-          OrpPID.SetTunings(storage.Orp_Kp, storage.Orp_Ki, storage.Orp_Kd);
-          PublishSettings();
-        }
-        else if (command.containsKey("PhPIDParams")) //"PhPIDParams" command which sets the Kp, Ki and Kd values for Ph PID loop
-        {
-          storage.Ph_Kp = (double)command["PhPIDParams"][0];
-          storage.Ph_Ki = (double)command["PhPIDParams"][1];
-          storage.Ph_Kd = (double)command["PhPIDParams"][2];
-          saveConfig();
-          PhPID.SetTunings(storage.Ph_Kp, storage.Ph_Ki, storage.Ph_Kd);
-          PublishSettings();
-        }
-        else if (command.containsKey("OrpPIDWSize")) //"OrpPIDWSize" command which sets the window size of the Orp PID loop
-        {
-          storage.OrpPIDWindowSize = (unsigned long)command["OrpPIDWSize"];
-          saveConfig();
-          PublishSettings();
-        }
-        else if (command.containsKey("PhPIDWSize")) //"PhPIDWSize" command which sets the window size of the Ph PID loop
-        {
-          storage.PhPIDWindowSize = (unsigned long)command["PhPIDWSize"];
-          saveConfig();
-          PublishSettings();
-        }
-        else if (command.containsKey("Date")) //"Date" command which sets the Date of RTC module
-        {
+                  //Start PID
+                  SetPhPID(true);
+                }
+              }
+              else if (command.containsKey("OrpPID")) //"OrpPID" command which starts or stops the Orp PID loop
+              {
+                if ((int)command["OrpPID"] == 0)
+                {
+                  //Stop PID
+                  SetOrpPID(false);
+                }
+                else
+                {
+                  //Start PID
+                  SetOrpPID(true);
+                }
+              }
+              else if (command.containsKey("PhSetPoint")) //"PhSetPoint" command which sets the setpoint for Ph
+              {
+                storage.Ph_SetPoint = (float)command["PhSetPoint"];
+                saveConfig();
+                PublishSettings();
+              }
+              else if (command.containsKey("OrpSetPoint")) //"OrpSetPoint" command which sets the setpoint for ORP
+              {
+                storage.Orp_SetPoint = (float)command["OrpSetPoint"];
+                saveConfig();
+                PublishSettings();
+              }
+              else if (command.containsKey("WSetPoint")) //"WSetPoint" command which sets the setpoint for Water temp (currently not in use)
+              {
+                storage.WaterTemp_SetPoint = (float)command["WSetPoint"];
+                saveConfig();
+                PublishSettings();
+              }
+              else
+                //"pHTank" command which is called when the pH tank is changed or refilled
+                //First parameter is volume of tank in Liters, second parameter is percentage Fill of the tank (typically 100% when new)
+                if (command.containsKey("pHTank"))
+                {
+                  PhPump.SetTankVolume((float)command["pHTank"][0]);
+                  storage.AcidFill = (float)command["pHTank"][1];
+                  PhPump.ResetUpTime();
+                  saveConfig();
+                  PublishSettings();
+                }
+                else
+                  //"ChlTank" command which is called when the Chl tank is changed or refilled
+                  //First parameter is volume of tank in Liters, second parameter is percentage Fill of the tank (typically 100% when new)
+                  if (command.containsKey("ChlTank"))
+                  {
+                    ChlPump.SetTankVolume((float)command["ChlTank"][0]);
+                    storage.ChlFill = (float)command["ChlTank"][1];
+                    ChlPump.ResetUpTime();
+                    saveConfig();
+                    PublishSettings();
+                  }
+                  else if (command.containsKey("WTempLow")) //"WTempLow" command which sets the setpoint for Water temp low threshold
+                  {
+                    storage.WaterTempLowThreshold = (float)command["WTempLow"];
+                    saveConfig();
+                    PublishSettings();
+                  }
+                  else if (command.containsKey("PumpsMaxUp")) //"PumpsMaxUp" command which sets the Max UpTime for pumps
+                  {
+                    storage.PhPumpUpTimeLimit = (unsigned int)command["PumpsMaxUp"];
+                    PhPump.SetMaxUpTime(storage.PhPumpUpTimeLimit * 1000);
+                    storage.ChlPumpUpTimeLimit = (unsigned int)command["PumpsMaxUp"];
+                    ChlPump.SetMaxUpTime(storage.ChlPumpUpTimeLimit * 1000);
+                    saveConfig();
+                    PublishSettings();
+                  }
+                  else if (command.containsKey("OrpPIDParams")) //"OrpPIDParams" command which sets the Kp, Ki and Kd values for Orp PID loop
+                  {
+                    storage.Orp_Kp = (double)command["OrpPIDParams"][0];
+                    storage.Orp_Ki = (double)command["OrpPIDParams"][1];
+                    storage.Orp_Kd = (double)command["OrpPIDParams"][2];
+                    saveConfig();
+                    OrpPID.SetTunings(storage.Orp_Kp, storage.Orp_Ki, storage.Orp_Kd);
+                    PublishSettings();
+                  }
+                  else if (command.containsKey("PhPIDParams")) //"PhPIDParams" command which sets the Kp, Ki and Kd values for Ph PID loop
+                  {
+                    storage.Ph_Kp = (double)command["PhPIDParams"][0];
+                    storage.Ph_Ki = (double)command["PhPIDParams"][1];
+                    storage.Ph_Kd = (double)command["PhPIDParams"][2];
+                    saveConfig();
+                    PhPID.SetTunings(storage.Ph_Kp, storage.Ph_Ki, storage.Ph_Kd);
+                    PublishSettings();
+                  }
+                  else if (command.containsKey("OrpPIDWSize")) //"OrpPIDWSize" command which sets the window size of the Orp PID loop
+                  {
+                    storage.OrpPIDWindowSize = (unsigned long)command["OrpPIDWSize"];
+                    saveConfig();
+                    PublishSettings();
+                  }
+                  else if (command.containsKey("PhPIDWSize")) //"PhPIDWSize" command which sets the window size of the Ph PID loop
+                  {
+                    storage.PhPIDWindowSize = (unsigned long)command["PhPIDWSize"];
+                    saveConfig();
+                    PublishSettings();
+                  }
+                  else if (command.containsKey("Date")) //"Date" command which sets the Date of RTC module
+                  {
 #if defined(CONTROLLINO_MAXI)
-          Controllino_SetTimeDate((uint8_t)command["Date"][0], (uint8_t)command["Date"][1], (uint8_t)command["Date"][2], (uint8_t)command["Date"][3], (uint8_t)command["Date"][4], (uint8_t)command["Date"][5], (uint8_t)command["Date"][6]); // set initial values to the RTC chip. (Day of the month, Day of the week, Month, Year, Hour, Minute, Second)
+                    Controllino_SetTimeDate((uint8_t)command["Date"][0], (uint8_t)command["Date"][1], (uint8_t)command["Date"][2], (uint8_t)command["Date"][3], (uint8_t)command["Date"][4], (uint8_t)command["Date"][5], (uint8_t)command["Date"][6]); // set initial values to the RTC chip. (Day of the month, Day of the week, Month, Year, Hour, Minute, Second)
 #else //Mega2560 board specifics
-          // This line sets the RTC with an explicit date & time, for example to set
-          // January 21, 2014 at 3am you would call:
-          // rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
-          rtc.adjust(DateTime((uint8_t)command["Date"][3], (uint8_t)command["Date"][2], (uint8_t)command["Date"][0], (uint8_t)command["Date"][4], (uint8_t)command["Date"][5], (uint8_t)command["Date"][6]));
+                    // This line sets the RTC with an explicit date & time, for example to set
+                    // January 21, 2014 at 3am you would call:
+                    // rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
+                    rtc.adjust(DateTime((uint8_t)command["Date"][3], (uint8_t)command["Date"][2], (uint8_t)command["Date"][0], (uint8_t)command["Date"][4], (uint8_t)command["Date"][5], (uint8_t)command["Date"][6]));
 #endif
 
-          setTime((uint8_t)command["Date"][4], (uint8_t)command["Date"][5], (uint8_t)command["Date"][6], (uint8_t)command["Date"][0], (uint8_t)command["Date"][2], (uint8_t)command["Date"][3]); //(Day of the month, Day of the week, Month, Year, Hour, Minute, Second)
-        }
-        else if (command.containsKey("FiltT0")) //"FiltT0" command which sets the earliest hour when starting Filtration pump
-        {
-          storage.FiltrationStart = (unsigned int)command["FiltT0"];
-          saveConfig();
-          PublishSettings();
-        }
-        else if (command.containsKey("FiltT1")) //"FiltT1" command which sets the latest hour for running Filtration pump
-        {
-          storage.FiltrationStopMax = (unsigned int)command["FiltT1"];
-          saveConfig();
-          PublishSettings();
-        }
-        else if (command.containsKey("PubPeriod")) //"PubPeriod" command which sets the periodicity for publishing system info to MQTT broker
-        {
-          PublishPeriod = (unsigned long)command["PubPeriod"] * 1000; //in secs
-          t4.setPeriodMs(PublishPeriod); //in msecs
-          saveConfig();
-          PublishSettings();
-        }
-        else if (command.containsKey("Clear")) //"Clear" command which clears the UpTime and pressure errors of the Pumps
-        {
-          if (PSIError)
-            PSIError = false;
+                    setTime((uint8_t)command["Date"][4], (uint8_t)command["Date"][5], (uint8_t)command["Date"][6], (uint8_t)command["Date"][0], (uint8_t)command["Date"][2], (uint8_t)command["Date"][3]); //(Day of the month, Day of the week, Month, Year, Hour, Minute, Second)
+                  }
+                  else if (command.containsKey("FiltT0")) //"FiltT0" command which sets the earliest hour when starting Filtration pump
+                  {
+                    storage.FiltrationStart = (unsigned int)command["FiltT0"];
+                    saveConfig();
+                    PublishSettings();
+                  }
+                  else if (command.containsKey("FiltT1")) //"FiltT1" command which sets the latest hour for running Filtration pump
+                  {
+                    storage.FiltrationStopMax = (unsigned int)command["FiltT1"];
+                    saveConfig();
+                    PublishSettings();
+                  }
+                  else if (command.containsKey("PubPeriod")) //"PubPeriod" command which sets the periodicity for publishing system info to MQTT broker
+                  {
+                    PublishPeriod = (unsigned long)command["PubPeriod"] * 1000; //in secs
+                    t4.setPeriodMs(PublishPeriod); //in msecs
+                    saveConfig();
+                    PublishSettings();
+                  }
+                  else if (command.containsKey("Clear")) //"Clear" command which clears the UpTime and pressure errors of the Pumps
+                  {
+                    if (PSIError)
+                      PSIError = false;
 
-          if (PhPump.UpTimeError)
-            PhPump.ClearErrors();
+                    if (PhPump.UpTimeError)
+                      PhPump.ClearErrors();
 
-          if (ChlPump.UpTimeError)
-            ChlPump.ClearErrors();
+                    if (ChlPump.UpTimeError)
+                      ChlPump.ClearErrors();
 
-          digitalWrite(bRED_LED_PIN, false);
-          digitalWrite(bGREEN_LED_PIN, true);
-          MQTTClient.publish(PoolTopicError, "", true, LWMQTT_QOS1);
-        }
-        else if (command.containsKey("DelayPID")) //"DelayPID" command which sets the delay from filtering start before PID loops start regulating
-        {
-          storage.DelayPIDs = (unsigned int)command["DelayPID"];
-          saveConfig();
-          PublishSettings();
-        }
-        else if (command.containsKey("PSIHigh")) //"PSIHigh" command which sets the water high-pressure threshold
-        {
-          storage.PSI_HighThreshold = (float)command["PSIHigh"];
-          saveConfig();
-          PublishSettings();
-        }
-        else
-          //"Relay" command which is called to actuate relays from the CONTROLLINO.
-          //Parameter 1 is the relay number (R0 in this example), parameter 2 is the relay state (ON in this example).
-          if (command.containsKey("Relay"))
-          {
-            switch ((int)command["Relay"][0])
-            {
-              case 1:
-                (bool)command["Relay"][1] ? digitalWrite(RELAY_R1, true) : digitalWrite(RELAY_R1, false);
-                break;
-              case 2:
-                (bool)command["Relay"][1] ? digitalWrite(RELAY_R2, true) : digitalWrite(RELAY_R2, false);
-                break;
-              case 6:
-                (bool)command["Relay"][1] ? digitalWrite(RELAY_R6, true) : digitalWrite(RELAY_R6, false);
-                break;
-              case 7:
-                (bool)command["Relay"][1] ? digitalWrite(RELAY_R7, true) : digitalWrite(RELAY_R7, false);
-                break;
-              case 8:
-                (bool)command["Relay"][1] ? digitalWrite(RELAY_R8, true) : digitalWrite(RELAY_R8, false);
-                break;
-              case 9:
-                (bool)command["Relay"][1] ? digitalWrite(RELAY_R9, true) : digitalWrite(RELAY_R9, false);
-                break;
-            }
-          }
-          else //"Reboot" command forces a reboot of the controller
-            if (command.containsKey("Reboot")) 
-            {
-              while(1);
-            }
+                    digitalWrite(bRED_LED_PIN, false);
+                    digitalWrite(bGREEN_LED_PIN, true);
+                    MQTTClient.publish(PoolTopicError, "", true, LWMQTT_QOS1);
+                  }
+                  else if (command.containsKey("DelayPID")) //"DelayPID" command which sets the delay from filtering start before PID loops start regulating
+                  {
+                    storage.DelayPIDs = (unsigned int)command["DelayPID"];
+                    saveConfig();
+                    PublishSettings();
+                  }
+                  else if (command.containsKey("PSIHigh")) //"PSIHigh" command which sets the water high-pressure threshold
+                  {
+                    storage.PSI_HighThreshold = (float)command["PSIHigh"];
+                    saveConfig();
+                    PublishSettings();
+                  }
+                  else
+                    //"Relay" command which is called to actuate relays from the CONTROLLINO.
+                    //Parameter 1 is the relay number (R0 in this example), parameter 2 is the relay state (ON in this example).
+                    if (command.containsKey("Relay"))
+                    {
+                      switch ((int)command["Relay"][0])
+                      {
+                        case 1:
+                          (bool)command["Relay"][1] ? digitalWrite(RELAY_R1, true) : digitalWrite(RELAY_R1, false);
+                          break;
+                        case 2:
+                          (bool)command["Relay"][1] ? digitalWrite(RELAY_R2, true) : digitalWrite(RELAY_R2, false);
+                          break;
+                        case 6:
+                          (bool)command["Relay"][1] ? digitalWrite(RELAY_R6, true) : digitalWrite(RELAY_R6, false);
+                          break;
+                        case 7:
+                          (bool)command["Relay"][1] ? digitalWrite(RELAY_R7, true) : digitalWrite(RELAY_R7, false);
+                          break;
+                        case 8:
+                          (bool)command["Relay"][1] ? digitalWrite(RELAY_R8, true) : digitalWrite(RELAY_R8, false);
+                          break;
+                        case 9:
+                          (bool)command["Relay"][1] ? digitalWrite(RELAY_R9, true) : digitalWrite(RELAY_R9, false);
+                          break;
+                      }
+                    }
+                    else //"Reboot" command forces a reboot of the controller
+                      if (command.containsKey("Reboot"))
+                      {
+                        while (1);
+                      }
 
     //Publish/Update on the MQTT broker the status of our variables
     PublishDataCallback(NULL);
