@@ -149,7 +149,7 @@ Queue<String> queue = Queue<String>(10);
 
 //Nextion TFT object. Choose which ever Serial port
 //you wish to connect to (not "Serial" which is used for debug), here Serial1 UART
-EasyNex myNex(Serial1); 
+EasyNex myNex(Serial2);
 
 //LCD init.
 LiquidCrystal_I2C lcd(0x27, 20, 4); // set the I2C LCD address to 0x27 for a 20 chars and 4 lines display
@@ -414,22 +414,22 @@ void setup()
   storage.FiltrationStop = storage.FiltrationStart + storage.FiltrationDuration;
 
   //Ethernet client check loop
-//  SoftTimer.add(&t1);
+  SoftTimer.add(&t1);
 
   //Orp regulation loop
-//  SoftTimer.add(&t2);
+  SoftTimer.add(&t2);
 
   //PH regulation loop
-//  SoftTimer.add(&t3);
+  SoftTimer.add(&t3);
 
   //Publish loop
-//  SoftTimer.add(&t4);
+  SoftTimer.add(&t4);
 
   //Generic loop
   SoftTimer.add(&t5);
 
   //Button loop
-//  SoftTimer.add(&t6);
+  SoftTimer.add(&t6);
 
   //display remaining RAM space. For debug
   Serial << F("[memCheck]: ") << freeRam() << F("b") << _endl;
@@ -582,10 +582,10 @@ void GenericCallback(Task* me)
   MQTTClient.loop();
 
   //UPdate Nextion TFT
-//  DEBUG_PRINT("start UpdateTFT");
+  //  DEBUG_PRINT("start UpdateTFT");
   UpdateTFT();
-//  DEBUG_PRINT("stop UpdateTFT");
-  
+  //  DEBUG_PRINT("stop UpdateTFT");
+
   //If any error flag is true, blink Red push-button LED
   if (PhPump.UpTimeError || ChlPump.UpTimeError || PSIError || !PhPump.TankLevel() || !ChlPump.TankLevel())
   {
@@ -1459,17 +1459,17 @@ void ProcessCommand(String JSONCommand)
               {
                 if ((int)command["FiltPump"] == 0)
                 {
+                  EmergencyStopFiltPump = true;
                   FiltrationPump.Stop();  //stop filtration pump
+
                   //Start PIDs
                   SetPhPID(false);
                   SetOrpPID(false);
                 }
                 else
                 {
+                  EmergencyStopFiltPump = false;
                   FiltrationPump.Start();   //start filtration pump
-                  //Start PIDs
-                  //SetPhPID(true);
-                  //SetOrpPID(true);
                 }
               }
               else if (command.containsKey("PhPump")) //"PhPump" command which starts or stops the Acid pump
@@ -1612,7 +1612,7 @@ void ProcessCommand(String JSONCommand)
                     rtc.adjust(DateTime((uint8_t)command["Date"][3], (uint8_t)command["Date"][2], (uint8_t)command["Date"][0], (uint8_t)command["Date"][4], (uint8_t)command["Date"][5], (uint8_t)command["Date"][6]));
 #endif
 
-<<<<<<< HEAD
+
                     setTime((uint8_t)command["Date"][4], (uint8_t)command["Date"][5], (uint8_t)command["Date"][6], (uint8_t)command["Date"][0], (uint8_t)command["Date"][2], (uint8_t)command["Date"][3]); //(Day of the month, Day of the week, Month, Year, Hour, Minute, Second)
                   }
                   else if (command.containsKey("FiltT0")) //"FiltT0" command which sets the earliest hour when starting Filtration pump
@@ -1693,104 +1693,22 @@ void ProcessCommand(String JSONCommand)
                       {
                         while (1);
                       }
-=======
-          setTime((uint8_t)command["Date"][4], (uint8_t)command["Date"][5], (uint8_t)command["Date"][6], (uint8_t)command["Date"][0], (uint8_t)command["Date"][2], (uint8_t)command["Date"][3]); //(Day of the month, Day of the week, Month, Year, Hour, Minute, Second)
-        }
-        else if (command.containsKey("FiltT0")) //"FiltT0" command which sets the earliest hour when starting Filtration pump
-        {
-          storage.FiltrationStart = (unsigned int)command["FiltT0"];
-          saveConfig();
-          PublishSettings();
-        }
-        else if (command.containsKey("FiltT1")) //"FiltT1" command which sets the latest hour for running Filtration pump
-        {
-          storage.FiltrationStopMax = (unsigned int)command["FiltT1"];
-          saveConfig();
-          PublishSettings();
-        }
-        else if (command.containsKey("PubPeriod")) //"PubPeriod" command which sets the periodicity for publishing system info to MQTT broker
-        {
-          PublishPeriod = (unsigned long)command["PubPeriod"] * 1000; //in secs
-          t4.setPeriodMs(PublishPeriod); //in msecs
-          saveConfig();
-          PublishSettings();
-        }
-        else if (command.containsKey("Clear")) //"Clear" command which clears the UpTime and pressure errors of the Pumps
-        {
-          if (PSIError)
-            PSIError = false;
-
-          if (PhPump.UpTimeError)
-            PhPump.ClearErrors();
-
-          if (ChlPump.UpTimeError)
-            ChlPump.ClearErrors();
-
-          digitalWrite(bRED_LED_PIN, false);
-          digitalWrite(bGREEN_LED_PIN, true);
-          MQTTClient.publish(PoolTopicError, "", true, LWMQTT_QOS1);
-        }
-        else if (command.containsKey("DelayPID")) //"DelayPID" command which sets the delay from filtering start before PID loops start regulating
-        {
-          storage.DelayPIDs = (unsigned int)command["DelayPID"];
-          saveConfig();
-          PublishSettings();
-        }
-        else if (command.containsKey("PSIHigh")) //"PSIHigh" command which sets the water high-pressure threshold
-        {
-          storage.PSI_HighThreshold = (float)command["PSIHigh"];
-          saveConfig();
-          PublishSettings();
-        }
-        else
-          //"Relay" command which is called to actuate relays from the CONTROLLINO.
-          //Parameter 1 is the relay number (R0 in this example), parameter 2 is the relay state (ON in this example).
-          if (command.containsKey("Relay"))
-          {
-            switch ((int)command["Relay"][0])
-            {
-              case 1:
-                (bool)command["Relay"][1] ? digitalWrite(RELAY_R1, true) : digitalWrite(RELAY_R1, false);
-                break;
-              case 2:
-                (bool)command["Relay"][1] ? digitalWrite(RELAY_R2, true) : digitalWrite(RELAY_R2, false);
-                break;
-              case 6:
-                (bool)command["Relay"][1] ? digitalWrite(RELAY_R6, true) : digitalWrite(RELAY_R6, false);
-                break;
-              case 7:
-                (bool)command["Relay"][1] ? digitalWrite(RELAY_R7, true) : digitalWrite(RELAY_R7, false);
-                break;
-              case 8:
-                (bool)command["Relay"][1] ? digitalWrite(RELAY_R8, true) : digitalWrite(RELAY_R8, false);
-                break;
-              case 9:
-                (bool)command["Relay"][1] ? digitalWrite(RELAY_R9, true) : digitalWrite(RELAY_R9, false);
-                break;
-            }
-          }
-          else //"Reboot" command forces a reboot of the controller
-            if (command.containsKey("Reboot")) 
-            {
-              while(1);
-            }
-          else //"PhPumpFR" set flow rate of Ph pump
-            if (command.containsKey("pHPumpFR"))
-           {
-              storage.pHPumpFR = (float)command["pHPumpFR"];
-              PhPump.SetFlowRate((float)command["pHPumpFR"]);
-              saveConfig();
-              PublishSettings();
-            }
-          else //"ChlPumpFR" set flow rate of Chl pump
-            if (command.containsKey("ChlPumpFR"))
-           {
-              storage.ChlPumpFR = (float)command["ChlPumpFR"];
-              ChlPump.SetFlowRate((float)command["ChlpumpFR"]);
-              saveConfig();
-              PublishSettings();
-            }
->>>>>>> b3be44fb4a6df0ad93d9cf5327ad189764292150
+                      else //"PhPumpFR" set flow rate of Ph pump
+                        if (command.containsKey("pHPumpFR"))
+                        {
+                          storage.pHPumpFR = (float)command["pHPumpFR"];
+                          PhPump.SetFlowRate((float)command["pHPumpFR"]);
+                          saveConfig();
+                          PublishSettings();
+                        }
+                        else //"ChlPumpFR" set flow rate of Chl pump
+                          if (command.containsKey("ChlPumpFR"))
+                          {
+                            storage.ChlPumpFR = (float)command["ChlPumpFR"];
+                            ChlPump.SetFlowRate((float)command["ChlpumpFR"]);
+                            saveConfig();
+                            PublishSettings();
+                          }
 
     //Publish/Update on the MQTT broker the status of our variables
     PublishDataCallback(NULL);

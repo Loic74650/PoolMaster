@@ -4,6 +4,13 @@
 
 int CurrentPage = 0;
 char HourBuffer[8];
+uint8_t debounceCount = 2;
+uint8_t debounceM = 0;
+uint8_t debounceF = 0;
+uint8_t debounceH = 0;
+uint8_t debounceR0 = 0;
+uint8_t debounceR1 = 0;
+uint8_t debounceR2 = 0;
 
 //Structure holding the measurement values to display on the Nextion display
 struct TFTStruct
@@ -21,7 +28,8 @@ struct TFTStruct
 };
 
 
-//function to update TFT display//it updates the TFTStruct variables, the global variables of the TFT + the widgets of the active page
+//function to update TFT display
+//it updates the TFTStruct variables, the global variables of the TFT + the widgets of the active page
 //call this function at least every second to ensure fluid display
 void UpdateTFT()
 {
@@ -58,22 +66,22 @@ void UpdateTFT()
   }
   if (storage.TempValue != TFTStruc.WT)
   {
-    String temp = String(TFTStruc.WT, 2) + (char)176 + "C";
     TFTStruc.WT = storage.TempValue;
+    String temp = String(TFTStruc.WT, 2) + (char)176 + "C";
     myNex.writeStr("page0.vaWT.txt", temp);
     if (CurrentPage == 0)  myNex.writeStr("W.txt", temp);
   }
   if (storage.TempExternal != TFTStruc.AT)
   {
-    String temp = String(TFTStruc.AT, 2) + (char)176 + "C";
     TFTStruc.AT = storage.TempExternal;
+    String temp = String(TFTStruc.AT, 2) + (char)176 + "C";
     myNex.writeStr("page0.vaAT.txt", temp);
     if (CurrentPage == 0)  myNex.writeStr("A.txt", temp);
   }
   if (storage.PSIValue != TFTStruc.PSI)
   {
-    String temp = String(TFTStruc.PSI, 2) + "b";
     TFTStruc.PSI = storage.PSIValue;
+    String temp = String(TFTStruc.PSI, 2) + "b";
     myNex.writeStr("page0.vaPSI.txt", temp);
     if (CurrentPage == 0)  myNex.writeStr("P.txt", temp);
   }
@@ -98,97 +106,135 @@ void UpdateTFT()
 
   if (storage.AutoMode != TFTStruc.Mode)
   {
-    TFTStruc.Mode = storage.AutoMode;
-    String temp = TFTStruc.Mode ? "AUTO" : "MANU";
-    myNex.writeNum("page1.vabMode.val", storage.AutoMode);
-    if (CurrentPage == 0)
+    if ((debounceM == 0) || (debounceM > debounceCount))
     {
-      myNex.writeStr("p0Mode.txt", temp);
+      debounceM = 0;
+      TFTStruc.Mode = storage.AutoMode;
+      String temp = TFTStruc.Mode ? "AUTO" : "MANU";
+      myNex.writeNum("page1.vabMode.val", storage.AutoMode);
+      if (CurrentPage == 0)
+      {
+        myNex.writeStr("p0Mode.txt", temp);
+      }
+      else if (CurrentPage == 1)
+      {
+        myNex.writeStr("p1Mode.txt", temp);
+        myNex.writeStr("t1Mode.txt", temp);
+        if (storage.AutoMode == 1)
+          myNex.writeStr("bMode.pic=8");
+        else
+          myNex.writeStr("bMode.pic=7");
+      }
+      else if (CurrentPage == 2)
+      {
+        myNex.writeStr("p2Mode.txt", temp);
+      }
+      else if (CurrentPage == 3)
+      {
+        myNex.writeStr("p3Mode.txt", temp);
+      }
     }
-    else if (CurrentPage == 1)
-    {
-      myNex.writeStr("p1Mode.txt", temp);
-      myNex.writeStr("t1Mode.txt", temp);
-      if (storage.AutoMode == 1)
-        myNex.writeStr("bMode.pic=8");
-      else
-        myNex.writeStr("bMode.pic=7");
-    }
-    else if (CurrentPage == 2)
-    {
-      myNex.writeStr("p2Mode.txt", temp);
-    }
-    else if (CurrentPage == 3)
-    {
-      myNex.writeStr("p3Mode.txt", temp);
-    }
+    else
+      debounceM++;
   }
 
   if (FiltrationPump.IsRunning() != TFTStruc.Filt)
   {
-    TFTStruc.Filt = FiltrationPump.IsRunning();
-    myNex.writeNum("page1.vabFilt.val", TFTStruc.Filt);
-    if (CurrentPage == 1)
+    if ((debounceF == 0) || (debounceF > debounceCount))
     {
-      if (TFTStruc.Filt == 1)
-        myNex.writeStr("bFilt.pic=8");
-      else
-        myNex.writeStr("bFilt.pic=7");
+      debounceF = 0;
+      TFTStruc.Filt = FiltrationPump.IsRunning();
+      myNex.writeNum("page1.vabFilt.val", TFTStruc.Filt);
+      if (CurrentPage == 1)
+      {
+        if (TFTStruc.Filt == 1)
+          myNex.writeStr("bFilt.pic=8");
+        else
+          myNex.writeStr("bFilt.pic=7");
+      }
     }
+    else
+      debounceF++;
   }
 
   if (storage.WaterHeat != TFTStruc.Heat)
   {
-    TFTStruc.Heat = storage.WaterHeat;
-    myNex.writeNum("page1.vabHeat.val", TFTStruc.Heat);
-    if (CurrentPage == 1)
+    if ((debounceH == 0) || (debounceH > debounceCount))
     {
-      if (TFTStruc.Heat == 1)
-        myNex.writeStr("bHeat.pic=8");
-      else
-        myNex.writeStr("bHeat.pic=7");
+      debounceH = 0;
+      TFTStruc.Heat = storage.WaterHeat;
+      myNex.writeNum("page1.vabHeat.val", TFTStruc.Heat);
+      if (CurrentPage == 1)
+      {
+        if (TFTStruc.Heat == 1)
+          myNex.writeStr("bHeat.pic=8");
+        else
+          myNex.writeStr("bHeat.pic=7");
+      }
     }
+    else
+      debounceH++;
   }
 
   if (digitalRead(RELAY_R1) != TFTStruc.R0)
   {
-    TFTStruc.R0 = digitalRead(RELAY_R1);
-    myNex.writeNum("page1.vabR0.val", TFTStruc.R0);
-    if (CurrentPage == 1)
+    if ((debounceR0 == 0) || (debounceR0 > debounceCount))
     {
-      if (TFTStruc.R0 == 1)
-        myNex.writeStr("bR0.pic=8");
-      else
-        myNex.writeStr("bR0.pic=7");
+      debounceR0 = 0;
+      TFTStruc.R0 = digitalRead(RELAY_R1);
+      myNex.writeNum("page1.vabR0.val", TFTStruc.R0);
+      if (CurrentPage == 1)
+      {
+        if (TFTStruc.R0 == 1)
+          myNex.writeStr("bR0.pic=8");
+        else
+          myNex.writeStr("bR0.pic=7");
+      }
     }
+    else
+      debounceR0++;
   }
 
   if (digitalRead(RELAY_R2) != TFTStruc.R1)
   {
-    TFTStruc.R1 = digitalRead(RELAY_R2);
-    myNex.writeNum("page1.vabR1.val", TFTStruc.R1);
-    if (CurrentPage == 1)
+    if ((debounceR1 == 0) || (debounceR1 > debounceCount))
     {
-      if (TFTStruc.R1 == 1)
-        myNex.writeStr("bR1.pic=8");
-      else
-        myNex.writeStr("bR1.pic=7");
+      debounceR1 = 0;
+      TFTStruc.R1 = digitalRead(RELAY_R2);
+      myNex.writeNum("page1.vabR1.val", TFTStruc.R1);
+      if (CurrentPage == 1)
+      {
+        if (TFTStruc.R1 == 1)
+          myNex.writeStr("bR1.pic=8");
+        else
+          myNex.writeStr("bR1.pic=7");
+      }
     }
+    else
+      debounceR1++;
   }
 
   if (digitalRead(RELAY_R6) != TFTStruc.R2)
   {
-    TFTStruc.R2 = digitalRead(RELAY_R6);
-    myNex.writeNum("page1.vabR2.val", TFTStruc.R2);
-    if (CurrentPage == 1)
+    if ((debounceR2 == 0) || (debounceR2 > debounceCount))
     {
-      if (TFTStruc.R2 == 1)
-        myNex.writeStr("bR2.pic=8");
-      else
-        myNex.writeStr("bR2.pic=7");
+      debounceR2 = 0;
+      TFTStruc.R2 = digitalRead(RELAY_R6);
+
+      myNex.writeNum("page1.vabR2.val", TFTStruc.R2);
+      if (CurrentPage == 1)
+      {
+        if (TFTStruc.R2 == 1)
+          myNex.writeStr("bR2.pic=8");
+        else
+          myNex.writeStr("bR2.pic=7");
+      }
     }
+    else
+      debounceR2++;
   }
-  
+
+  //update time at top of displayed page
   switch (CurrentPage)
   {
     case 0: {
@@ -210,84 +256,7 @@ void UpdateTFT()
   }
 }
 
-void UpdateToggleButton(String ButtonName)
-{
-  if (ButtonName == F("bMode"))
-  {
-    if (TFTStruc.Mode)
-    {
-      myNex.writeNum(F("bMode.pic"), 8);
-      myNex.writeNum(F("vabMode.val"), 1);
-      myNex.writeStr("t1Mode.txt", F("AUTO"));
-    } else
-    {
-      myNex.writeNum(F("bMode.pic"), 7);
-      myNex.writeNum(F("vabMode.val"), 0);
-      myNex.writeStr("t1Mode.txt", F("MANU"));
-    }
-  }
-  else if (ButtonName == F("bFilt"))
-  {
-    if (TFTStruc.Filt)
-    {
-      myNex.writeNum(F("bFilt.pic"), 8);
-      myNex.writeNum(F("vabFilt.val"), 1);
-    } else
-    {
-      myNex.writeNum(F("bFilt.pic"), 7);
-      myNex.writeNum(F("vabFilt.val"), 0);
-    }
-  }
-  else if (ButtonName == F("bHeat"))
-  {
-    if (TFTStruc.Heat)
-    {
-      myNex.writeNum(F("bHeat.pic"), 8);
-      myNex.writeNum(F("vabHeat.val"), 1);
-    } else
-    {
-      myNex.writeNum(F("bHeat.pic"), 7);
-      myNex.writeNum(F("vabHeat.val"), 0);
-    }
-  }
-  else if (ButtonName == F("bR0"))
-  {
-    if (TFTStruc.R0)
-    {
-      myNex.writeNum(F("bR0.pic"), 8);
-      myNex.writeNum(F("vabR0.val"), 1);
-    } else
-    {
-      myNex.writeNum(F("bR0.pic"), 7);
-      myNex.writeNum(F("vabR0.val"), 0);
-    }
-  }
-  else if (ButtonName == F("bR1"))
-  {
-    if (TFTStruc.R1)
-    {
-      myNex.writeNum(F("bR1.pic"), 8);
-      myNex.writeNum(F("vabR1.val"), 1);
-    } else
-    {
-      myNex.writeNum(F("bR1.pic"), 7);
-      myNex.writeNum(F("vabR1.val"), 0);
-    }
-  }
-  else if (ButtonName == F("bR2"))
-  {
-    if (TFTStruc.R2)
-    {
-      myNex.writeNum(F("bR2.pic"), 8);
-      myNex.writeNum(F("vabR2.val"), 1);
-    } else
-    {
-      myNex.writeNum(F("bR2.pic"), 7);
-      myNex.writeNum(F("vabR2.val"), 0);
-    }
-  }
-}
-
+//reset TFT at start of controller
 void ResetTFT()
 {
   myNex.writeStr("rest");
@@ -329,6 +298,7 @@ void trigger4()
 void trigger5()
 {
   TFTStruc.Mode = (boolean)myNex.readNumber(F("vabMode.val"));
+  debounceM = 1;
   DEBUG_PRINT("MODE button");
   if (TFTStruc.Mode)
   {
@@ -348,6 +318,7 @@ void trigger5()
 void trigger6()
 {
   TFTStruc.Filt = (boolean)myNex.readNumber(F("vabFilt.val"));
+  debounceF = 1;
   DEBUG_PRINT("FILT button");
   if (TFTStruc.Filt)
   {
@@ -367,6 +338,7 @@ void trigger6()
 void trigger7()
 {
   TFTStruc.Heat = (boolean)myNex.readNumber(F("vabHeat.val"));
+  debounceH = 1;
   DEBUG_PRINT("HEAT button");
   if (TFTStruc.Heat)
   {
@@ -386,6 +358,7 @@ void trigger7()
 void trigger8()
 {
   TFTStruc.R0 = (boolean)myNex.readNumber(F("vabR0.val"));
+  debounceR0 = 1;
   DEBUG_PRINT("Relay 0 button");
   if (TFTStruc.R0)
   {
@@ -405,6 +378,7 @@ void trigger8()
 void trigger9()
 {
   TFTStruc.R1 = (boolean)myNex.readNumber(F("vabR1.val"));
+  debounceR1 = 1;
   DEBUG_PRINT("Relay 1 button");
   if (TFTStruc.R1)
   {
@@ -424,6 +398,7 @@ void trigger9()
 void trigger10()
 {
   TFTStruc.R2 = (boolean)myNex.readNumber(F("vabR2.val"));
+  debounceR2 = 1;
   DEBUG_PRINT("Relay 2 button");
   if (TFTStruc.R2)
   {
