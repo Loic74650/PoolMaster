@@ -2,6 +2,10 @@
 * text auto
 *.png binary
 *.jpg binary
+*.HMI binary
+*.tft binary
+*.zi binary
+*.pxf binary
 
 
 # Explicitly declare text files you want to always be normalized and converted
