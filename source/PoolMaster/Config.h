@@ -80,7 +80,7 @@
   //Front panel push button switch
   #define PUSH_BUTTON_PIN  A12   //Connect a button switch from this pin to ground
   #define GREEN_LED_PIN    2  //Digital output pin to switch ON/OFF Green LED of push button
-  #define RED_LED_PIN      4  //Digital output pin to switch ON/OFF Red LED of push button
+  #define RED_LED_PIN      5  //Digital output pin to switch ON/OFF Red LED of push button
   
 #endif
 
@@ -105,9 +105,10 @@ String sDS18b20_0;
 
 // MAC address of Ethernet shield (in case of Controllino board, set an arbitrary MAC address)
 //byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
-byte mac[] = { 0xA8, 0x61, 0x0A, 0xAE, 0x2C, 0x68 };
+//byte mac[] = { 0xA8, 0x61, 0x0A, 0xAE, 0x2C, 0x68 }; //-> production Controllino
+byte mac[] = { 0xA8, 0x61, 0x0A, 0xAE, 0x65, 0x04}; //-> dev setup with Ethernet shield
 String sArduinoMac;
-//IPAddress ip(192, 168, 0, 201);  //IP address, needs to be adapted depending on local network topology
+IPAddress ip(192, 168, 0, 188);  //IP address, needs to be adapted depending on local network topology
 
 //Version of config stored in Eeprom
 //Random value. Change this value (to any other value) to revert the config to default values
@@ -144,9 +145,9 @@ struct StoreStruct
 MQTTClient MQTTClient;
 const char* MqttServerIP = "192.168.0.38";
 //const char* MqttServerIP = "broker.mqttdashboard.com";//cloud-based MQTT broker to test when node-red and MQTT broker are not installed locally (/!\ public and unsecure!)
-const char* MqttServerClientID = "ArduinoPool2"; // /!\ choose a client ID which is unique to this Arduino board
-const char* MqttServerLogin = "admin";  //replace by const char* MqttServerLogin = nullptr; in case broker does not require a login/pwd
-const char* MqttServerPwd = "Lel1admv"; //replace by const char* MqttServerPwd = nullptr; in case broker does not require a login/pwd
+const char* MqttServerClientID = "ArduinoPool3"; // /!\ choose a client ID which is unique to this Arduino board
+const char* MqttServerLogin = nullptr;  //replace by const char* MqttServerLogin = nullptr; in case broker does not require a login/pwd
+const char* MqttServerPwd = nullptr; //replace by const char* MqttServerPwd = nullptr; in case broker does not require a login/pwd
 const char* PoolTopicMeas1 = "Home/Pool/Meas1";
 const char* PoolTopicMeas2 = "Home/Pool/Meas2";
 const char* PoolTopicSet1 = "Home/Pool/Set1";

@@ -266,7 +266,6 @@ void ResetTFT()
 void trigger1()
 {
   CurrentPage = 0;
-  //UpdateTFTDisplay(0);
   DEBUG_PRINT("Nextion p0");
 }
 
@@ -274,7 +273,6 @@ void trigger1()
 void trigger2()
 {
   CurrentPage = 1;
-  //UpdateTFTDisplay(0);
   DEBUG_PRINT("Nextion p1");
 }
 
@@ -282,7 +280,6 @@ void trigger2()
 void trigger3()
 {
   CurrentPage = 2;
-  //UpdateTFTDisplay(0);
   DEBUG_PRINT("Nextion p2");
 }
 
@@ -290,7 +287,6 @@ void trigger3()
 void trigger4()
 {
   CurrentPage = 3;
-  //UpdateTFTDisplay(0);
   DEBUG_PRINT("Nextion p3");
 }
 
@@ -409,6 +405,21 @@ void trigger10()
   else
   {
     String Cmd = F("{\"Relay\":[6,0]}");
+    queue.push(Cmd);
+    DEBUG_PRINT(Cmd);
+  }
+}
+
+//Probe calibration completed
+void trigger11()
+{
+  DEBUG_PRINT("Calibration complete event");
+  String Cmd = "";
+  while (Serial2.available() < 4) {
+  }
+  if (Serial2.available())
+  {
+    Cmd = Serial2.readStringUntil('@');//generated command ends with @ character
     queue.push(Cmd);
     DEBUG_PRINT(Cmd);
   }
