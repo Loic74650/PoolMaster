@@ -171,6 +171,8 @@ See NodeRed folder for more info and code
 <p>
 See the NodeRed folder for more info and this <a title="https://www.youtube.com/watch?v=JdV4x925au0" href="https://www.youtube.com/watch?v=JdV4x925au0">tutorial</a> on how to create a Grafana dashboard from MQTT data.<br />
 <p align="center"> <img src="/docs/Grafana.png" width="702" title="Overview"> </p> <br />
+<p align="center"> <img src="/docs/NodeRedDashboard.png" width="702" title="Overview"> </p> <br />
+
 </p>
 
 <h4>Non-cloud home automation integration example (<a title="https://www.jeedom.com" href="https://www.jeedom.com">JEEDOM</a>)</h4>
