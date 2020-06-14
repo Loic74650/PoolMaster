@@ -1,5 +1,6 @@
 /*
-  NEXTION TFT related code
+  NEXTION TFT related code, based on EasyNextion library by Seithan (https://github.com/Seithan/EasyNextionLibrary)
+  (c) Loic74 <loic74650@gmail.com> 2018-2020
 */
 
 int CurrentPage = 0;
@@ -17,14 +18,16 @@ struct TFTStruct
 {
   float pH, Orp, pHSP, OrpSP, WT, WTSP, AT, PSI;
   uint8_t FSta, FSto, pHTkFill, OrpTkFill;
-  boolean Mode, NetW, Filt, Heat, R0, R1, R2;
+  boolean Mode, NetW, Filt, Heat, R0, R1, R2, pHUTErr, ChlUTErr, PSIErr, pHTLErr, ChlTLErr;
   unsigned long pHPpRT, OrpPpRT;
+  String FW;
 } TFTStruc =
 { //default values.
   7.30, 730, 7.4, 740, 27.11, 28.5, 25.5, 0.80,
   8, 20, 100, 100,
-  1, 0, 0, 0, 0, 0, 0,
-  0, 0
+  1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0,
+  ""
 };
 
 
@@ -37,6 +40,13 @@ void UpdateTFT()
 
   sprintf(HourBuffer, "%02d:%02d:%02d", hour(), minute(), second());
   myNex.writeStr("page0.vaTime.txt", HourBuffer);
+
+  if (Firmw != TFTStruc.FW)
+  {
+    TFTStruc.FW = "MC fw: v ";
+    TFTStruc.FW += Firmw;
+    myNex.writeStr("page0.vaMCFW.txt", TFTStruc.FW);
+  }
 
   if (storage.PhValue != TFTStruc.pH)
   {
@@ -85,6 +95,7 @@ void UpdateTFT()
     myNex.writeStr("page0.vaPSI.txt", temp);
     if (CurrentPage == 0)  myNex.writeStr("P.txt", temp);
   }
+  
   if ((ChlPump.UpTime != TFTStruc.OrpPpRT) || ((int)(storage.ChlFill - ChlPump.GetTankUsage()) != TFTStruc.OrpTkFill))
   {
     TFTStruc.OrpPpRT = ChlPump.UpTime;
@@ -94,6 +105,7 @@ void UpdateTFT()
     myNex.writeStr("page0.vaOrpTk.txt", temp);
     if (CurrentPage == 0)  myNex.writeStr("OrpTk.txt", temp);
   }
+  
   if ((PhPump.UpTime != TFTStruc.pHPpRT) || ((int)(storage.AcidFill - PhPump.GetTankUsage()) != TFTStruc.pHTkFill))
   {
     TFTStruc.pHPpRT = PhPump.UpTime;
@@ -233,7 +245,78 @@ void UpdateTFT()
     else
       debounceR2++;
   }
+/*
+  if ((PhPump.UpTimeError != TFTStruc.pHUTErr) || (ChlPump.UpTimeError != TFTStruc.ChlUTErr) || (PSIError != TFTStruc.PSIErr) || (PhPump.TankLevel() != TFTStruc.pHTLErr) || (ChlPump.TankLevel() != TFTStruc.ChlTLErr))
+  {
+    TFTStruc.pHUTErr = PhPump.UpTimeError;
+    TFTStruc.ChlUTErr = ChlPump.UpTimeError;
+    TFTStruc.PSIErr = PSIError;
+    TFTStruc.pHTLErr = PhPump.TankLevel();
+    TFTStruc.ChlTLErr = ChlPump.TankLevel();
 
+    if (PhPump.UpTimeError || ChlPump.UpTimeError || PSIError || !PhPump.TankLevel() || !ChlPump.TankLevel())
+    {
+      myNex.writeStr("page0.vaError.val=1");
+    }
+    else
+      myNex.writeStr("page0.vaError.val=0");
+  }
+*/
+  if (ChlPump.TankLevel() != TFTStruc.ChlTLErr)
+  {
+    TFTStruc.ChlTLErr = ChlPump.TankLevel();
+    if (!TFTStruc.ChlTLErr)
+    {
+      myNex.writeStr("page0.vaChlLevel.val=1");
+    }
+    else
+      myNex.writeStr("page0.vaChlLevel.val=0");
+  }
+  
+  if (PhPump.TankLevel() != TFTStruc.pHTLErr)
+  {
+    TFTStruc.pHTLErr = PhPump.TankLevel();
+    if (!TFTStruc.pHTLErr)
+    {
+      myNex.writeStr("page0.vaAcidLevel.val=1");
+    }
+    else
+      myNex.writeStr("page0.vaAcidLevel.val=0");
+  }
+  
+  if (PSIError != TFTStruc.PSIErr)
+  {
+    TFTStruc.PSIErr = PSIError;
+    if (TFTStruc.PSIErr)
+    {
+      myNex.writeStr("page0.vaPSIErr.val=1");
+    }
+    else
+      myNex.writeStr("page0.vaPSIErr.val=0");
+  }
+  
+  if (ChlPump.UpTimeError != TFTStruc.ChlUTErr)
+  {
+    TFTStruc.ChlUTErr = ChlPump.UpTimeError;
+    if (TFTStruc.ChlUTErr)
+    {
+      myNex.writeStr("page0.vaChlUTErr.val=1");
+    }
+    else
+      myNex.writeStr("page0.vaChlUTErr.val=0");
+  }
+  
+  if (PhPump.UpTimeError != TFTStruc.pHUTErr)
+  {
+    TFTStruc.pHUTErr = PhPump.UpTimeError;
+    if (TFTStruc.pHUTErr)
+    {
+      myNex.writeStr("page0.vapHUTErr.val=1");
+    }
+    else
+      myNex.writeStr("page0.vapHUTErr.val=0");
+  }
+  
   //update time at top of displayed page
   switch (CurrentPage)
   {
@@ -415,7 +498,11 @@ void trigger11()
 {
   DEBUG_PRINT("Calibration complete event");
   String Cmd = "";
+  unsigned long timeout = millis();
   while (Serial2.available() < 4) {
+    if ((millis() - timeout) > 100UL) {   // Waiting... But not forever......
+      break;
+    }
   }
   if (Serial2.available())
   {
@@ -423,4 +510,12 @@ void trigger11()
     queue.push(Cmd);
     DEBUG_PRINT(Cmd);
   }
+}
+
+//Clear Errors button pressed
+void trigger12()
+{
+  DEBUG_PRINT("Clear errors event");
+  String Cmd = "{\"Clear\":1}";
+  queue.push(Cmd);
 }

@@ -105,8 +105,8 @@ String sDS18b20_0;
 
 // MAC address of Ethernet shield (in case of Controllino board, set an arbitrary MAC address)
 //byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
-//byte mac[] = { 0xA8, 0x61, 0x0A, 0xAE, 0x2C, 0x68 }; //-> production Controllino
-byte mac[] = { 0xA8, 0x61, 0x0A, 0xAE, 0x65, 0x04}; //-> dev setup with Ethernet shield
+byte mac[] = { 0xA8, 0x61, 0x0A, 0xAE, 0x2C, 0x68 }; //-> production Controllino
+//byte mac[] = { 0xA8, 0x61, 0x0A, 0xAE, 0x65, 0x04}; //-> dev setup with Ethernet shield
 String sArduinoMac;
 IPAddress ip(192, 168, 0, 188);  //IP address, needs to be adapted depending on local network topology
 
