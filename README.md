@@ -20,7 +20,7 @@ pH is regulated by injecting Acid from a tank into the pool water (a relay start
 ORP is regulated by injecting Chlorine from a tank into the pool water (a relay starts/stops the Chlorine peristaltic pump)<br />
 Defined time-slots and water temperature are used to start/stop the filtration pump for a daily given amount of time (a relay starts/stops the filtration pump)<br />
 Tank-levels are estimated based on the running-time and flow-rate of each pump.<br />
-A front panel push-button with a red LED-ring enables toggling between LCD screens (short press), manually start/stop filtration (double-tap) and clear errors (long-press). When a system-error occurs (eg. empty chemical tank, low-water pressure or chemical-pump overtime) the front-panel push-button red-LED ring starts blinking, calling for attention. 
+
 An API function enables telling the system what the outside air temperature is. In case it is below -2.0°C, filtration is started until it rises back above +2.0°C<br />
 A lightweight webserver provides a simple dynamic webpage with a summary of all system parameters. An XML file with more info is available at http://ARDUINO_LOCAL_IP/Info<br />
 Communication with the system is performed using the MQTT protocol over an Ethernet connection to the local network/MQTT broker.<br /><br />
@@ -95,10 +95,6 @@ e/ the response time of ORP sensors can be fast in reference buffer solutions (1
 
 <p align="center"> <img src="/docs/PoolMaster.jpg" width="702" title="Overview"> </p> <br /><br />
 <p align="center"> <img src="/docs/PoolMasterBox_pf.jpg" width="702" title="Overview"> </p> <br /><br />
-<p align="center"> <img src="/docs/LCD_Screens2.jpg" width="702" title="Overview"> </p> <br />
-<p align="center"> <img src="/docs/Web.jpg" width="702" title="Overview"> </p> <br /><br />
-<p align="center"> <img src="/docs/WebXML.jpg" width="702" title="Overview"> </p> <br />
-
 
 <h4>MQTT API</h4>
 <p>
@@ -150,8 +146,6 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see hard
 <li><a title="https://www.trattamento-acque.net/dosaggio/pompe-peristaltiche/pompe-a-portata-fissa/pompa-serie-mp2-p-detail.html" href="https://www.trattamento-acque.net/dosaggio/pompe-peristaltiche/pompe-a-portata-fissa/pompa-serie-mp2-p-detail.html">x2 Peristaltic pumps, suction lances for tanks, pH and Orp probes</a></li>
 <li><a title="http://electrolyseur.fr/pool-terre.html" href="http://electrolyseur.fr/pool-terre.html">x1 Water grounding</a></li>
 <li><a title="http://electrolyseur.fr/kit-sonde-DS18B20-filtration-piscine.html" href="http://electrolyseur.fr/kit-sonde-DS18B20-filtration-piscine.html">x1 Water temperature probe (DS18B20)</a></li>
-<li><a title="https://www.amazon.com/SainSmart-Serial-Module-Shield-Arduino/dp/B0080DYTZQ" href="https://www.amazon.com/SainSmart-Serial-Module-Shield-Arduino/dp/B0080DYTZQ">x1 Standard LCD 20x4 I2C</a></li>
-<li><a title="https://www.adafruit.com/product/559" href="https://www.adafruit.com/product/559">x1 Rugged front panel metal push button with red LED ring</a></li>
 <li><a title="https://fr.aliexpress.com/item/OOTDTY-G1-4-Pouces-5-v-0-0-5-MPa-Pression-Capteur-Capteur-D-huile-Carburant/32851667666.html?transAbTest=ae803_5&ws_ab_test=searchweb0_0%2Csearchweb201602_3_10065_10068_319_10892_317_10696_10084_453_454_10083_10618_10304_10307_10820_10821_537_10302_536_10902_10843_10059_10884_10887_321_322_10103%2Csearchweb201603_57%2CppcSwitch_0&algo_pvid=2456b33d-d7ee-4515-863d-af0c6b322395&algo_expid=2456b33d-d7ee-4515-863d-af0c6b322395-20
 " href="https://fr.aliexpress.com/item/OOTDTY-G1-4-Pouces-5-v-0-0-5-MPa-Pression-Capteur-Capteur-D-huile-Carburant/32851667666.html?transAbTest=ae803_5&ws_ab_test=searchweb0_0%2Csearchweb201602_3_10065_10068_319_10892_317_10696_10084_453_454_10083_10618_10304_10307_10820_10821_537_10302_536_10902_10843_10059_10884_10887_321_322_10103%2Csearchweb201603_57%2CppcSwitch_0&algo_pvid=2456b33d-d7ee-4515-863d-af0c6b322395&algo_expid=2456b33d-d7ee-4515-863d-af0c6b322395-20
 ">x1 Pressure sensor</a></li>
