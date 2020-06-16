@@ -91,6 +91,9 @@
   {"Reboot":1}                     -> call this command to reboot the controller (after 8 seconds from calling this command)
   {"pHPumpFR":1.5}                 -> call this command to set pH pump flow rate un L/s. In this example 1.5L/s
   {"ChlPumpFR":3}                  -> call this command to set Chl pump flow rate un L/s. In this example 3L/s
+  {"RstpHCal":1}                   -> call this command to reset the calibration coefficients of the pH probe
+  {"RstOrpCal":1}                   -> call this command to reset the calibration coefficients of the Orp probe
+  {"RstPSICal":1}                   -> call this command to reset the calibration coefficients of the pressure sensor
 
 ***Dependencies and respective revisions used to compile this project***
   https://github.com/256dpi/arduino-mqtt/releases (rev 2.4.3)
@@ -523,19 +526,14 @@ void ButtonCallback(Task* me)
       // things to do if the button was double-tapped
       case (doubleTap) : {
           Serial.println("DOUBLE-TAP event detected");
+          String Cmd0 = "{\"FiltPump\":0}";
+          String Cmd1 = "{\"FiltPump\":1}";
+          
           if (FiltrationPump.IsRunning()) {
-            EmergencyStopFiltPump = true;
-            FiltrationPump.Stop();
-
-            //switch off the PIDs
-            SetPhPID(false);
-            SetOrpPID(false);
+            queue.push(Cmd0);
           }
           else {
-            EmergencyStopFiltPump = false;
-            //start filtration pump even without scheduled time slots
-            //if (storage.AutoMode && !PSIError && !PhLevelError && !ChlLevelError)
-            FiltrationPump.Start();
+            queue.push(Cmd1);
           }
           break;
         }
@@ -543,27 +541,9 @@ void ButtonCallback(Task* me)
       // things to do if the button was held
       case (hold) : {
           Serial.println("HOLD event detected");
-          if (PSIError)
-            PSIError = false;
-
-          if (PhPump.UpTimeError)
-            PhPump.ClearErrors();
-
-          if (ChlPump.UpTimeError)
-            ChlPump.ClearErrors();
-
-          digitalWrite(bRED_LED_PIN, false);
-          digitalWrite(bGREEN_LED_PIN, true);
-          Serial << F("Push-Button long press. Clearing errors") << endl;
-          MQTTClient.publish(PoolTopicError, "", true, LWMQTT_QOS1);
-
-          //start filtration pump if within scheduled time slots
-          if (!EmergencyStopFiltPump && storage.AutoMode && (hour() >= storage.FiltrationStart) && (hour() < storage.FiltrationStop))
-            FiltrationPump.Start();
-          PSIError = PSIError;
-          break;
+          String Cmd = "{\"Clear\":1}";
+          queue.push(Cmd);
         }
-
     }
   }
 }
@@ -637,9 +617,9 @@ void GenericCallback(Task* me)
   if (!EmergencyStopFiltPump && storage.AutoMode && !PSIError && (hour() == storage.FiltrationStart) && (minute() == 0))
     FiltrationPump.Start();
   PSIError = PSIError;
-
+    
   //start PIDs with delay after FiltrationStart in order to let the readings stabilize
-  if (FiltrationPump.IsRunning() && storage.AutoMode && !PhPID.GetMode() && (FiltrationPump.LastStartTime / 1000 / 60 > storage.DelayPIDs) && (hour() >= storage.FiltrationStart) && (hour() < storage.FiltrationStop))
+  if (FiltrationPump.IsRunning() && storage.AutoMode && !PhPID.GetMode() && ((millis() - FiltrationPump.LastStartTime) / 1000 / 60 > storage.DelayPIDs) && (hour() >= storage.FiltrationStart) && (hour() < storage.FiltrationStop))
   {
     //Start PIDs
     SetPhPID(true);
@@ -1648,6 +1628,10 @@ void ProcessCommand(String JSONCommand)
                     digitalWrite(bRED_LED_PIN, false);
                     digitalWrite(bGREEN_LED_PIN, true);
                     MQTTClient.publish(PoolTopicError, "", true, LWMQTT_QOS1);
+
+                    //start filtration pump if within scheduled time slots
+                    if (!EmergencyStopFiltPump && storage.AutoMode && (hour() >= storage.FiltrationStart) && (hour() < storage.FiltrationStop))
+                      FiltrationPump.Start();
                   }
                   else if (command.containsKey("DelayPID")) //"DelayPID" command which sets the delay from filtering start before PID loops start regulating
                   {
@@ -1688,27 +1672,45 @@ void ProcessCommand(String JSONCommand)
                           break;
                       }
                     }
-                    else //"Reboot" command forces a reboot of the controller
-                      if (command.containsKey("Reboot"))
-                      {
-                        while (1);
-                      }
-                      else //"PhPumpFR" set flow rate of Ph pump
-                        if (command.containsKey("pHPumpFR"))
-                        {
-                          storage.pHPumpFR = (float)command["pHPumpFR"];
-                          PhPump.SetFlowRate((float)command["pHPumpFR"]);
-                          saveConfig();
-                          PublishSettings();
-                        }
-                        else //"ChlPumpFR" set flow rate of Chl pump
-                          if (command.containsKey("ChlPumpFR"))
-                          {
-                            storage.ChlPumpFR = (float)command["ChlPumpFR"];
-                            ChlPump.SetFlowRate((float)command["ChlpumpFR"]);
-                            saveConfig();
-                            PublishSettings();
-                          }
+                    else if (command.containsKey("Reboot"))//"Reboot" command forces a reboot of the controller
+                    {
+                      while (1);
+                    }
+                    else if (command.containsKey("pHPumpFR"))//"PhPumpFR" set flow rate of Ph pump
+                    {
+                      storage.pHPumpFR = (float)command["pHPumpFR"];
+                      PhPump.SetFlowRate((float)command["pHPumpFR"]);
+                      saveConfig();
+                      PublishSettings();
+                    }
+                    else if (command.containsKey("ChlPumpFR"))//"ChlPumpFR" set flow rate of Chl pump
+                    {
+                      storage.ChlPumpFR = (float)command["ChlPumpFR"];
+                      ChlPump.SetFlowRate((float)command["ChlpumpFR"]);
+                      saveConfig();
+                      PublishSettings();
+                    }
+                    else if (command.containsKey("RstpHCal"))//"RstpHCal" reset the calibration coefficients of the pH probe
+                    {
+                      storage.pHCalibCoeffs0 = 4.3;
+                      storage.pHCalibCoeffs1 = -2.63;
+                      saveConfig();
+                      PublishSettings();
+                    }
+                    else if (command.containsKey("RstOrpCal"))//"RstOrpCal" reset the calibration coefficients of the Orp probe
+                    {
+                      storage.OrpCalibCoeffs0 = -1189;
+                      storage.OrpCalibCoeffs1 = 2564;
+                      saveConfig();
+                      PublishSettings();
+                    }
+                    else if (command.containsKey("RstPSICal"))//"RstPSICal" reset the calibration coefficients of the pressure sensor
+                    {
+                      storage.PSICalibCoeffs0 = 1.11;
+                      storage.PSICalibCoeffs1 = 0;
+                      saveConfig();
+                      PublishSettings();
+                    }
 
     //Publish/Update on the MQTT broker the status of our variables
     PublishDataCallback(NULL);
@@ -1769,7 +1771,7 @@ void gettemp_read()
 // pass x and y arrays (pointers), lrCoef pointer, and n.
 //The lrCoef array is comprised of the slope=lrCoef[0] and intercept=lrCoef[1].  n is the length of the x and y arrays.
 //http://jwbrooks.blogspot.com/2014/02/arduino-linear-regression-function.html
-void simpLinReg(float* x, float* y, double &lrCoef0, double &lrCoef1, int n)
+void simpLinReg(float * x, float * y, double & lrCoef0, double & lrCoef1, int n)
 {
   // initialize variables
   float xbar = 0;
@@ -1798,7 +1800,7 @@ void simpLinReg(float* x, float* y, double &lrCoef0, double &lrCoef1, int n)
 
 //Ethernet client checking loop (the Web server sending the system webpage to the browser and/or the XML file containing the system info)
 //call http://localIP/Info to obtain an XML file containing the system info
-void EthernetClientCallback(Task* me)
+void EthernetClientCallback(Task * me)
 {
   EthernetClient client = server.available();  // try to get client
   //readString = "";

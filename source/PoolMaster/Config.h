@@ -39,8 +39,6 @@
 
 #else //Mega2560 board specifics
   
-
-  
   #include <Wire.h>
   #include "RTClib.h"
   RTC_DS3231 rtc;

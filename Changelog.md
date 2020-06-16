@@ -18,8 +18,9 @@ v5.0.0
 * All MQTT publishes are now in retain mode in order to sync more efficiently MQTT clients with the controller
 * Added a new command to reboot the controller: {"Reboot":1}
 * Added new commands to set the Chl and Acid pumps Flow Rates: {"pHPumpFR":1.5} & {"ChlPumpFR":3.0}
+* Added new commands to reset the probes and sensor calibration coefficients: {"RstpHCal":1} & {"RstOrpCal":1} & {"RstPSICal":1}
 * DelayPIDs now re-applied when filtration stopped and restarted by double-tap on panel button
-* First version of NEXTION 3.5" TFT display support, partially functioning 
+* First version of NEXTION 3.5" TFT display support 
 
 v4.0.6
 -------

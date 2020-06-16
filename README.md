@@ -132,6 +132,10 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see hard
 <li>{"Reboot":1}                     -> call this command to reboot the controller (after 8 seconds from calling this command)</li>
 <li>{"pHPumpFR":1.5}                 -> call this command to set pH pump flow rate un L/s. In this example 1.5L/s</li>
 <li>{"ChlPumpFR":3}                  -> call this command to set Chl pump flow rate un L/s. In this example 3L/s</li>
+<li>{"RstpHCal":1}                   -> call this command to reset the calibration coefficients of the pH probe</li>
+<li>{"RstOrpCal":1}                  -> call this command to reset the calibration coefficients of the Orp probe</li>
+<li>{"RstPSICal":1}                  -> call this command to reset the calibration coefficients of the pressure sensor</li>
+
 
 </ul>
 </p><br />
