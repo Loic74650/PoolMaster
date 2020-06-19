@@ -95,7 +95,18 @@ void UpdateTFT()
     myNex.writeStr("page0.vaPSI.txt", temp);
     if (CurrentPage == 0)  myNex.writeStr("P.txt", temp);
   }
-  
+
+  if ((storage.FiltrationStop != TFTStruc.FSto) || (storage.FiltrationStart != TFTStruc.FSta))
+  {
+    TFTStruc.FSto = storage.FiltrationStop;
+    TFTStruc.FSta = storage.FiltrationStart;
+    String temp = String(TFTStruc.FSta) + "/" + String(TFTStruc.FSto);
+    if (CurrentPage == 0)  myNex.writeStr("page0.StaSto.txt", temp);
+    else if (CurrentPage == 1)  myNex.writeStr("page1.StaSto.txt", temp);
+    else if (CurrentPage == 2)  myNex.writeStr("page2.StaSto.txt", temp);
+    else if (CurrentPage == 3)  myNex.writeStr("page3.StaSto.txt", temp);
+  }
+
   if ((ChlPump.UpTime != TFTStruc.OrpPpRT) || ((int)(storage.ChlFill - ChlPump.GetTankUsage()) != TFTStruc.OrpTkFill))
   {
     TFTStruc.OrpPpRT = ChlPump.UpTime;
@@ -105,7 +116,7 @@ void UpdateTFT()
     myNex.writeStr("page0.vaOrpTk.txt", temp);
     if (CurrentPage == 0)  myNex.writeStr("OrpTk.txt", temp);
   }
-  
+
   if ((PhPump.UpTime != TFTStruc.pHPpRT) || ((int)(storage.AcidFill - PhPump.GetTankUsage()) != TFTStruc.pHTkFill))
   {
     TFTStruc.pHPpRT = PhPump.UpTime;
@@ -245,23 +256,7 @@ void UpdateTFT()
     else
       debounceR2++;
   }
-/*
-  if ((PhPump.UpTimeError != TFTStruc.pHUTErr) || (ChlPump.UpTimeError != TFTStruc.ChlUTErr) || (PSIError != TFTStruc.PSIErr) || (PhPump.TankLevel() != TFTStruc.pHTLErr) || (ChlPump.TankLevel() != TFTStruc.ChlTLErr))
-  {
-    TFTStruc.pHUTErr = PhPump.UpTimeError;
-    TFTStruc.ChlUTErr = ChlPump.UpTimeError;
-    TFTStruc.PSIErr = PSIError;
-    TFTStruc.pHTLErr = PhPump.TankLevel();
-    TFTStruc.ChlTLErr = ChlPump.TankLevel();
 
-    if (PhPump.UpTimeError || ChlPump.UpTimeError || PSIError || !PhPump.TankLevel() || !ChlPump.TankLevel())
-    {
-      myNex.writeStr("page0.vaError.val=1");
-    }
-    else
-      myNex.writeStr("page0.vaError.val=0");
-  }
-*/
   if (ChlPump.TankLevel() != TFTStruc.ChlTLErr)
   {
     TFTStruc.ChlTLErr = ChlPump.TankLevel();
@@ -272,7 +267,7 @@ void UpdateTFT()
     else
       myNex.writeStr("page0.vaChlLevel.val=0");
   }
-  
+
   if (PhPump.TankLevel() != TFTStruc.pHTLErr)
   {
     TFTStruc.pHTLErr = PhPump.TankLevel();
@@ -283,7 +278,7 @@ void UpdateTFT()
     else
       myNex.writeStr("page0.vaAcidLevel.val=0");
   }
-  
+
   if (PSIError != TFTStruc.PSIErr)
   {
     TFTStruc.PSIErr = PSIError;
@@ -294,7 +289,7 @@ void UpdateTFT()
     else
       myNex.writeStr("page0.vaPSIErr.val=0");
   }
-  
+
   if (ChlPump.UpTimeError != TFTStruc.ChlUTErr)
   {
     TFTStruc.ChlUTErr = ChlPump.UpTimeError;
@@ -305,7 +300,7 @@ void UpdateTFT()
     else
       myNex.writeStr("page0.vaChlUTErr.val=0");
   }
-  
+
   if (PhPump.UpTimeError != TFTStruc.pHUTErr)
   {
     TFTStruc.pHUTErr = PhPump.UpTimeError;
@@ -316,7 +311,7 @@ void UpdateTFT()
     else
       myNex.writeStr("page0.vapHUTErr.val=0");
   }
-  
+
   //update time at top of displayed page
   switch (CurrentPage)
   {

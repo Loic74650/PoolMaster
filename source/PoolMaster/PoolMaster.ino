@@ -52,9 +52,9 @@
     Mode: state of pH and Orp regulation mode (0=manual, 1=auto)
     Heat: state of water heat command (0=off, 1=on)
     R1: state of Relay1
-    R2: state of Relay1
-    R6: state of Relay1
-    R7: state of Relay1
+    R2: state of Relay2
+    R6: state of Relay6
+    R7: state of Relay7
 
 ***MQTT API***
   Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see in code below) in Json format in order to launch actions on the Arduino:
@@ -89,8 +89,8 @@
   {"ChlTank":[20,100]}             -> call this command when the Chlorine tank is replaced or refilled. First parameter is the tank volume in Liters, second parameter is its percentage fill (100% when full)
   {"Relay":[1,1]}                  -> call this generic command to actuate spare relays. Parameter 1 is the relay number (R1 in this example), parameter 2 is the relay state (ON in this example). This command is useful to use spare relays for additional features (lighting, etc). Available relay numbers are 1,2,6,7,8,9
   {"Reboot":1}                     -> call this command to reboot the controller (after 8 seconds from calling this command)
-  {"pHPumpFR":1.5}                 -> call this command to set pH pump flow rate un L/s. In this example 1.5L/s
-  {"ChlPumpFR":3}                  -> call this command to set Chl pump flow rate un L/s. In this example 3L/s
+  {"pHPumpFR":1.5}                 -> call this command to set pH pump flow rate un L/h. In this example 1.5L/h
+  {"ChlPumpFR":3}                  -> call this command to set Chl pump flow rate un L/h. In this example 3L/h
   {"RstpHCal":1}                   -> call this command to reset the calibration coefficients of the pH probe
   {"RstOrpCal":1}                   -> call this command to reset the calibration coefficients of the Orp probe
   {"RstPSICal":1}                   -> call this command to reset the calibration coefficients of the pressure sensor
@@ -133,7 +133,6 @@
 #include <ArduinoJson.h>
 #include <EEPROMex.h>
 #include <Queue.h>
-#include <Time.h>
 #include <Pump.h>
 #include <ButtonEvents.h>
 #include <Bounce2.h>
@@ -223,6 +222,7 @@ EthernetClient net;             //Ethernet client to connect to MQTT server
 
 //Date-Time variables for use with internal RTC (Real Time Clock) module
 char TimeBuffer[25];
+bool DoneForTheDay = false;
 
 //serial printing stuff
 String _endl = "\n";
@@ -436,6 +436,7 @@ void setup()
 
   //display remaining RAM space. For debug
   Serial << F("[memCheck]: ") << freeRam() << F("b") << _endl;
+
 }
 
 #if !defined(CONTROLLINO_MAXI)
@@ -586,7 +587,7 @@ void GenericCallback(Task* me)
   if (queue.count() > 0)
     ProcessCommand(queue.pop());
 
-  //reset time counters at midnight
+  //reset time counters at midnight and send sync request to time server
   if ((hour() == 0) && (minute() == 0))
   {
     //First store current Chl and Acid consumptions of the day in Eeprom
@@ -600,6 +601,13 @@ void GenericCallback(Task* me)
     ChlPump.ResetUpTime();
 
     EmergencyStopFiltPump = false;
+
+    //sync RTC with time server
+    UpdateRTC();
+  }
+  else
+  {
+    DoneForTheDay = false;
   }
 
   //compute next Filtering duration and stop time (in hours)

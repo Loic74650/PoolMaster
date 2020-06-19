@@ -2315,6 +2315,168 @@
         "wires": []
     },
     {
+        "id": "3313e990.2a672e",
+        "type": "ui_button",
+        "z": "1c852403.353d9c",
+        "name": "",
+        "group": "b6d7a06a.7650c",
+        "order": 32,
+        "width": "6",
+        "height": "1",
+        "passthru": false,
+        "label": "Reset pH Calibration",
+        "tooltip": "reset the calibration coefficients of the pH probe",
+        "color": "",
+        "bgcolor": "#FF9540",
+        "icon": "",
+        "payload": " {\"RstpHCal\":1}",
+        "payloadType": "json",
+        "topic": "",
+        "x": 2510,
+        "y": 2080,
+        "wires": [
+            [
+                "86fdcbf3.aac8a8"
+            ]
+        ]
+    },
+    {
+        "id": "371c67b9.f0e32",
+        "type": "ui_button",
+        "z": "1c852403.353d9c",
+        "name": "",
+        "group": "f7d8ca21.49a318",
+        "order": 32,
+        "width": "6",
+        "height": "1",
+        "passthru": false,
+        "label": "Reset Chl Calibration",
+        "tooltip": "reset the calibration coefficients of the Orp probe",
+        "color": "",
+        "bgcolor": "#FF9540",
+        "icon": "",
+        "payload": "{\"RstOrpCal\":1} ",
+        "payloadType": "json",
+        "topic": "",
+        "x": 2510,
+        "y": 2140,
+        "wires": [
+            [
+                "86fdcbf3.aac8a8"
+            ]
+        ]
+    },
+    {
+        "id": "eea9bab9.0c49b8",
+        "type": "ui_button",
+        "z": "1c852403.353d9c",
+        "name": "",
+        "group": "5ff5a216.1c1d0c",
+        "order": 32,
+        "width": "6",
+        "height": "1",
+        "passthru": false,
+        "label": "Reset PSI Calibration",
+        "tooltip": "reset the calibration coefficients of the pressure sensor",
+        "color": "",
+        "bgcolor": "#FF9540",
+        "icon": "",
+        "payload": " {\"RstPSICal\":1} ",
+        "payloadType": "json",
+        "topic": "",
+        "x": 2510,
+        "y": 2200,
+        "wires": [
+            [
+                "86fdcbf3.aac8a8"
+            ]
+        ]
+    },
+    {
+        "id": "da36259c.686a98",
+        "type": "ui_numeric",
+        "z": "1c852403.353d9c",
+        "name": "",
+        "label": "ph Pump (L/h)",
+        "tooltip": "set pH pump flow rate un L/h",
+        "group": "ed8e6dd.a78099",
+        "order": 3,
+        "width": 0,
+        "height": 0,
+        "wrap": false,
+        "passthru": false,
+        "topic": "Home/Pool/API",
+        "format": "{{value}}",
+        "min": "0.5",
+        "max": "10",
+        "step": "0.5",
+        "x": 1050,
+        "y": 1040,
+        "wires": [
+            [
+                "101e4f9d.18b8e8"
+            ]
+        ]
+    },
+    {
+        "id": "6c982667.190378",
+        "type": "ui_numeric",
+        "z": "1c852403.353d9c",
+        "name": "",
+        "label": "Chl Pump (L/h)",
+        "tooltip": "set Chl pump flow rate un L/h",
+        "group": "ed8e6dd.a78099",
+        "order": 3,
+        "width": 0,
+        "height": 0,
+        "wrap": false,
+        "passthru": false,
+        "topic": "Home/Pool/API",
+        "format": "{{value}}",
+        "min": "0.5",
+        "max": "10",
+        "step": "0.5",
+        "x": 1060,
+        "y": 1100,
+        "wires": [
+            [
+                "d433e4f8.5ca7b"
+            ]
+        ]
+    },
+    {
+        "id": "101e4f9d.18b8e8",
+        "type": "function",
+        "z": "1c852403.353d9c",
+        "name": "NumInput input to JSON",
+        "func": "if(msg.payload != \"50\")\n    msg.payload = {\"pHPumpFR\":msg.payload};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 1280,
+        "y": 1040,
+        "wires": [
+            [
+                "86fdcbf3.aac8a8"
+            ]
+        ]
+    },
+    {
+        "id": "d433e4f8.5ca7b",
+        "type": "function",
+        "z": "1c852403.353d9c",
+        "name": "NumInput input to JSON",
+        "func": "if(msg.payload != \"50\")\n    msg.payload = {\"ChlPumpFR\":msg.payload};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 1280,
+        "y": 1100,
+        "wires": [
+            [
+                "86fdcbf3.aac8a8"
+            ]
+        ]
+    },
+    {
         "id": "e382356a.49cdf8",
         "type": "ui_group",
         "z": "",

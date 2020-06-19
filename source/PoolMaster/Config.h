@@ -143,7 +143,7 @@ struct StoreStruct
 MQTTClient MQTTClient;
 const char* MqttServerIP = "192.168.0.38";
 //const char* MqttServerIP = "broker.mqttdashboard.com";//cloud-based MQTT broker to test when node-red and MQTT broker are not installed locally (/!\ public and unsecure!)
-const char* MqttServerClientID = "ArduinoPool3"; // /!\ choose a client ID which is unique to this Arduino board
+const char* MqttServerClientID = "ArduinoPool2"; // /!\ choose a client ID which is unique to this Arduino board
 const char* MqttServerLogin = nullptr;  //replace by const char* MqttServerLogin = nullptr; in case broker does not require a login/pwd
 const char* MqttServerPwd = nullptr; //replace by const char* MqttServerPwd = nullptr; in case broker does not require a login/pwd
 const char* PoolTopicMeas1 = "Home/Pool/Meas1";
