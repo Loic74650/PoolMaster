@@ -20,6 +20,7 @@ pH is regulated by injecting Acid from a tank into the pool water (a relay start
 ORP is regulated by injecting Chlorine from a tank into the pool water (a relay starts/stops the Chlorine peristaltic pump)<br />
 Defined time-slots and water temperature are used to start/stop the filtration pump for a daily given amount of time (a relay starts/stops the filtration pump)<br />
 Tank-levels are estimated based on the running-time and flow-rate of each pump.<br />
+If an ethernet connection is available, the internal clock (RTC) is synchronized with a time-server every day at midnight.<br />
 
 An API function enables telling the system what the outside air temperature is. In case it is below -2.0°C, filtration is started until it rises back above +2.0°C<br />
 A lightweight webserver provides a simple dynamic webpage with a summary of all system parameters. An XML file with more info is available at http://ARDUINO_LOCAL_IP/Info<br />

@@ -20,7 +20,9 @@ v5.0.0
 * Added new commands to set the Chl and Acid pumps Flow Rates: {"pHPumpFR":1.5} & {"ChlPumpFR":3.0}
 * Added new commands to reset the probes and sensor calibration coefficients: {"RstpHCal":1} & {"RstOrpCal":1} & {"RstPSICal":1}
 * DelayPIDs now re-applied when filtration stopped and restarted by double-tap on panel button
+* Daily synchronization of RTC with a time server if ethernet conneciton available
 * First version of NEXTION 3.5" TFT display support 
+* pH, Orp and Water temperature setpoints can be adjusted via TFT by pressing on the setpoints (for pH and Orp) or the water temp displays
 
 v4.0.6
 -------

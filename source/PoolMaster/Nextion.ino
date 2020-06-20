@@ -488,14 +488,14 @@ void trigger10()
   }
 }
 
-//Probe calibration completed
+//Probe calibration completed or new pH, Orp or Water Temp setpoints 
 void trigger11()
 {
-  DEBUG_PRINT("Calibration complete event");
+  DEBUG_PRINT("Calibration complete or new pH, Orp or Water Temp setpoints event");
   String Cmd = "";
   unsigned long timeout = millis();
   while (Serial2.available() < 4) {
-    if ((millis() - timeout) > 100UL) {   // Waiting... But not forever......
+    if ((millis() - timeout) > 200UL) {   // Waiting... But not forever......
       break;
     }
   }

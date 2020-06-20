@@ -6,13 +6,10 @@ Settings:
 - reset search for addresses
 - 
 
-
-Flah red warning when errors
-Button to clear errors
-display firmware revisions (screen and µC)
 JSON command to allocate DS18B20 probes
 
 Tank change
+Time-zone
 
 Probes calib not great. Single point calib resets the slope so must be performed twice
 
@@ -23,8 +20,3 @@ How to implement:
 key press starts timer with 300ms delay
 key release stops timer
 every timer event, it toggles the display
-
-Delay PID not working
-clear errors not restarting pumps
-
-as different maxtimes 

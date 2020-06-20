@@ -1266,6 +1266,7 @@ void ProcessCommand(String JSONCommand)
   else
   {
     Serial << F("Json parseObject() success - ") << endl;
+    DEBUG_PRINT(JSONCommand);
 
     //Provide the external temperature. Should be updated regularly and will be used to start filtration for 10mins every hour when temperature is negative
     if (command.containsKey("TempExt"))

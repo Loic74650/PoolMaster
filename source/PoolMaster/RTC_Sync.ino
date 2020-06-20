@@ -55,10 +55,6 @@ void UpdateRTC()
       DEBUG_PRINT(ts);
       DoneForTheDay = true;
 
-      DEBUG_PRINT(epoch);
-      DEBUG_PRINT(day(epoch));
-
-
 #if defined(CONTROLLINO_MAXI)
       //Day of the month, Day of the week, Month, Year, Hour, Minute, Seconds
       Controllino_SetTimeDate((uint8_t)day(epoch), (uint8_t)weekday(epoch), (uint8_t)month(epoch), (uint8_t)year(epoch), (uint8_t)hour(epoch), (uint8_t)minute(epoch), (uint8_t)second(epoch)); // set initial values to the RTC chip. (Day of the month, Day of the week, Month, Year, Hour, Minute, Second)
