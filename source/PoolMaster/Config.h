@@ -101,10 +101,6 @@ DallasTemperature sensors_A(&oneWire_A);
 DeviceAddress DS18b20_0 = { 0x28, 0x92, 0x25, 0x41, 0x0A, 0x00, 0x00, 0xEE };
 String sDS18b20_0;
 
-// MAC address of Ethernet shield (in case of Controllino board, set an arbitrary MAC address)
-//byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
-byte mac[] = { 0xA8, 0x61, 0x0A, 0xAE, 0x2C, 0x68 }; //-> production Controllino
-//byte mac[] = { 0xA8, 0x61, 0x0A, 0xAE, 0x65, 0x04}; //-> dev setup with Ethernet shield
 String sArduinoMac;
 IPAddress ip(192, 168, 0, 188);  //IP address, needs to be adapted depending on local network topology
 
@@ -138,6 +134,29 @@ struct StoreStruct
     100.0, 100.0, 20.0, 20.0, 1.5, 3.0
 };
 
+// MAC address of Ethernet shield (in case of Controllino board, set an arbitrary MAC address)
+byte mac[] = { 0xA8, 0x61, 0x0A, 0xAE, 0x65, 0x04}; //-> Mega2560 dev setup with Ethernet shield
+
+//MQTT stuff including local broker/server IP address, login and pwd
+MQTTClient MQTTClient;
+const char* MqttServerIP = "192.168.0.38";
+//const char* MqttServerIP = "broker.mqttdashboard.com";//cloud-based MQTT broker to test when node-red and MQTT broker are not installed locally (/!\ public and unsecure!)
+const char* MqttServerClientID = "ArduinoPoolTest"; // /!\ choose a client ID which is unique to this Arduino board
+const char* MqttServerLogin = nullptr;  //replace by const char* MqttServerLogin = nullptr; in case broker does not require a login/pwd
+const char* MqttServerPwd = nullptr; //replace by const char* MqttServerPwd = nullptr; in case broker does not require a login/pwd
+const char* PoolTopicMeas1 = "Home/PoolTest/Meas1";
+const char* PoolTopicMeas2 = "Home/PoolTest/Meas2";
+const char* PoolTopicSet1 = "Home/PoolTest/Set1";
+const char* PoolTopicSet2 = "Home/PoolTest/Set2";
+const char* PoolTopicSet3 = "Home/PoolTest/Set3";
+const char* PoolTopicSet4 = "Home/PoolTest/Set4";
+const char* PoolTopicSet5 = "Home/PoolTest/Set5";
+const char* PoolTopicAPI = "Home/PoolTest/API";
+const char* PoolTopicStatus = "Home/PoolTest/status";
+const char* PoolTopicError = "Home/PoolTest/Err";
+/*
+// MAC address of Ethernet shield (in case of Controllino board, set an arbitrary MAC address)
+byte mac[] = { 0xA8, 0x61, 0x0A, 0xAE, 0x2C, 0x68 }; //-> production Controllino
 
 //MQTT stuff including local broker/server IP address, login and pwd
 MQTTClient MQTTClient;
@@ -156,3 +175,4 @@ const char* PoolTopicSet5 = "Home/Pool/Set5";
 const char* PoolTopicAPI = "Home/Pool/API";
 const char* PoolTopicStatus = "Home/Pool/status";
 const char* PoolTopicError = "Home/Pool/Err";
+*/

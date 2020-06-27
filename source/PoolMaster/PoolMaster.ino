@@ -107,7 +107,7 @@
   https://github.com/bblanchon/ArduinoJson (rev 5.13.4)
   https://github.com/johnrickman/LiquidCrystal_I2C (rev 1.1.2)
   https://github.com/thijse/Arduino-EEPROMEx (rev 1.0.0)
-  https://github.com/sdesalas/Arduino-Queue.h (rev )
+  https://github.com/EinarArnason/ArduinoQueue
   https://github.com/Loic74650/Pump (rev 0.0.1)
   https://github.com/PaulStoffregen/Time (rev 1.5)
   https://github.com/adafruit/RTClib (rev 1.2.0)
@@ -132,7 +132,7 @@
 #include <stdlib.h>
 #include <ArduinoJson.h>
 #include <EEPROMex.h>
-#include <Queue.h>
+#include "ArduinoQueue.h"
 #include <Pump.h>
 #include <ButtonEvents.h>
 #include <Bounce2.h>
@@ -147,7 +147,14 @@ int configAdress = 0;
 const int maxAllowedWrites = 200;//not sure what this is for
 
 //Queue object to store incoming JSON commands (up to 10)
-Queue<String> queue = Queue<String>(10);
+#define QUEUE_SIZE_ITEMS 10
+#define QUEUE_SIZE_BYTES 1000
+ArduinoQueue<String> queueIn(QUEUE_SIZE_ITEMS, QUEUE_SIZE_BYTES);
+
+//Queue object to store outgoing JSON messages (up to 7)
+//buffers for MQTT string payload
+#define PayloadBufferLength 100
+char Payload[PayloadBufferLength];
 
 //Nextion TFT object. Choose which ever Serial port
 //you wish to connect to (not "Serial" which is used for debug), here Serial1 UART
@@ -176,10 +183,6 @@ char LCD_Buffer[LCD_BufferLength];
 
 //buffer used to capture HTTP requests
 String readString;
-
-//buffers for MQTT string payload
-#define PayloadBufferLength 128
-char Payload[PayloadBufferLength];
 
 bool PSIError = 0;
 
@@ -496,8 +499,15 @@ void messageReceived(String &topic, String &payload)
   //Pool commands. This check might be redundant since we only subscribed to this topic
   if (topic == TmpStrPool)
   {
-    queue.push(payload);
-    Serial << "FreeRam: " << freeRam() << " - Qeued messages: " << queue.count() << _endl;
+    if (queueIn.enqueue(payload))
+    {
+      Serial << "Added command to queue: " << payload << _endl;
+    }
+    else
+    {
+      Serial << "Could not add command to queue, queue is full"<< _endl;
+    }
+    Serial << "FreeRam: " << freeRam() << " - Qeued messages: " << queueIn.itemCount() << _endl;
   }
 }
 
@@ -529,12 +539,12 @@ void ButtonCallback(Task* me)
           Serial.println("DOUBLE-TAP event detected");
           String Cmd0 = "{\"FiltPump\":0}";
           String Cmd1 = "{\"FiltPump\":1}";
-          
+
           if (FiltrationPump.IsRunning()) {
-            queue.push(Cmd0);
+            queueIn.enqueue(Cmd0);
           }
           else {
-            queue.push(Cmd1);
+            queueIn.enqueue(Cmd1);
           }
           break;
         }
@@ -543,7 +553,7 @@ void ButtonCallback(Task* me)
       case (hold) : {
           Serial.println("HOLD event detected");
           String Cmd = "{\"Clear\":1}";
-          queue.push(Cmd);
+          queueIn.enqueue(Cmd);
         }
     }
   }
@@ -584,8 +594,8 @@ void GenericCallback(Task* me)
   ChlPump.loop();
 
   //Process queued incoming JSON commands if any
-  if (queue.count() > 0)
-    ProcessCommand(queue.pop());
+  if (queueIn.itemCount() > 0)
+    ProcessCommand(queueIn.dequeue());
 
   //reset time counters at midnight and send sync request to time server
   if ((hour() == 0) && (minute() == 0))
@@ -625,7 +635,7 @@ void GenericCallback(Task* me)
   if (!EmergencyStopFiltPump && storage.AutoMode && !PSIError && (hour() == storage.FiltrationStart) && (minute() == 0))
     FiltrationPump.Start();
   PSIError = PSIError;
-    
+
   //start PIDs with delay after FiltrationStart in order to let the readings stabilize
   if (FiltrationPump.IsRunning() && storage.AutoMode && !PhPID.GetMode() && ((millis() - FiltrationPump.LastStartTime) / 1000 / 60 > storage.DelayPIDs) && (hour() >= storage.FiltrationStart) && (hour() < storage.FiltrationStop))
   {
@@ -800,6 +810,9 @@ void PublishDataCallback(Task* me)
   }
   else
     Serial << F("Failed to connect to the MQTT broker") << _endl;
+
+  //display remaining RAM space. For debug
+  Serial << F("[memCheck]: ") << freeRam() << F("b") << _endl;
 }
 
 
@@ -852,6 +865,9 @@ void PublishSettings()
   else
     Serial << F("Failed to connect to the MQTT broker") << _endl;
 
+  //Update MQTT thread
+  MQTTClient.loop();
+
   if (MQTTClient.connected())
   {
     //send a JSON to MQTT broker. /!\ Split JSON if longer than 100 bytes
@@ -894,6 +910,9 @@ void PublishSettings()
   else
     Serial << F("Failed to connect to the MQTT broker") << _endl;
 
+  //Update MQTT thread
+  MQTTClient.loop();
+
   if (MQTTClient.connected())
   {
     //send a JSON to MQTT broker. /!\ Split JSON if longer than 100 bytes
@@ -933,6 +952,9 @@ void PublishSettings()
   else
     Serial << F("Failed to connect to the MQTT broker") << _endl;
 
+  //Update MQTT thread
+  MQTTClient.loop();
+
   if (MQTTClient.connected())
   {
     //send a JSON to MQTT broker. /!\ Split JSON if longer than 100 bytes
@@ -970,6 +992,9 @@ void PublishSettings()
   else
     Serial << F("Failed to connect to the MQTT broker") << _endl;
 
+  //Update MQTT thread
+  MQTTClient.loop();
+
   if (MQTTClient.connected())
   {
     //send a JSON to MQTT broker. /!\ Split JSON if longer than 100 bytes
@@ -1004,9 +1029,12 @@ void PublishSettings()
   }
   else
     Serial << F("Failed to connect to the MQTT broker") << _endl;
+
+  //display remaining RAM space. For debug
+  Serial << F("[memCheck]: ") << freeRam() << F("b") << _endl;
 }
 
-void PHRegulationCallback(Task* me)
+void PHRegulationCallback(Task * me)
 {
   //do not compute PID if filtration pump is not running
   //because if Ki was non-zero that would let the OutputError increase
@@ -1030,7 +1058,7 @@ void PHRegulationCallback(Task* me)
 }
 
 //Orp regulation loop
-void OrpRegulationCallback(Task* me)
+void OrpRegulationCallback(Task * me)
 {
   //do not compute PID if filtration pump is not running
   //because if Ki was non-zero that would let the OutputError increase
@@ -1269,18 +1297,18 @@ void ProcessCommand(String JSONCommand)
     DEBUG_PRINT(JSONCommand);
 
     //Provide the external temperature. Should be updated regularly and will be used to start filtration for 10mins every hour when temperature is negative
-    if (command.containsKey("TempExt"))
+    if (command.containsKey(F("TempExt")))
     {
-      storage.TempExternal = (float)command["TempExt"];
+      storage.TempExternal = (float)command[F("TempExt")];
       Serial << F("External Temperature: ") << storage.TempExternal << F("deg") << endl;
     }
     else
       //"PhCalib" command which computes and sets the calibration coefficients of the pH sensor response based on a multi-point linear regression
       //{"PhCalib":[4.02,3.8,9.0,9.11]}  -> multi-point linear regression calibration (minimum 1 point-couple, 6 max.) in the form [ProbeReading_0, BufferRating_0, xx, xx, ProbeReading_n, BufferRating_n]
-      if (command.containsKey("PhCalib"))
+      if (command.containsKey(F("PhCalib")))
       {
         float CalibPoints[12];//Max six calibration point-couples! Should be plenty enough
-        int NbPoints = command["PhCalib"].as<JsonArray>().copyTo(CalibPoints);
+        int NbPoints = command[F("PhCalib")].as<JsonArray>().copyTo(CalibPoints);
         Serial << F("PhCalib command - ") << NbPoints << F(" points received: ");
         for (int i = 0; i < NbPoints; i += 2)
           Serial << CalibPoints[i] << F(",") << CalibPoints[i + 1] << F(" - ");
@@ -1328,10 +1356,10 @@ void ProcessCommand(String JSONCommand)
       else
         //"OrpCalib" command which computes and sets the calibration coefficients of the Orp sensor response based on a multi-point linear regression
         //{"OrpCalib":[450,465,750,784]}   -> multi-point linear regression calibration (minimum 1 point-couple, 6 max.) in the form [ProbeReading_0, BufferRating_0, xx, xx, ProbeReading_n, BufferRating_n]
-        if (command.containsKey("OrpCalib"))
+        if (command.containsKey(F("OrpCalib")))
         {
           float CalibPoints[12];//Max six calibration point-couples! Should be plenty enough
-          int NbPoints = command["OrpCalib"].as<JsonArray>().copyTo(CalibPoints);
+          int NbPoints = command[F("OrpCalib")].as<JsonArray>().copyTo(CalibPoints);
           Serial << F("OrpCalib command - ") << NbPoints << F(" points received: ");
           for (int i = 0; i < NbPoints; i += 2)
             Serial << CalibPoints[i] << F(",") << CalibPoints[i + 1] << F(" - ");
@@ -1379,10 +1407,10 @@ void ProcessCommand(String JSONCommand)
         else
           //"PSICalib" command which computes and sets the calibration coefficients of the Electronic Pressure sensor response based on a linear regression and a reference mechanical sensor (typically located on the sand filter)
           //{"PSICalib":[0,0,0.71,0.6]}   -> multi-point linear regression calibration (minimum 2 point-couple, 6 max.) in the form [ElectronicPressureSensorReading_0, MechanicalPressureSensorReading_0, xx, xx, ElectronicPressureSensorReading_n, ElectronicPressureSensorReading_n]
-          if (command.containsKey("PSICalib"))
+          if (command.containsKey(F("PSICalib")))
           {
             float CalibPoints[12];//Max six calibration point-couples! Should be plenty enough, typically use two point-couples (filtration ON and filtration OFF)
-            int NbPoints = command["PSICalib"].as<JsonArray>().copyTo(CalibPoints);
+            int NbPoints = command[F("PSICalib")].as<JsonArray>().copyTo(CalibPoints);
             Serial << F("PSICalib command - ") << NbPoints << F(" points received: ");
             for (int i = 0; i < NbPoints; i += 2)
               Serial << CalibPoints[i] << F(",") << CalibPoints[i + 1] << F(" - ");
@@ -1414,9 +1442,9 @@ void ProcessCommand(String JSONCommand)
             }
           }
           else //"Mode" command which sets regulation and filtration to manual or auto modes
-            if (command.containsKey("Mode"))
+            if (command.containsKey(F("Mode")))
             {
-              if ((int)command["Mode"] == 0)
+              if ((int)command[F("Mode")] == 0)
               {
                 storage.AutoMode = 0;
 
@@ -1431,9 +1459,9 @@ void ProcessCommand(String JSONCommand)
               saveConfig();
             }
             else //"Heat" command which starts/stops water heating
-              if (command.containsKey("Heat"))
+              if (command.containsKey(F("Heat")))
               {
-                if ((int)command["Heat"] == 0)
+                if ((int)command[F("Heat")] == 0)
                 {
                   storage.WaterHeat = false;
                   HeatCirculatorPump.Stop();
@@ -1444,9 +1472,9 @@ void ProcessCommand(String JSONCommand)
                 }
                 saveConfig();
               }
-              else if (command.containsKey("FiltPump")) //"FiltPump" command which starts or stops the filtration pump
+              else if (command.containsKey(F("FiltPump"))) //"FiltPump" command which starts or stops the filtration pump
               {
-                if ((int)command["FiltPump"] == 0)
+                if ((int)command[F("FiltPump")] == 0)
                 {
                   EmergencyStopFiltPump = true;
                   FiltrationPump.Stop();  //stop filtration pump
@@ -1461,23 +1489,23 @@ void ProcessCommand(String JSONCommand)
                   FiltrationPump.Start();   //start filtration pump
                 }
               }
-              else if (command.containsKey("PhPump")) //"PhPump" command which starts or stops the Acid pump
+              else if (command.containsKey(F("PhPump"))) //"PhPump" command which starts or stops the Acid pump
               {
-                if ((int)command["PhPump"] == 0)
+                if ((int)command[F("PhPump")] == 0)
                   PhPump.Stop();          //stop Acid pump
                 else
                   PhPump.Start();           //start Acid pump
               }
-              else if (command.containsKey("ChlPump")) //"ChlPump" command which starts or stops the Acid pump
+              else if (command.containsKey(F("ChlPump"))) //"ChlPump" command which starts or stops the Acid pump
               {
-                if ((int)command["ChlPump"] == 0)
+                if ((int)command[F("ChlPump")] == 0)
                   ChlPump.Stop();          //stop Chl pump
                 else
                   ChlPump.Start();           //start Chl pump
               }
-              else if (command.containsKey("PhPID")) //"PhPID" command which starts or stops the Ph PID loop
+              else if (command.containsKey(F("PhPID"))) //"PhPID" command which starts or stops the Ph PID loop
               {
-                if ((int)command["PhPID"] == 0)
+                if ((int)command[F("PhPID")] == 0)
                 {
                   //Stop PID
                   SetPhPID(false);
@@ -1492,9 +1520,9 @@ void ProcessCommand(String JSONCommand)
                   SetPhPID(true);
                 }
               }
-              else if (command.containsKey("OrpPID")) //"OrpPID" command which starts or stops the Orp PID loop
+              else if (command.containsKey(F("OrpPID"))) //"OrpPID" command which starts or stops the Orp PID loop
               {
-                if ((int)command["OrpPID"] == 0)
+                if ((int)command[F("OrpPID")] == 0)
                 {
                   //Stop PID
                   SetOrpPID(false);
@@ -1505,31 +1533,31 @@ void ProcessCommand(String JSONCommand)
                   SetOrpPID(true);
                 }
               }
-              else if (command.containsKey("PhSetPoint")) //"PhSetPoint" command which sets the setpoint for Ph
+              else if (command.containsKey(F("PhSetPoint"))) //"PhSetPoint" command which sets the setpoint for Ph
               {
-                storage.Ph_SetPoint = (float)command["PhSetPoint"];
+                storage.Ph_SetPoint = (float)command[F("PhSetPoint")];
                 saveConfig();
                 PublishSettings();
               }
-              else if (command.containsKey("OrpSetPoint")) //"OrpSetPoint" command which sets the setpoint for ORP
+              else if (command.containsKey(F("OrpSetPoint"))) //"OrpSetPoint" command which sets the setpoint for ORP
               {
-                storage.Orp_SetPoint = (float)command["OrpSetPoint"];
+                storage.Orp_SetPoint = (float)command[F("OrpSetPoint")];
                 saveConfig();
                 PublishSettings();
               }
-              else if (command.containsKey("WSetPoint")) //"WSetPoint" command which sets the setpoint for Water temp (currently not in use)
+              else if (command.containsKey(F("WSetPoint"))) //"WSetPoint" command which sets the setpoint for Water temp (currently not in use)
               {
-                storage.WaterTemp_SetPoint = (float)command["WSetPoint"];
+                storage.WaterTemp_SetPoint = (float)command[F("WSetPoint")];
                 saveConfig();
                 PublishSettings();
               }
               else
                 //"pHTank" command which is called when the pH tank is changed or refilled
                 //First parameter is volume of tank in Liters, second parameter is percentage Fill of the tank (typically 100% when new)
-                if (command.containsKey("pHTank"))
+                if (command.containsKey(F("pHTank")))
                 {
-                  PhPump.SetTankVolume((float)command["pHTank"][0]);
-                  storage.AcidFill = (float)command["pHTank"][1];
+                  PhPump.SetTankVolume((float)command[F("pHTank")][0]);
+                  storage.AcidFill = (float)command[F("pHTank")][1];
                   PhPump.ResetUpTime();
                   saveConfig();
                   PublishSettings();
@@ -1537,93 +1565,93 @@ void ProcessCommand(String JSONCommand)
                 else
                   //"ChlTank" command which is called when the Chl tank is changed or refilled
                   //First parameter is volume of tank in Liters, second parameter is percentage Fill of the tank (typically 100% when new)
-                  if (command.containsKey("ChlTank"))
+                  if (command.containsKey(F("ChlTank")))
                   {
-                    ChlPump.SetTankVolume((float)command["ChlTank"][0]);
-                    storage.ChlFill = (float)command["ChlTank"][1];
+                    ChlPump.SetTankVolume((float)command[F("ChlTank")][0]);
+                    storage.ChlFill = (float)command[F("ChlTank")][1];
                     ChlPump.ResetUpTime();
                     saveConfig();
                     PublishSettings();
                   }
-                  else if (command.containsKey("WTempLow")) //"WTempLow" command which sets the setpoint for Water temp low threshold
+                  else if (command.containsKey(F("WTempLow"))) //"WTempLow" command which sets the setpoint for Water temp low threshold
                   {
-                    storage.WaterTempLowThreshold = (float)command["WTempLow"];
+                    storage.WaterTempLowThreshold = (float)command[F("WTempLow")];
                     saveConfig();
                     PublishSettings();
                   }
-                  else if (command.containsKey("PumpsMaxUp")) //"PumpsMaxUp" command which sets the Max UpTime for pumps
+                  else if (command.containsKey(F("PumpsMaxUp"))) //"PumpsMaxUp" command which sets the Max UpTime for pumps
                   {
-                    storage.PhPumpUpTimeLimit = (unsigned int)command["PumpsMaxUp"];
+                    storage.PhPumpUpTimeLimit = (unsigned int)command[F("PumpsMaxUp")];
                     PhPump.SetMaxUpTime(storage.PhPumpUpTimeLimit * 1000);
-                    storage.ChlPumpUpTimeLimit = (unsigned int)command["PumpsMaxUp"];
+                    storage.ChlPumpUpTimeLimit = (unsigned int)command[F("PumpsMaxUp")];
                     ChlPump.SetMaxUpTime(storage.ChlPumpUpTimeLimit * 1000);
                     saveConfig();
                     PublishSettings();
                   }
-                  else if (command.containsKey("OrpPIDParams")) //"OrpPIDParams" command which sets the Kp, Ki and Kd values for Orp PID loop
+                  else if (command.containsKey(F("OrpPIDParams"))) //"OrpPIDParams" command which sets the Kp, Ki and Kd values for Orp PID loop
                   {
-                    storage.Orp_Kp = (double)command["OrpPIDParams"][0];
-                    storage.Orp_Ki = (double)command["OrpPIDParams"][1];
-                    storage.Orp_Kd = (double)command["OrpPIDParams"][2];
+                    storage.Orp_Kp = (double)command[F("OrpPIDParams")][0];
+                    storage.Orp_Ki = (double)command[F("OrpPIDParams")][1];
+                    storage.Orp_Kd = (double)command[F("OrpPIDParams")][2];
                     saveConfig();
                     OrpPID.SetTunings(storage.Orp_Kp, storage.Orp_Ki, storage.Orp_Kd);
                     PublishSettings();
                   }
-                  else if (command.containsKey("PhPIDParams")) //"PhPIDParams" command which sets the Kp, Ki and Kd values for Ph PID loop
+                  else if (command.containsKey(F("PhPIDParams"))) //"PhPIDParams" command which sets the Kp, Ki and Kd values for Ph PID loop
                   {
-                    storage.Ph_Kp = (double)command["PhPIDParams"][0];
-                    storage.Ph_Ki = (double)command["PhPIDParams"][1];
-                    storage.Ph_Kd = (double)command["PhPIDParams"][2];
+                    storage.Ph_Kp = (double)command[F("PhPIDParams")][0];
+                    storage.Ph_Ki = (double)command[F("PhPIDParams")][1];
+                    storage.Ph_Kd = (double)command[F("PhPIDParams")][2];
                     saveConfig();
                     PhPID.SetTunings(storage.Ph_Kp, storage.Ph_Ki, storage.Ph_Kd);
                     PublishSettings();
                   }
-                  else if (command.containsKey("OrpPIDWSize")) //"OrpPIDWSize" command which sets the window size of the Orp PID loop
+                  else if (command.containsKey(F("OrpPIDWSize"))) //"OrpPIDWSize" command which sets the window size of the Orp PID loop
                   {
-                    storage.OrpPIDWindowSize = (unsigned long)command["OrpPIDWSize"];
+                    storage.OrpPIDWindowSize = (unsigned long)command[F("OrpPIDWSize")];
                     saveConfig();
                     PublishSettings();
                   }
-                  else if (command.containsKey("PhPIDWSize")) //"PhPIDWSize" command which sets the window size of the Ph PID loop
+                  else if (command.containsKey(F("PhPIDWSize"))) //"PhPIDWSize" command which sets the window size of the Ph PID loop
                   {
-                    storage.PhPIDWindowSize = (unsigned long)command["PhPIDWSize"];
+                    storage.PhPIDWindowSize = (unsigned long)command[F("PhPIDWSize")];
                     saveConfig();
                     PublishSettings();
                   }
-                  else if (command.containsKey("Date")) //"Date" command which sets the Date of RTC module
+                  else if (command.containsKey(F("Date"))) //"Date" command which sets the Date of RTC module
                   {
 #if defined(CONTROLLINO_MAXI)
-                    Controllino_SetTimeDate((uint8_t)command["Date"][0], (uint8_t)command["Date"][1], (uint8_t)command["Date"][2], (uint8_t)command["Date"][3], (uint8_t)command["Date"][4], (uint8_t)command["Date"][5], (uint8_t)command["Date"][6]); // set initial values to the RTC chip. (Day of the month, Day of the week, Month, Year, Hour, Minute, Second)
+                    Controllino_SetTimeDate((uint8_t)command[F("Date")][0], (uint8_t)command[F("Date")][1], (uint8_t)command[F("Date")][2], (uint8_t)command[F("Date")][3], (uint8_t)command[F("Date")][4], (uint8_t)command[F("Date")][5], (uint8_t)command[F("Date")][6]); // set initial values to the RTC chip. (Day of the month, Day of the week, Month, Year, Hour, Minute, Second)
 #else //Mega2560 board specifics
                     // This line sets the RTC with an explicit date & time, for example to set
                     // January 21, 2014 at 3am you would call:
                     // rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
-                    rtc.adjust(DateTime((uint8_t)command["Date"][3], (uint8_t)command["Date"][2], (uint8_t)command["Date"][0], (uint8_t)command["Date"][4], (uint8_t)command["Date"][5], (uint8_t)command["Date"][6]));
+                    rtc.adjust(DateTime((uint8_t)command[F("Date")][3], (uint8_t)command[F("Date")][2], (uint8_t)command[F("Date")][0], (uint8_t)command[F("Date")][4], (uint8_t)command[F("Date")][5], (uint8_t)command[F("Date")][6]));
 #endif
 
 
-                    setTime((uint8_t)command["Date"][4], (uint8_t)command["Date"][5], (uint8_t)command["Date"][6], (uint8_t)command["Date"][0], (uint8_t)command["Date"][2], (uint8_t)command["Date"][3]); //(Day of the month, Day of the week, Month, Year, Hour, Minute, Second)
+                    setTime((uint8_t)command[F("Date")][4], (uint8_t)command[F("Date")][5], (uint8_t)command[F("Date")][6], (uint8_t)command[F("Date")][0], (uint8_t)command[F("Date")][2], (uint8_t)command[F("Date")][3]); //(Day of the month, Day of the week, Month, Year, Hour, Minute, Second)
                   }
-                  else if (command.containsKey("FiltT0")) //"FiltT0" command which sets the earliest hour when starting Filtration pump
+                  else if (command.containsKey(F("FiltT0"))) //"FiltT0" command which sets the earliest hour when starting Filtration pump
                   {
-                    storage.FiltrationStart = (unsigned int)command["FiltT0"];
+                    storage.FiltrationStart = (unsigned int)command[F("FiltT0")];
                     saveConfig();
                     PublishSettings();
                   }
-                  else if (command.containsKey("FiltT1")) //"FiltT1" command which sets the latest hour for running Filtration pump
+                  else if (command.containsKey(F("FiltT1"))) //"FiltT1" command which sets the latest hour for running Filtration pump
                   {
-                    storage.FiltrationStopMax = (unsigned int)command["FiltT1"];
+                    storage.FiltrationStopMax = (unsigned int)command[F("FiltT1")];
                     saveConfig();
                     PublishSettings();
                   }
-                  else if (command.containsKey("PubPeriod")) //"PubPeriod" command which sets the periodicity for publishing system info to MQTT broker
+                  else if (command.containsKey(F("PubPeriod"))) //"PubPeriod" command which sets the periodicity for publishing system info to MQTT broker
                   {
-                    PublishPeriod = (unsigned long)command["PubPeriod"] * 1000; //in secs
+                    PublishPeriod = (unsigned long)command[F("PubPeriod")] * 1000; //in secs
                     t4.setPeriodMs(PublishPeriod); //in msecs
                     saveConfig();
                     PublishSettings();
                   }
-                  else if (command.containsKey("Clear")) //"Clear" command which clears the UpTime and pressure errors of the Pumps
+                  else if (command.containsKey(F("Clear"))) //"Clear" command which clears the UpTime and pressure errors of the Pumps
                   {
                     if (PSIError)
                       PSIError = false;
@@ -1642,78 +1670,78 @@ void ProcessCommand(String JSONCommand)
                     if (!EmergencyStopFiltPump && storage.AutoMode && (hour() >= storage.FiltrationStart) && (hour() < storage.FiltrationStop))
                       FiltrationPump.Start();
                   }
-                  else if (command.containsKey("DelayPID")) //"DelayPID" command which sets the delay from filtering start before PID loops start regulating
+                  else if (command.containsKey(F("DelayPID"))) //"DelayPID" command which sets the delay from filtering start before PID loops start regulating
                   {
-                    storage.DelayPIDs = (unsigned int)command["DelayPID"];
+                    storage.DelayPIDs = (unsigned int)command[F("DelayPID")];
                     saveConfig();
                     PublishSettings();
                   }
-                  else if (command.containsKey("PSIHigh")) //"PSIHigh" command which sets the water high-pressure threshold
+                  else if (command.containsKey(F("PSIHigh"))) //"PSIHigh" command which sets the water high-pressure threshold
                   {
-                    storage.PSI_HighThreshold = (float)command["PSIHigh"];
+                    storage.PSI_HighThreshold = (float)command[F("PSIHigh")];
                     saveConfig();
                     PublishSettings();
                   }
                   else
                     //"Relay" command which is called to actuate relays from the CONTROLLINO.
                     //Parameter 1 is the relay number (R0 in this example), parameter 2 is the relay state (ON in this example).
-                    if (command.containsKey("Relay"))
+                    if (command.containsKey(F("Relay")))
                     {
-                      switch ((int)command["Relay"][0])
+                      switch ((int)command[F("Relay")][0])
                       {
                         case 1:
-                          (bool)command["Relay"][1] ? digitalWrite(RELAY_R1, true) : digitalWrite(RELAY_R1, false);
+                          (bool)command[F("Relay")][1] ? digitalWrite(RELAY_R1, true) : digitalWrite(RELAY_R1, false);
                           break;
                         case 2:
-                          (bool)command["Relay"][1] ? digitalWrite(RELAY_R2, true) : digitalWrite(RELAY_R2, false);
+                          (bool)command[F("Relay")][1] ? digitalWrite(RELAY_R2, true) : digitalWrite(RELAY_R2, false);
                           break;
                         case 6:
-                          (bool)command["Relay"][1] ? digitalWrite(RELAY_R6, true) : digitalWrite(RELAY_R6, false);
+                          (bool)command[F("Relay")][1] ? digitalWrite(RELAY_R6, true) : digitalWrite(RELAY_R6, false);
                           break;
                         case 7:
-                          (bool)command["Relay"][1] ? digitalWrite(RELAY_R7, true) : digitalWrite(RELAY_R7, false);
+                          (bool)command[F("Relay")][1] ? digitalWrite(RELAY_R7, true) : digitalWrite(RELAY_R7, false);
                           break;
                         case 8:
-                          (bool)command["Relay"][1] ? digitalWrite(RELAY_R8, true) : digitalWrite(RELAY_R8, false);
+                          (bool)command[F("Relay")][1] ? digitalWrite(RELAY_R8, true) : digitalWrite(RELAY_R8, false);
                           break;
                         case 9:
-                          (bool)command["Relay"][1] ? digitalWrite(RELAY_R9, true) : digitalWrite(RELAY_R9, false);
+                          (bool)command[F("Relay")][1] ? digitalWrite(RELAY_R9, true) : digitalWrite(RELAY_R9, false);
                           break;
                       }
                     }
-                    else if (command.containsKey("Reboot"))//"Reboot" command forces a reboot of the controller
+                    else if (command.containsKey(F("Reboot")))//"Reboot" command forces a reboot of the controller
                     {
                       while (1);
                     }
-                    else if (command.containsKey("pHPumpFR"))//"PhPumpFR" set flow rate of Ph pump
+                    else if (command.containsKey(F("pHPumpFR")))//"PhPumpFR" set flow rate of Ph pump
                     {
-                      storage.pHPumpFR = (float)command["pHPumpFR"];
-                      PhPump.SetFlowRate((float)command["pHPumpFR"]);
+                      storage.pHPumpFR = (float)command[F("pHPumpFR")];
+                      PhPump.SetFlowRate((float)command[F("pHPumpFR")]);
                       saveConfig();
                       PublishSettings();
                     }
-                    else if (command.containsKey("ChlPumpFR"))//"ChlPumpFR" set flow rate of Chl pump
+                    else if (command.containsKey(F("ChlPumpFR")))//"ChlPumpFR" set flow rate of Chl pump
                     {
-                      storage.ChlPumpFR = (float)command["ChlPumpFR"];
-                      ChlPump.SetFlowRate((float)command["ChlpumpFR"]);
+                      storage.ChlPumpFR = (float)command[F("ChlPumpFR")];
+                      ChlPump.SetFlowRate((float)command[F("ChlpumpFR")]);
                       saveConfig();
                       PublishSettings();
                     }
-                    else if (command.containsKey("RstpHCal"))//"RstpHCal" reset the calibration coefficients of the pH probe
+                    else if (command.containsKey(F("RstpHCal")))//"RstpHCal" reset the calibration coefficients of the pH probe
                     {
                       storage.pHCalibCoeffs0 = 4.3;
                       storage.pHCalibCoeffs1 = -2.63;
                       saveConfig();
                       PublishSettings();
                     }
-                    else if (command.containsKey("RstOrpCal"))//"RstOrpCal" reset the calibration coefficients of the Orp probe
+                    else if (command.containsKey(F("RstOrpCal")))//"RstOrpCal" reset the calibration coefficients of the Orp probe
                     {
                       storage.OrpCalibCoeffs0 = -1189;
                       storage.OrpCalibCoeffs1 = 2564;
                       saveConfig();
                       PublishSettings();
                     }
-                    else if (command.containsKey("RstPSICal"))//"RstPSICal" reset the calibration coefficients of the pressure sensor
+                    else if (command.containsKey(F("RstPSICal")))//"RstPSICal" reset the calibration coefficients of the pressure sensor
                     {
                       storage.PSICalibCoeffs0 = 1.11;
                       storage.PSICalibCoeffs1 = 0;
@@ -1856,7 +1884,7 @@ void EthernetClientCallback(Task * me)
             client << _endl;
             Serial.println(F("sending XML file"));
             // send XML file containing input states
-            XML_response(client);
+            //XML_response(client);
             readString = F("");
             break;
           }
@@ -1864,239 +1892,7 @@ void EthernetClientCallback(Task * me)
           {
             // web page request
             // send rest of HTTP header
-            client << F("Content-Type: text/html") << _endl;
-            client << F("Connection: keep-alive") << _endl;
-            client << _endl;
-            client << F("<!DOCTYPE html>") << _endl;
-            client << F("<html>") << _endl;
-            client << F("<head>") << _endl;
 
-            client << F("<style>") << _endl;
-            client << F("table.blueTable {") << _endl;
-            client << F("border: 1px solid #1C6EA4;") << _endl;
-            client << F("background-color: #EEEEEE;") << _endl;
-            client << F("width: 70\%;") << _endl;
-            client << F("text-align: left;") << _endl;
-            client << F("border-collapse: collapse;") << _endl;
-            client << F("}") << _endl;
-            client << F("table.blueTable td, table.blueTable th {") << _endl;
-            client << F("border: 1px solid #AAAAAA;") << _endl;
-            client << F("padding: 3px 2px;") << _endl;
-            client << F("}") << _endl;
-            client << F("table.blueTable tbody td {") << _endl;
-            client << F("font-size: 14px;") << _endl;
-            client << F("}") << _endl;
-            client << F("table.blueTable tr:nth-child(even) {") << _endl;
-            client << F("background: #D0E4F5;") << _endl;
-            client << F("}") << _endl;
-            client << F("table.blueTable tfoot td {") << _endl;
-            client << F("font-size: 14px;") << _endl;
-            client << F("}") << _endl;
-            client << F("table.blueTable tfoot .links {") << _endl;
-            client << F("text-align: right;") << _endl;
-            client << F("}") << _endl;
-            client << F("table.blueTable tfoot .links a{") << _endl;
-            client << F("display: inline-block;") << _endl;
-            client << F("background: #1C6EA4;") << _endl;
-            client << F("color: #FFFFFF;") << _endl;
-            client << F("padding: 2px 8px;") << _endl;
-            client << F("border-radius: 5px;") << _endl;
-            client << F("}") << _endl;
-            client << F("</style>") << _endl;
-            client << F("<title></title>") << _endl;
-
-            //Ajax script function which requests the Info XML file
-            //from the Arduino and populates the web page with it, every two secs
-            client << F("<script>") << _endl;
-            client << F("function GetData()") << _endl;
-            client << F("{") << _endl;
-            client << F("nocache = \"&nocache=\" + Math.random() * 1000000;") << _endl;
-            client << F("var request = new XMLHttpRequest();") << _endl;
-            client << F("request.onreadystatechange = function()") << _endl;
-            client << F("{") << _endl;
-            client << F("if (this.readyState == 4) {") << _endl;
-            client << F("if (this.status == 200) {") << _endl;
-            client << F("if (this.responseXML != null) {") << _endl;
-            // extract XML data from XML file
-            client << F("document.getElementById(\"Date\").innerHTML =") << _endl;
-            client << F("this.responseXML.getElementsByTagName('Date')[0].childNodes[0].nodeValue;") << _endl;
-
-            client << F("document.getElementById(\"WaterTemp\").innerHTML =") << _endl;
-            client << F("this.responseXML.getElementsByTagName('DS18b20_0')[0].childNodes[0].nodeValue;") << _endl;
-            client << F("document.getElementById(\"pH\").innerHTML =") << _endl;
-            client << F("this.responseXML.getElementsByTagName('Value')[0].childNodes[0].nodeValue;") << _endl;
-            client << F("document.getElementById(\"ORP\").innerHTML =") << _endl;
-            client << F("this.responseXML.getElementsByTagName('Value')[1].childNodes[0].nodeValue;") << _endl;
-            client << F("document.getElementById(\"Filtration\").innerHTML =") << _endl;
-            client << F("this.responseXML.getElementsByTagName('Pump')[0].childNodes[0].nodeValue;") << _endl;
-            client << F("document.getElementById(\"FiltStart\").innerHTML =") << _endl;
-            client << F("this.responseXML.getElementsByTagName('Start')[0].childNodes[0].nodeValue;") << _endl;
-            client << F("document.getElementById(\"FiltStop\").innerHTML =") << _endl;
-            client << F("this.responseXML.getElementsByTagName('Stop')[0].childNodes[0].nodeValue;") << _endl;
-
-            client << F("document.getElementById(\"pH2\").innerHTML =") << _endl;
-            client << F("this.responseXML.getElementsByTagName('Value')[0].childNodes[0].nodeValue;") << _endl;
-            client << F("document.getElementById(\"ORP2\").innerHTML =") << _endl;
-            client << F("this.responseXML.getElementsByTagName('Value')[1].childNodes[0].nodeValue;") << _endl;
-            client << F("document.getElementById(\"pHPump\").innerHTML =") << _endl;
-            client << F("this.responseXML.getElementsByTagName('Pump')[1].childNodes[0].nodeValue;") << _endl;
-            client << F("document.getElementById(\"ORPPump\").innerHTML =") << _endl;
-            client << F("this.responseXML.getElementsByTagName('Pump')[2].childNodes[0].nodeValue;") << _endl;
-            client << F("document.getElementById(\"pHTank\").innerHTML =") << _endl;
-            client << F("this.responseXML.getElementsByTagName('TankLevel')[0].childNodes[0].nodeValue;") << _endl;
-            client << F("document.getElementById(\"ORPTank\").innerHTML =") << _endl;
-            client << F("this.responseXML.getElementsByTagName('TankLevel')[1].childNodes[0].nodeValue;") << _endl;
-            client << F("document.getElementById(\"pHPID\").innerHTML =") << _endl;
-            client << F("this.responseXML.getElementsByTagName('PIDMode')[0].childNodes[0].nodeValue;") << _endl;
-            client << F("document.getElementById(\"ORPPID\").innerHTML =") << _endl;
-            client << F("this.responseXML.getElementsByTagName('PIDMode')[1].childNodes[0].nodeValue;") << _endl;
-            client << F("document.getElementById(\"pHSetPoint\").innerHTML =") << _endl;
-            client << F("this.responseXML.getElementsByTagName('SetPoint')[0].childNodes[0].nodeValue;") << _endl;
-            client << F("document.getElementById(\"ORPSetPoint\").innerHTML =") << _endl;
-            client << F("this.responseXML.getElementsByTagName('SetPoint')[1].childNodes[0].nodeValue;") << _endl;
-            client << F("document.getElementById(\"pHCal0\").innerHTML =") << _endl;
-            client << F("this.responseXML.getElementsByTagName('CalibCoeff0')[0].childNodes[0].nodeValue;") << _endl;
-            client << F("document.getElementById(\"pHCal1\").innerHTML =") << _endl;
-            client << F("this.responseXML.getElementsByTagName('CalibCoeff1')[0].childNodes[0].nodeValue;") << _endl;
-            client << F("document.getElementById(\"ORPCal0\").innerHTML =") << _endl;
-            client << F("this.responseXML.getElementsByTagName('CalibCoeff0')[1].childNodes[0].nodeValue;") << _endl;
-            client << F("document.getElementById(\"ORPCal1\").innerHTML =") << _endl;
-            client << F("this.responseXML.getElementsByTagName('CalibCoeff1')[1].childNodes[0].nodeValue;") << _endl;
-            client << F("document.getElementById(\"pHKp\").innerHTML =") << _endl;
-            client << F("this.responseXML.getElementsByTagName('Kp')[0].childNodes[0].nodeValue;") << _endl;
-            client << F("document.getElementById(\"ORPKp\").innerHTML =") << _endl;
-            client << F("this.responseXML.getElementsByTagName('Kp')[1].childNodes[0].nodeValue;") << _endl;
-            client << F("document.getElementById(\"pHKi\").innerHTML =") << _endl;
-            client << F("this.responseXML.getElementsByTagName('Ki')[0].childNodes[0].nodeValue;") << _endl;
-            client << F("document.getElementById(\"ORPKi\").innerHTML =") << _endl;
-            client << F("this.responseXML.getElementsByTagName('Ki')[1].childNodes[0].nodeValue;") << _endl;
-            client << F("document.getElementById(\"pHKd\").innerHTML =") << _endl;
-            client << F("this.responseXML.getElementsByTagName('Kd')[0].childNodes[0].nodeValue;") << _endl;
-            client << F("document.getElementById(\"ORPKd\").innerHTML =") << _endl;
-            client << F("this.responseXML.getElementsByTagName('Kd')[1].childNodes[0].nodeValue;") << _endl;
-            client << F("document.getElementById(\"PhPumpEr\").innerHTML =") << _endl;
-            client << F("this.responseXML.getElementsByTagName('PhPumpEr')[0].childNodes[0].nodeValue;") << _endl;
-            client << F("document.getElementById(\"ChlPumpEr\").innerHTML =") << _endl;
-            client << F("this.responseXML.getElementsByTagName('ChlPumpEr')[0].childNodes[0].nodeValue;") << _endl;
-            client << F("document.getElementById(\"pHPT\").innerHTML =") << _endl;
-            client << F("this.responseXML.getElementsByTagName('UpT')[0].childNodes[0].nodeValue;") << _endl;
-            client << F("document.getElementById(\"ChlPT\").innerHTML =") << _endl;
-            client << F("this.responseXML.getElementsByTagName('UpT')[1].childNodes[0].nodeValue;") << _endl;
-
-
-            client << F("}") << _endl;
-            client << F("}") << _endl;
-            client << F("}") << _endl;
-            client << F("}") << _endl;
-            client << F("request.open(\"GET\", \"Info\" + nocache, true);") << _endl;
-            client << F("request.send(null);") << _endl;
-            client << F("setTimeout('GetData()', 4000);") << _endl;
-            client << F("}") << _endl;
-            client << F("</script>") << _endl;
-
-            client << F("</head>") << _endl;
-            client << F("<body onload=\"GetData()\">") << _endl;
-            client << F("<h1>Pool Master</h1>") << _endl;
-            client << F("<h3><span id=\"Date\">...</span></h3>") << _endl << _endl;
-
-            //First table: Water temp, pH and ORP values
-            client << F("<table class=\"blueTable\">") << _endl;
-            client << F("<tbody>") << _endl;
-            client << F("<tr>") << _endl;
-            client << F("<td>Water temp. (deg): <span id=\"WaterTemp\">...</span></td>") << _endl;
-            client << F("<td>pH: <span id=\"pH\">...</span></td>") << _endl;
-            client << F("<td>ORP (mV): <span id=\"ORP\">...</span></td>") << _endl;
-            client << F("</tr>") << _endl;
-            client << F("<tr>") << _endl;
-            client << F("<td>Filtration: <span id=\"Filtration\">...</span></td>") << _endl;
-            client << F("<td>Start: <span id=\"FiltStart\">...</span></td>") << _endl;
-            client << F("<td>Stop: <span id=\"FiltStop\">...</span></td>") << _endl;
-            client << F("</tr>") << _endl;
-            client << F("</tbody>") << _endl;
-            client << F("</table>") << _endl;
-            client << F("<br>") << _endl;
-
-            //Second table, pH and ORP parameters
-            client << F("<table class=\"blueTable\">") << _endl;
-            client << F("<tbody>") << _endl;
-            client << F("<tr>") << _endl;
-            client << F("<td></td>") << _endl;
-            client << F("<td>pH</td>") << _endl;
-            client << F("<td>ORP/Chl</td>") << _endl;
-            client << F("</tr>") << _endl;
-            client << F("<tr>") << _endl;
-            client << F("<td>Value</td>") << _endl;
-            client << F("<td><span id=\"pH2\">...</span></td>") << _endl;
-            client << F("<td><span id=\"ORP2\">...</span></td>") << _endl;
-            client << F("</tr>") << _endl;
-            client << F("<td>SetPoint</td>") << _endl;
-            client << F("<td><span id=\"pHSetPoint\">...</span></td>") << _endl;
-            client << F("<td><span id=\"ORPSetPoint\">...</span></td>") << _endl;
-            client << F("</tr>") << _endl;
-            client << F("<tr>") << _endl;
-            client << F("<tr>") << _endl;
-            client << F("<td>Pump</td>") << _endl;
-            client << F("<td><span id=\"pHPump\">...</span></td>") << _endl;
-            client << F("<td><span id=\"ORPPump\">...</span></td>") << _endl;
-            client << F("</tr>") << _endl;
-            client << F("<tr>") << _endl;
-            client << F("<td>Tank level</td>") << _endl;
-            client << F("<td><span id=\"pHTank\">...</span></td>") << _endl;
-            client << F("<td><span id=\"ORPTank\">...</span></td>") << _endl;
-            client << F("</tr>") << _endl;
-            client << F("<tr>") << _endl;
-            client << F("<td>PID</td>") << _endl;
-            client << F("<td><span id=\"pHPID\">...</span></td>") << _endl;
-            client << F("<td><span id=\"ORPPID\">...</span></td>") << _endl;
-            client << F("</tr>") << _endl;
-            client << F("<tr>") << _endl;
-            client << F("<td>Calib. coeff0</td>") << _endl;
-            client << F("<td><span id=\"pHCal0\">...</span></td>") << _endl;
-            client << F("<td><span id=\"ORPCal0\">...</span></td>") << _endl;
-            client << F("</tr>") << _endl;
-            client << F("<tr>") << _endl;
-            client << F("<td>Calib. coeff1</td>") << _endl;
-            client << F("<td><span id=\"pHCal1\">...</span></td>") << _endl;
-            client << F("<td><span id=\"ORPCal1\">...</span></td>") << _endl;
-            client << F("</tr>") << _endl;
-            client << F("<tr>") << _endl;
-            client << F("<td>Kp</td>") << _endl;
-            client << F("<td><span id=\"pHKp\">...</span></td>") << _endl;
-            client << F("<td><span id=\"ORPKp\">...</span></td>") << _endl;
-            client << F("</tr>") << _endl;
-            client << F("<tr>") << _endl;
-            client << F("<td>Ki</td>") << _endl;
-            client << F("<td><span id=\"pHKi\">...</span></td>") << _endl;
-            client << F("<td><span id=\"ORPKi\">...</span></td>") << _endl;
-            client << F("</tr>") << _endl;
-            client << F("<tr>") << _endl;
-            client << F("<td>Kd</td>") << _endl;
-            client << F("<td><span id=\"pHKd\">...</span></td>") << _endl;
-            client << F("<td><span id=\"ORPKd\">...</span></td>") << _endl;
-            client << F("</tr>") << _endl;
-            client << F("<tr>") << _endl;
-            client << F("<td>Pumps Uptime (sec):</td>") << _endl;
-            client << F("<td><span id=\"pHPT\">...</span></td>") << _endl;
-            client << F("<td><span id=\"ChlPT\">...</span></td>") << _endl;
-            client << F("</tr>") << _endl;
-            client << F("</tbody>") << _endl;
-            client << F("</table>") << _endl;
-            client << F("<br>") << _endl;
-
-            //Third table: Messages
-            client << F("<table class=\"blueTable\">") << _endl;
-            client << F("<tbody>") << _endl;
-            client << F("<tr>") << _endl;
-            client << F("<td>Errors: <span id=\"Errors\">...</span></td>") << _endl;
-            client << F("<td>Acid Pump: <span id=\"PhPumpEr\">...</span></td>") << _endl;
-            client << F("<td>Chl Pump: <span id=\"ChlPumpEr\">...</span></td>") << _endl;
-            client << F("</tr>") << _endl;
-            client << F("</tbody>") << _endl;
-            client << F("</table>") << _endl;
-            client << F("<br>") << _endl;
-
-            client << F("</body>") << _endl;
-            client << F("</html>") << _endl;
           }
           // display received HTTP request on serial port
           Serial << readString << _endl;
@@ -2123,132 +1919,4 @@ void EthernetClientCallback(Task * me)
     delay(1);      // give the web browser time to receive the data
     client.stop(); // close the connection
   } // end if (client)
-}
-
-
-//Return an XML file with system data
-//call http://localIP/Info to obtain an XML file containing the system info
-void XML_response(EthernetClient cl)
-{
-  cl << F("<?xml version = \"1.0\" encoding=\"UTF-8\"?>");
-  cl << F("<root>");
-
-  cl << F("<device>");
-  cl << F("<Date>"); //day, weekday, month, year, hour, minute, sec
-  cl << TimeBuffer;
-  cl << F("</Date>");
-  cl << F("<Firmware>");
-  cl << Firmw;
-  cl << F("</Firmware>");
-  cl << F("<FreeRam>");
-  cl << freeRam();
-  cl << F("</FreeRam>");
-  cl << F("<IP>");
-  cl << Ethernet.localIP();
-  cl << F("</IP>");
-  cl << F("<Mac>");
-  cl << sArduinoMac;
-  cl << F("</Mac>");
-  cl << sDS18b20_0;
-  cl << storage.TempValue;
-  cl << F("</DS18b20_0>");
-  cl << F("<PhPumpEr>");
-  cl << PhPump.UpTimeError;
-  cl << F("</PhPumpEr>");
-  cl << F("<ChlPumpEr>");
-  cl << ChlPump.UpTimeError;
-  cl << F("</ChlPumpEr>");
-  cl << F("</device>");
-
-  cl << F("<Filtration>");
-  cl << F("<Pump>");
-  cl << FiltrationPump.IsRunning();
-  cl << F("</Pump>");
-  cl << F("<Duration>");
-  cl << storage.FiltrationDuration;
-  cl << F("</Duration>");
-  cl << F("<Start>");
-  cl << storage.FiltrationStart;
-  cl << F("</Start>");
-  cl << F("<Stop>");
-  cl << storage.FiltrationStop;
-  cl << F("</Stop>");
-  cl << F("<StopMax>");
-  cl << storage.FiltrationStopMax;
-  cl << F("</StopMax>");
-  cl << F("</Filtration>");
-
-  cl << F("<pH>");
-  cl << F("<Value>");
-  cl << storage.PhValue;
-  cl << F("</Value>");
-  cl << F("<Pump>");
-  cl << PhPump.IsRunning();
-  cl << F("</Pump>");
-  cl << F("<UpT>");
-  cl << PhPump.UpTime / 1000;
-  cl << F("</UpT>");
-  cl << F("<TankLevel>");
-  cl << PhPump.TankLevel();
-  cl << F("</TankLevel>");
-  cl << F("<PIDMode>");
-  cl << storage.Ph_RegulationOnOff;
-  cl << F("</PIDMode>");
-  cl << F("<Kp>");
-  cl << storage.Ph_Kp;
-  cl << F("</Kp>");
-  cl << F("<Ki>");
-  cl << storage.Ph_Ki;
-  cl << F("</Ki>");
-  cl << F("<Kd>");
-  cl << storage.Ph_Kd;
-  cl << F("</Kd>");
-  cl << F("<SetPoint>");
-  cl << storage.Ph_SetPoint;
-  cl << F("</SetPoint>");
-  cl << F("<CalibCoeff0>");
-  cl << storage.pHCalibCoeffs0;
-  cl << F("</CalibCoeff0>");
-  cl << F("<CalibCoeff1>");
-  cl << storage.pHCalibCoeffs1;
-  cl << F("</CalibCoeff1>");
-  cl << F("</pH>");
-
-  cl << F("<ORP>");
-  cl << F("<Value>");
-  cl << storage.OrpValue;
-  cl << F("</Value>");
-  cl << F("<Pump>");
-  cl << ChlPump.IsRunning();
-  cl << F("</Pump>");
-  cl << F("<UpT>");
-  cl << ChlPump.UpTime / 1000;
-  cl << F("</UpT>");
-  cl << F("<TankLevel>");
-  cl << ChlPump.TankLevel();
-  cl << F("</TankLevel>");
-  cl << F("<PIDMode>");
-  cl << storage.Orp_RegulationOnOff;
-  cl << F("</PIDMode>");
-  cl << F("<Kp>");
-  cl << storage.Orp_Kp;
-  cl << F("</Kp>");
-  cl << F("<Ki>");
-  cl << storage.Orp_Ki;
-  cl << F("</Ki>");
-  cl << F("<Kd>");
-  cl << storage.Orp_Kd;
-  cl << F("</Kd>");
-  cl << F("<SetPoint>");
-  cl << storage.Orp_SetPoint;
-  cl << F("</SetPoint>");
-  cl << F("<CalibCoeff0>");
-  cl << storage.OrpCalibCoeffs0;
-  cl << F("</CalibCoeff0>");
-  cl << F("<CalibCoeff1>");
-  cl << storage.OrpCalibCoeffs1;
-  cl << F("</CalibCoeff1>");
-  cl << F("</ORP>");
-
-  cl << F("</root>");
 }
