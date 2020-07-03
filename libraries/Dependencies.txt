@@ -16,3 +16,4 @@ https://github.com/adafruit/RTClib (1.2.0)
 https://github.com/JChristensen/JC_Button (rev 2.1.1)
 http://arduiniana.org/libraries/streaming/ (rev 5)
 https://github.com/Seithan/EasyNextionLibrary
+https://github.com/TrippyLighting/EthernetBonjour

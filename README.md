@@ -24,7 +24,6 @@ Ethernet connectivity parameters can be set through a webpage accessible from th
 If an ethernet connection is available, the internal clock (RTC) is synchronized with a time-server every day at midnight.<br />
 
 An API function enables telling the system what the outside air temperature is. In case it is below -2.0°C, filtration is started until it rises back above +2.0°C<br />
-A lightweight webserver provides a simple dynamic webpage with a summary of all system parameters. An XML file with more info is available at http://ARDUINO_LOCAL_IP/Info<br />
 Communication with the system is performed using the MQTT protocol over an Ethernet connection to the local network/MQTT broker.<br /><br />
 
 Every 30 seconds (by default), the system will publish on the "PoolTopicMeas1" and "PoolTopicMeas2"(see in code below) the following payloads in Json format:<br />
