@@ -24,6 +24,7 @@ v5.0.0
 * First version of NEXTION 3.5" TFT display support 
 * pH, Orp and Water temperature setpoints can be adjusted via TFT by pressing on the setpoints (for pH and Orp) or the water temp displays
 * Changed "queue" library to fix non-released memory issue
+* added ethernet connectivity setup webpage accessible at http://PoolMaster.local (in an MDNS / Bonjour! enabled environment/browser)
 
 v4.0.6
 -------

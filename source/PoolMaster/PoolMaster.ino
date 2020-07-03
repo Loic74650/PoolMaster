@@ -119,6 +119,7 @@
 #include "Config.h"
 #include <SPI.h>
 #include <Ethernet.h>
+#include <EthernetBonjour.h>
 #include <SD.h>
 #include <TimeLib.h>
 #include <RunningMedian.h>
@@ -153,7 +154,7 @@ ArduinoQueue<String> queueIn(QUEUE_SIZE_ITEMS, QUEUE_SIZE_BYTES);
 
 //Queue object to store outgoing JSON messages (up to 7)
 //buffers for MQTT string payload
-#define PayloadBufferLength 100
+#define PayloadBufferLength 150
 char Payload[PayloadBufferLength];
 
 //Nextion TFT object. Choose which ever Serial port
@@ -341,12 +342,44 @@ void setup()
   wdt_enable(WDTO_8S);
 
   // initialize Ethernet device
-  //Ethernet.begin(mac, ip);
-  Ethernet.begin(mac); //Use DHCP. Helps avoiding issues when trying to connect to an external MQTT broker
+  // if the ip config is the default one, use DHCP to allocate an ip otherwise use the eeprom-stored config
+  if (!storage.ipConfiged)
+  {
+    if (!Ethernet.begin(storage.mac)) //DHCP
+    {
+      Serial << F("Failed to open ethernet connection through DHCP") << _endl;
+    }
+  }
+  else
+  {
+    Ethernet.begin(storage.mac, storage.ip, storage.dnsserver, storage.gateway, storage.subnet);
+  }
   delay(1500);
 
   // start to listen for clients
   server.begin();
+
+  // Initialize the Bonjour/MDNS library. You can now reach or ping this
+  // hardware via the host name "PoolMaster.local", provided that your operating
+  // system is Bonjour-enabled (such as MacOS X).
+  EthernetBonjour.begin("PoolMaster");
+
+  // Now let's register the service we're offering (a web service) via Bonjour!
+  // To do so, we call the addServiceRecord() method. The first argument is the
+  // name of our service instance and its type, separated by a dot. In this
+  // case, the service type is _http. There are many other service types, use
+  // google to look up some common ones, but you can also invent your own
+  // service type, like _mycoolservice - As long as your clients know what to
+  // look for, you're good to go.
+  // The second argument is the port on which the service is running. This is
+  // port 80 here, the standard HTTP port.
+  // The last argument is the protocol type of the service, either TCP or UDP.
+  // Of course, our service is a TCP service.
+  // With the service registered, it will show up in a Bonjour-enabled web
+  // browser. As an example, if you are using Apple's Safari, you will now see
+  // the service under Bookmarks -> Bonjour (Provided that you have enabled
+  // Bonjour in the "Bookmarks" preferences in Safari).
+  EthernetBonjour.addServiceRecord("PoolMaster Bonjour Webserver._http", 80, MDNSServiceTCP);
 
   //Start temperature measurement state machine
   gettemp.next(gettemp_start);
@@ -477,7 +510,7 @@ void MQTTConnect()
     MQTTClient.subscribe(PoolTopicAPI);
 
     //tell status topic we are online
-    if (MQTTClient.publish(PoolTopicStatus, "online", true, LWMQTT_QOS1))
+    if (MQTTClient.publish(PoolTopicStatus, F("online"), true, LWMQTT_QOS1))
       Serial << F("published: Home/Pool/status - online") << _endl;
     else
     {
@@ -501,13 +534,13 @@ void messageReceived(String &topic, String &payload)
   {
     if (queueIn.enqueue(payload))
     {
-      Serial << "Added command to queue: " << payload << _endl;
+      Serial << F("Added command to queue: ") << payload << _endl;
     }
     else
     {
-      Serial << "Could not add command to queue, queue is full"<< _endl;
+      Serial << F("Could not add command to queue, queue is full") << _endl;
     }
-    Serial << "FreeRam: " << freeRam() << " - Qeued messages: " << queueIn.itemCount() << _endl;
+    Serial << F("FreeRam: ") << freeRam() << F(" - Qeued messages: ") << queueIn.itemCount() << _endl;
   }
 }
 
@@ -528,7 +561,7 @@ void ButtonCallback(Task* me)
 
       // things to do if the button was tapped (single tap)
       case (tap) : {
-          Serial.println("TAP event detected");
+          Serial.println(F("TAP event detected"));
           LCDToggle = !LCDToggle; //toggle LCD screen
           Serial << F("Push-Button short press. Toggling LCD screen") << endl;
           break;
@@ -537,8 +570,8 @@ void ButtonCallback(Task* me)
       // things to do if the button was double-tapped
       case (doubleTap) : {
           Serial.println("DOUBLE-TAP event detected");
-          String Cmd0 = "{\"FiltPump\":0}";
-          String Cmd1 = "{\"FiltPump\":1}";
+          String Cmd0 = F("{\"FiltPump\":0}");
+          String Cmd1 = F("{\"FiltPump\":1}");
 
           if (FiltrationPump.IsRunning()) {
             queueIn.enqueue(Cmd0);
@@ -551,8 +584,8 @@ void ButtonCallback(Task* me)
 
       // things to do if the button was held
       case (hold) : {
-          Serial.println("HOLD event detected");
-          String Cmd = "{\"Clear\":1}";
+          Serial.println(F("HOLD event detected"));
+          String Cmd = F("{\"Clear\":1}");
           queueIn.enqueue(Cmd);
         }
     }
@@ -565,6 +598,9 @@ void GenericCallback(Task* me)
   //clear watchdog timer
   wdt_reset();
   //Serial<<F("Watchdog Reset")<<_endl;
+
+  //run the MDNS / Bonjour! module
+  EthernetBonjour.run();
 
   //request temp reading
   gettemp.run();
@@ -709,7 +745,7 @@ void GenericCallback(Task* me)
     PSIError = true;
     digitalWrite(bRED_LED_PIN, true);
     digitalWrite(bGREEN_LED_PIN, false);
-    MQTTClient.publish(PoolTopicError, "PSI Error", true, LWMQTT_QOS1);
+    MQTTClient.publish(PoolTopicError, F("PSI Error"), true, LWMQTT_QOS1);
   }
 
   //UPdate LCD
@@ -738,13 +774,13 @@ void PublishDataCallback(Task* me)
     StaticJsonBuffer<200> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
 
-    root.set<int>("Tmp", (int)(storage.TempValue * 100));
-    root.set<int>("pH", (int)(storage.PhValue * 100));
-    root.set<int>("PSI", (int)(storage.PSIValue * 100));
-    root.set<int>("Orp", (int)storage.OrpValue);
-    root.set<unsigned long>("FilUpT", FiltrationPump.UpTime / 1000);
-    root.set<unsigned long>("PhUpT", PhPump.UpTime / 1000);
-    root.set<unsigned long>("ChlUpT", ChlPump.UpTime / 1000);
+    root.set<int>(F("Tmp"), (int)(storage.TempValue * 100));
+    root.set<int>(F("pH"), (int)(storage.PhValue * 100));
+    root.set<int>(F("PSI"), (int)(storage.PSIValue * 100));
+    root.set<int>(F("Orp"), (int)storage.OrpValue);
+    root.set<unsigned long>(F("FilUpT"), FiltrationPump.UpTime / 1000);
+    root.set<unsigned long>(F("PhUpT"), PhPump.UpTime / 1000);
+    root.set<unsigned long>(F("ChlUpT"), ChlPump.UpTime / 1000);
 
     /*String tp = "Settings JSON buffer size is: ";
       tp += jsonBuffer.size();
@@ -782,10 +818,10 @@ void PublishDataCallback(Task* me)
     StaticJsonBuffer<200> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
 
-    root.set<int>("AcidF", (int)(storage.AcidFill - PhPump.GetTankUsage()));
-    root.set<int>("ChlF", (int)(storage.ChlFill - ChlPump.GetTankUsage()));
-    root.set<uint8_t>("IO", BitMap);
-    root.set<uint8_t>("IO2", BitMap2);
+    root.set<int>(F("AcidF"), (int)(storage.AcidFill - PhPump.GetTankUsage()));
+    root.set<int>(F("ChlF"), (int)(storage.ChlFill - ChlPump.GetTankUsage()));
+    root.set<uint8_t>(F("IO"), BitMap);
+    root.set<uint8_t>(F("IO2"), BitMap2);
 
     //char Payload[PayloadBufferLength];
     if (jsonBuffer.size() < PayloadBufferLength)
@@ -831,15 +867,14 @@ void PublishSettings()
     StaticJsonBuffer<200> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
 
-    root.set<String>("Fw", Firmw);//firmware revision
-    root.set<uint8_t>("FSta", (uint8_t)storage.FiltrationStart);//Filtration start hour, in the morning (hours)
-    root.set<uint8_t>("FDu", (uint8_t)storage.FiltrationDuration);//Computed filtration duration based on water temperature (hours)
-    root.set<uint8_t>("FStoM", (uint8_t)storage.FiltrationStopMax);//Latest hour for the filtration to run. Whatever happens, filtration won't run later than this hour (hour)
-    root.set<uint8_t>("FSto", (uint8_t)storage.FiltrationStop);//Computed filtration stop hour, equal to FSta + FDu (hour)
-    root.set<uint8_t>("Dpid", (uint8_t)storage.DelayPIDs);//Delay from FSta for the water regulation/PIDs to start (mins)
-
-    root.set<uint8_t>("pHUTL", (uint8_t)(storage.PhPumpUpTimeLimit / 60)); //Max allowed daily run time for the pH pump (/!\ mins)
-    root.set<uint8_t>("ChlUTL", (uint8_t)(storage.ChlPumpUpTimeLimit / 60)); //Max allowed daily run time for the Chl pump (/!\ mins)
+    root.set<String>(F("Fw"), Firmw);//firmware revision
+    root.set<uint8_t>(F("FSta"), (uint8_t)storage.FiltrationStart);//Filtration start hour, in the morning (hours)
+    root.set<uint8_t>(F("FDu"), (uint8_t)storage.FiltrationDuration);//Computed filtration duration based on water temperature (hours)
+    root.set<uint8_t>(F("FStoM"), (uint8_t)storage.FiltrationStopMax);//Latest hour for the filtration to run. Whatever happens, filtration won't run later than this hour (hour)
+    root.set<uint8_t>(F("FSto"), (uint8_t)storage.FiltrationStop);//Computed filtration stop hour, equal to FSta + FDu (hour)
+    root.set<uint8_t>(F("Dpid"), (uint8_t)storage.DelayPIDs);//Delay from FSta for the water regulation/PIDs to start (mins)  
+    root.set<uint8_t>(F("pHUTL"), (uint8_t)(storage.PhPumpUpTimeLimit / 60)); //Max allowed daily run time for the pH pump (/!\ mins)
+    root.set<uint8_t>(F("ChlUTL"), (uint8_t)(storage.ChlPumpUpTimeLimit / 60)); //Max allowed daily run time for the Chl pump (/!\ mins)
 
     //char Payload[PayloadBufferLength];
     if (jsonBuffer.size() < PayloadBufferLength)
@@ -874,17 +909,17 @@ void PublishSettings()
     StaticJsonBuffer<200> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
 
-    root.set<int>("pHWS", (uint8_t)(storage.PhPIDWindowSize / 1000 / 60)); //pH PID window size (/!\ mins)
-    root.set<int>("ChlWS", (uint8_t)(storage.OrpPIDWindowSize / 1000 / 60)); //Orp PID window size (/!\ mins)
+    root.set<int>(F("pHWS"), (uint8_t)(storage.PhPIDWindowSize / 1000 / 60)); //pH PID window size (/!\ mins)
+    root.set<int>(F("ChlWS"), (uint8_t)(storage.OrpPIDWindowSize / 1000 / 60)); //Orp PID window size (/!\ mins)
 
-    root.set<int>("pHSP", (int)(storage.Ph_SetPoint * 100)); //pH setpoint (/!\ x100)
-    root.set<int>("OrpSP", (int)(storage.Orp_SetPoint));//Orp setpoint
+    root.set<int>(F("pHSP"), (int)(storage.Ph_SetPoint * 100)); //pH setpoint (/!\ x100)
+    root.set<int>(F("OrpSP"), (int)(storage.Orp_SetPoint));//Orp setpoint
 
-    root.set<int>("WSP", (int)(storage.WaterTemp_SetPoint * 100)); //Water temperature setpoint (/!\ x100)
-    root.set<int>("WLT", (int)(storage.WaterTempLowThreshold * 100)); //Water temperature low threshold to activate anti-freeze mode (/!\ x100)
+    root.set<int>(F("WSP"), (int)(storage.WaterTemp_SetPoint * 100)); //Water temperature setpoint (/!\ x100)
+    root.set<int>(F("WLT"), (int)(storage.WaterTempLowThreshold * 100)); //Water temperature low threshold to activate anti-freeze mode (/!\ x100)
 
-    root.set<uint8_t>("PSIHT", (uint8_t)(storage.PSI_HighThreshold * 100)); //Water pressure high threshold to trigger error (/!\ x100)
-    root.set<uint8_t>("PSIMT", (uint8_t)(storage.PSI_MedThreshold * 100)); //Water pressure medium threshold (unused yet) (/!\ x100)
+    root.set<uint8_t>(F("PSIHT"), (uint8_t)(storage.PSI_HighThreshold * 100)); //Water pressure high threshold to trigger error (/!\ x100)
+    root.set<uint8_t>(F("PSIMT"), (uint8_t)(storage.PSI_MedThreshold * 100)); //Water pressure medium threshold (unused yet) (/!\ x100)
 
     //char Payload[PayloadBufferLength];
     if (jsonBuffer.size() < PayloadBufferLength)
@@ -919,14 +954,14 @@ void PublishSettings()
     StaticJsonBuffer<200> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
 
-    root.set<int>("TE", (int)(storage.TempExternal * 100)); // /!\ x100
+    root.set<int>(F("TE"), (int)(storage.TempExternal * 100)); // /!\ x100
 
-    root.set<float>("pHC0", (float)(storage.pHCalibCoeffs0));//pH sensor calibration coefficient C0
-    root.set<float>("pHC1", (float)(storage.pHCalibCoeffs1));//pH sensor calibration coefficient C1
-    root.set<float>("OrpC0", (float)(storage.OrpCalibCoeffs0));//Orp sensor calibration coefficient C0
-    root.set<float>("OrpC1", (float)(storage.OrpCalibCoeffs1));//Orp sensor calibration coefficient C1
-    root.set<float>("PSIC0", (float)(storage.PSICalibCoeffs0));//Pressure sensor calibration coefficient C0
-    root.set<float>("PSIC1", (float)(storage.PSICalibCoeffs1));//Pressure sensor calibration coefficient C1
+    root.set<float>(F("pHC0"), (float)(storage.pHCalibCoeffs0));//pH sensor calibration coefficient C0
+    root.set<float>(F("pHC1"), (float)(storage.pHCalibCoeffs1));//pH sensor calibration coefficient C1
+    root.set<float>(F("OrpC0"), (float)(storage.OrpCalibCoeffs0));//Orp sensor calibration coefficient C0
+    root.set<float>(F("OrpC1"), (float)(storage.OrpCalibCoeffs1));//Orp sensor calibration coefficient C1
+    root.set<float>(F("PSIC0"), (float)(storage.PSICalibCoeffs0));//Pressure sensor calibration coefficient C0
+    root.set<float>(F("PSIC1"), (float)(storage.PSICalibCoeffs1));//Pressure sensor calibration coefficient C1
 
     //char Payload[PayloadBufferLength];
     if (jsonBuffer.size() < PayloadBufferLength)
@@ -961,12 +996,12 @@ void PublishSettings()
     StaticJsonBuffer<200> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
 
-    root.set<float>("pHKp", (float)(storage.Ph_Kp));//pH PID coeffcicient Kp
-    root.set<float>("pHKi", (float)(storage.Ph_Ki));//pH PID coeffcicient Ki
-    root.set<float>("pHKd", (float)(storage.Ph_Kd));//pH PID coeffcicient Kd
-    root.set<float>("OrpKp", (float)(storage.Orp_Kp));//Orp PID coeffcicient Kp
-    root.set<float>("OrpKi", (float)(storage.Orp_Ki));//Orp PID coeffcicient Ki
-    root.set<float>("OrpKd", (float)(storage.Orp_Kd));//Orp PID coeffcicient Kd
+    root.set<float>(F("pHKp"), (float)(storage.Ph_Kp));//pH PID coeffcicient Kp
+    root.set<float>(F("pHKi"), (float)(storage.Ph_Ki));//pH PID coeffcicient Ki
+    root.set<float>(F("pHKd"), (float)(storage.Ph_Kd));//pH PID coeffcicient Kd
+    root.set<float>(F("OrpKp"), (float)(storage.Orp_Kp));//Orp PID coeffcicient Kp
+    root.set<float>(F("OrpKi"), (float)(storage.Orp_Ki));//Orp PID coeffcicient Ki
+    root.set<float>(F("OrpKd"), (float)(storage.Orp_Kd));//Orp PID coeffcicient Kd
 
     //char Payload[PayloadBufferLength];
     if (jsonBuffer.size() < PayloadBufferLength)
@@ -1001,10 +1036,10 @@ void PublishSettings()
     StaticJsonBuffer<200> jsonBuffer;
     JsonObject& root = jsonBuffer.createObject();
 
-    root.set<uint8_t>("pHTV", (uint8_t)storage.pHTankVol);//Acid tank nominal volume (Liters)
-    root.set<uint8_t>("ChlTV", (uint8_t)storage.ChlTankVol);//Chl tank nominal volume (Liters)
-    root.set<float>("pHFR", (float)(storage.pHPumpFR));//Acid pump flow rate (L/hour)
-    root.set<float>("OrpFR", (float)(storage.ChlPumpFR));//Chl pump flow rate (L/hour)
+    root.set<uint8_t>(F("pHTV"), (uint8_t)storage.pHTankVol);//Acid tank nominal volume (Liters)
+    root.set<uint8_t>(F("ChlTV"), (uint8_t)storage.ChlTankVol);//Chl tank nominal volume (Liters)
+    root.set<float>(F("pHFR"), (float)(storage.pHPumpFR));//Acid pump flow rate (L/hour)
+    root.set<float>(F("OrpFR"), (float)(storage.ChlPumpFR));//Chl pump flow rate (L/hour)
 
     //char Payload[PayloadBufferLength];
     if (jsonBuffer.size() < PayloadBufferLength)
@@ -1209,8 +1244,10 @@ bool loadConfig()
   Serial << storage.PhPIDWindowSize << ", " << storage.OrpPIDWindowSize << ", " << storage.PhPIDwindowStartTime << ", " << storage.OrpPIDwindowStartTime << '\n';
   Serial << storage.Ph_SetPoint << ", " << storage.Orp_SetPoint << ", " << storage.PSI_HighThreshold << ", " << storage.PSI_MedThreshold << ", " << storage.WaterTempLowThreshold << ", " << storage.WaterTemp_SetPoint << ", " << storage.TempExternal << ", " << storage.pHCalibCoeffs0 << ", " << storage.pHCalibCoeffs1 << ", " << storage.OrpCalibCoeffs0 << ", " << storage.OrpCalibCoeffs1 << ", " << storage.PSICalibCoeffs0 << ", " << storage.PSICalibCoeffs1 << '\n';
   Serial << storage.Ph_Kp << ", " << storage.Ph_Ki << ", " << storage.Ph_Kd << ", " << storage.Orp_Kp << ", " << storage.Orp_Ki << ", " << storage.Orp_Kd << ", " << storage.PhPIDOutput << ", " << storage.OrpPIDOutput << ", " << storage.TempValue << ", " << storage.PhValue << ", " << storage.OrpValue << ", " << storage.PSIValue << '\n';
-  Serial << storage.AcidFill << ", " << storage.ChlFill << '\n';
-
+  Serial << storage.AcidFill << ", " << storage.ChlFill << ", " << storage.pHTankVol << ", " << storage.ChlTankVol << ", " << storage.pHPumpFR << ", " << storage.ChlPumpFR << '\n';
+  Serial << storage.ip[0] << "." << storage.ip[1] << "." << storage.ip[2] << "." << storage.ip[3] << ", " << storage.subnet[0] << "." << storage.subnet[1] << "." << storage.subnet[2] << "." << storage.subnet[3] << ", " << storage.gateway[0] << "." << storage.gateway[1] << "." << storage.gateway[2] << "." << storage.gateway[3] << ", " << storage.dnsserver[0] << "." << storage.dnsserver[1] << "." << storage.dnsserver[2] << "." << storage.dnsserver[3] << ", " << _HEX(storage.mac[0]) << "."  << _HEX(storage.mac[1]) << "."<< _HEX(storage.mac[2]) << "."<< _HEX(storage.mac[3]) << "."<< _HEX(storage.mac[4]) << "."<< _HEX(storage.mac[5]) << '\n';
+  Serial << storage.ipConfiged << '\n' << '\n';
+  
   return (storage.ConfigVersion == CONFIG_VERSION);
 }
 
@@ -1833,90 +1870,4 @@ void simpLinReg(float * x, float * y, double & lrCoef0, double & lrCoef1, int n)
   // simple linear regression algorithm
   lrCoef0 = (xybar - xbar * ybar) / (xsqbar - xbar * xbar);
   lrCoef1 = ybar - lrCoef0 * xbar;
-}
-
-//Ethernet client checking loop (the Web server sending the system webpage to the browser and/or the XML file containing the system info)
-//call http://localIP/Info to obtain an XML file containing the system info
-void EthernetClientCallback(Task * me)
-{
-  EthernetClient client = server.available();  // try to get client
-  //readString = "";
-
-  if (client)
-  { // got client?
-    boolean currentLineIsBlank = true;
-    //Serial<<F("GotClient, current line is blank")<<_endl;
-    while (client.connected())
-    {
-      if (client.available())
-      { // client data available to read
-        char c = client.read(); // read 1 byte (character) from client
-        // buffer first part of HTTP request in HTTP_req array (string)
-        // leave last element in array as 0 to null terminate string (REQ_BUF_SZ - 1)
-        //Serial.println(F("GotClient, reading data"));
-        //read char by char HTTP request
-        if (readString.length() < 100)
-        {
-          //store characters to string
-          readString += c;
-          //Serial<<c;
-        }
-        //else
-        //Serial<<"length over 100";
-
-        // last line of client request is blank and ends with \n
-        // respond to client only after last line received
-        if (c == '\n' && currentLineIsBlank)
-        {
-          // send a standard http response header
-          client << F("HTTP/1.1 200 OK") << _endl;
-          //Serial<<"replying HTTP/1.1 200 OK";
-          //Serial.println(F("HTTP/1.1 200 OK"));
-          // remainder of header follows below, depending on if
-          // web page or XML page is requested
-
-          // Ajax request - send XML file
-          if (readString.indexOf("Info") > 0)
-          { //checks for "Info" string
-            // send rest of HTTP header
-            client << F("Content-Type: text/xml") << _endl;
-            client << F("Connection: keep-alive") << _endl;
-            client << _endl;
-            Serial.println(F("sending XML file"));
-            // send XML file containing input states
-            //XML_response(client);
-            readString = F("");
-            break;
-          }
-          else
-          {
-            // web page request
-            // send rest of HTTP header
-
-          }
-          // display received HTTP request on serial port
-          Serial << readString << _endl;
-
-          // reset buffer index and all buffer elements to 0
-          readString = F("");
-          break;
-        }
-
-        // every line of text received from the client ends with \r\n
-        if (c == '\n')
-        {
-          // last character on line of received text
-          // starting new line with next character read
-          currentLineIsBlank = true;
-        }
-        else if (c != '\r')
-        {
-          // a text character was received from client
-          currentLineIsBlank = false;
-        }
-      } // end if (client.available())
-    } // end while (client.connected())
-    delay(1);      // give the web browser time to receive the data
-    client.stop(); // close the connection
-  } // end if (client)
 }
