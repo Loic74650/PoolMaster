@@ -199,6 +199,9 @@ Pump ChlPump(CHL_PUMP, CHL_PUMP, CHL_LEVEL, FILTRATION_PUMP, storage.ChlPumpFR, 
 bool PhLevelError = 0;
 bool ChlLevelError = 0;
 
+//Status of connection to broker
+bool MQTTConnection = false;
+
 //PIDs instances
 //Specify the links and initial tuning parameters
 PID PhPID(&storage.PhValue, &storage.PhPIDOutput, &storage.Ph_SetPoint, storage.Ph_Kp, storage.Ph_Ki, storage.Ph_Kd, REVERSE);
@@ -505,6 +508,8 @@ void MQTTConnect()
   */
   if (MQTTClient.connected())
   {
+    MQTTConnection = true;
+    
     //String PoolTopicAPI = "Home/Pool/Api";
     //Topic to which send/publish API commands for the Pool controls
     MQTTClient.subscribe(PoolTopicAPI);
@@ -518,7 +523,10 @@ void MQTTConnect()
     }
   }
   else
+  {
     Serial << F("Failed to connect to the MQTT broker") << _endl;
+    MQTTConnection = false;
+  }
 
 }
 

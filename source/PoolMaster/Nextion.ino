@@ -48,6 +48,57 @@ void UpdateTFT()
     myNex.writeStr(F("page0.vaMCFW.txt"), TFTStruc.FW);
   }
 
+  if (MQTTConnection != TFTStruc.NetW)
+  {
+    TFTStruc.NetW = MQTTConnection;
+    myNex.writeNum(F("page1.vabNetW.val"), TFTStruc.NetW);
+
+    if (CurrentPage == 0)
+    {
+      if (TFTStruc.NetW == 1)
+      {
+        myNex.writeStr(F("p0NetW.pic=5"));
+      }
+      else
+      {
+        myNex.writeStr(F("p0NetW.pic=6"));
+      }
+    }
+    else if (CurrentPage == 1)
+    {
+      if (TFTStruc.NetW == 1)
+      {
+        myNex.writeStr(F("p1NetW.pic=5"));
+      }
+      else
+      {
+        myNex.writeStr(F("p1NetW.pic=6"));
+      }
+    }
+    else if (CurrentPage == 2)
+    {
+      if (TFTStruc.NetW == 1)
+      {
+        myNex.writeStr(F("p2NetW.pic=5"));
+      }
+      else
+      {
+        myNex.writeStr(F("p2NetW.pic=6"));
+      }
+    }
+    else if (CurrentPage == 3)
+    {
+      if (TFTStruc.NetW == 1)
+      {
+        myNex.writeStr(F("p3NetW.pic=5"));
+      }
+      else
+      {
+        myNex.writeStr(F("p3NetW.pic=6"));
+      }
+    }
+  }
+
   if (storage.PhValue != TFTStruc.pH)
   {
     TFTStruc.pH = storage.PhValue;
