@@ -1,5 +1,5 @@
 <h2>PoolMaster 5.0.0</h2>
-<h2>Arduino Mega2560/Controllino-Maxi based Ph/Orp (Chlorine) regulation system for home pools</h2>
+<h2>Arduino Mega2560 (or Controllino-Maxi) Ph/Orp (Chlorine) regulation system for home pools</h2>
 
 <br />
 <p align="center"> <img src="/docs/PoolMaster_2.jpg" width="802" title="Overview"> </p> <br /><br />
@@ -63,7 +63,7 @@ IO2: a variable of type BYTE where each individual bit is the state of a digital
 
 <h4>How to compile</h4>
 <p>
-- this code was developped for two main hardware configurations (list in the hardware section below):<br /> 
+- this code was developped for two main hardware configurations (see list in the hardware section below):<br /> 
 <ul>
 <li>Controllino-Maxi or</li> 
 <li>Arduino Mega 2560 + Ethernet shield + relay shield + RTC module</li></ul>
@@ -72,7 +72,7 @@ IO2: a variable of type BYTE where each individual bit is the state of a digital
 
 <h4>Compatibility</h4>
 	
-<p>For this sketch to work on your setup you must change the following in the code:<br />
+<p>For this sketch to work on your setup you must change the following in the code (in the "Config.h" file):<br />
 - possibly the pinout definitions depending on your wiring<br />
 - the unique address of the DS18b20 water temperature sensor<br />
 - MAC and IP address of the Ethernet shield<br />
