@@ -9,9 +9,11 @@ https://github.com/br3ttb/Arduino-PID-Library (rev 1.2.0)
 https://github.com/bblanchon/ArduinoJson (rev 5.13.4)
 https://github.com/arduino-libraries/LiquidCrystal (rev 1.0.7)
 https://github.com/thijse/Arduino-EEPROMEx (rev 1.0.0)
-https://github.com/sdesalas/Arduino-Queue.h (rev )
+https://github.com/EinarArnason/ArduinoQueue
 https://github.com/Loic74650/Pump (rev 0.0.1)
 https://github.com/PaulStoffregen/Time (rev 1.5)
 https://github.com/adafruit/RTClib (1.2.0)
 https://github.com/JChristensen/JC_Button (rev 2.1.1)
 http://arduiniana.org/libraries/streaming/ (rev 5)
+https://github.com/Seithan/EasyNextionLibrary
+https://github.com/TrippyLighting/EthernetBonjour
