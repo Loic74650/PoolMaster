@@ -106,7 +106,7 @@ String sArduinoMac;
 
 //Version of config stored in Eeprom
 //Random value. Change this value (to any other value) to revert the config to default values
-#define CONFIG_VERSION 120
+#define CONFIG_VERSION 121
 
 //interval (in miilisec) between MQTT publishes of measurement data
 #define PublishInterval 30000
@@ -140,7 +140,7 @@ struct StoreStruct
 
   // MAC address of Ethernet shield (in case of Controllino board, set an arbitrary MAC address)
   byte mac[] = { 0xA8, 0x61, 0x0A, 0xAE, 0x65, 0x04}; //-> Mega2560 dev setup with Ethernet shield
-
+/*
   //MQTT stuff including local broker/server IP address, login and pwd
   MQTTClient MQTTClient;
   const char* MqttServerIP = "192.168.0.38";
@@ -158,7 +158,7 @@ struct StoreStruct
   const char* PoolTopicAPI = "Home/PoolTest/API";
   const char* PoolTopicStatus = "Home/PoolTest/status";
   const char* PoolTopicError = "Home/PoolTest/Err";
-/*
+*/
 
 //MQTT stuff including local broker/server IP address, login and pwd
 MQTTClient MQTTClient;
@@ -176,4 +176,4 @@ const char* PoolTopicSet4 = "Home/Pool/Set4";
 const char* PoolTopicSet5 = "Home/Pool/Set5";
 const char* PoolTopicAPI = "Home/Pool/API";
 const char* PoolTopicStatus = "Home/Pool/status";
-const char* PoolTopicError = "Home/Pool/Err";*/
+const char* PoolTopicError = "Home/Pool/Err";
