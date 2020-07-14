@@ -549,11 +549,11 @@ void trigger10()
   }
 }
 
-//Probe calibration completed or new pH, Orp or Water Temp setpoints
+//Probe calibration completed or new pH, Orp or Water Temp setpoints or New tank
 //printh 23 02 54 0B
 void trigger11()
 {
-  DEBUG_PRINT("Calibration complete or new pH, Orp or Water Temp setpoints event");
+  DEBUG_PRINT("Calibration complete or new pH, Orp or Water Temp setpoints or new tank event");
   String Cmd = myNex.readStr(F("pageCalibs.vaCommand.txt"));
   queueIn.enqueue(Cmd);
   DEBUG_PRINT(Cmd);

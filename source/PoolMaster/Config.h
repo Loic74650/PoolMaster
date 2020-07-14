@@ -1,6 +1,6 @@
 #include "OneWire.h"
 
-#define DEBUG           ->comment this line to prevent code from writing debug messages to serial port (must be commented when SLEEP is uncommented)
+#define DEBUG           ->comment this line to prevent code from writing debug messages to serial port
 #include "DebugUtils.h"
 
 #if defined(CONTROLLINO_MAXI) //Controllino Maxi board specifics
@@ -129,7 +129,7 @@ struct StoreStruct
   CONFIG_VERSION,
   0, 0, 1, 0,
   8, 12, 20, 20, 120,
-  1800, 1800,
+  900, 2500,
   3000000, 3600000, 0, 0,
   7.4, 750.0, 0.5, 0.25, 10.0, 27.0, 3.0, 4.3, -2.63, -1189, 2564, 1.11, 0.0,
   2000000.0, 0.0, 0.0, 2500.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4,
@@ -158,8 +158,8 @@ struct StoreStruct
   const char* PoolTopicAPI = "Home/PoolTest/API";
   const char* PoolTopicStatus = "Home/PoolTest/status";
   const char* PoolTopicError = "Home/PoolTest/Err";
-*/
 
+*/
 //MQTT stuff including local broker/server IP address, login and pwd
 MQTTClient MQTTClient;
 const char* MqttServerIP = "192.168.0.38";

@@ -140,7 +140,7 @@
 #include "EasyNextionLibrary.h"  // Include EasyNextionLibrary
 
 // Firmware revision
-String Firmw = "5.0.0";
+String Firmw = "5.0.1";
 
 //Starting point address where to store the config data in EEPROM
 #define memoryBase 32
@@ -158,7 +158,7 @@ ArduinoQueue<String> queueIn(QUEUE_SIZE_ITEMS, QUEUE_SIZE_BYTES);
 char Payload[PayloadBufferLength];
 
 //Nextion TFT object. Choose which ever Serial port
-//you wish to connect to (not "Serial" which is used for debug), here Serial1 UART
+//you wish to connect to (not "Serial" which is used for debug), here Serial2 UART
 EasyNex myNex(Serial2);
 
 //LCD init.
@@ -337,9 +337,6 @@ void setup()
   pinMode(ORP_MEASURE, INPUT);
   pinMode(PH_MEASURE, INPUT);
   pinMode(PSI_MEASURE, INPUT);
-
-  //String for MAC address of Ethernet shield for the log & XML file
-  sArduinoMac = F("0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED");
 
   //8 seconds watchdog timer to reset system in case it freezes for more than 8 seconds
   wdt_enable(WDTO_8S);
@@ -617,9 +614,7 @@ void GenericCallback(Task* me)
   MQTTClient.loop();
 
   //UPdate Nextion TFT
-  //  DEBUG_PRINT("start UpdateTFT");
   UpdateTFT();
-  //  DEBUG_PRINT("stop UpdateTFT");
 
   //If any error flag is true, blink Red push-button LED
   if (PhPump.UpTimeError || ChlPump.UpTimeError || PSIError || !PhPump.TankLevel() || !ChlPump.TankLevel())
