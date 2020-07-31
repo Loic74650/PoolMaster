@@ -106,7 +106,7 @@ String sArduinoMac;
 
 //Version of config stored in Eeprom
 //Random value. Change this value (to any other value) to revert the config to default values
-#define CONFIG_VERSION 121
+#define CONFIG_VERSION 122
 
 //interval (in miilisec) between MQTT publishes of measurement data
 #define PublishInterval 30000
@@ -128,11 +128,11 @@ struct StoreStruct
 { //default values. Change the value of CONFIG_VERSION in order to restore the default values
   CONFIG_VERSION,
   0, 0, 1, 0,
-  8, 12, 20, 20, 120,
+  8, 13, 21, 20, 120,
   900, 2500,
   3000000, 3600000, 0, 0,
-  7.4, 750.0, 0.5, 0.25, 10.0, 27.0, 3.0, 4.3, -2.63, -1189, 2564, 1.11, 0.0,
-  2000000.0, 0.0, 0.0, 2500.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4,
+  7.4, 750.0, 0.5, 0.25, 10.0, 27.0, 3.0, 4.78, -2.54, -1291, 2580, 1.11, 0.0,
+  2000000.0, 0.0, 0.0, 4500.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4,
   100.0, 100.0, 20.0, 20.0, 1.5, 3.0,
   {192, 168, 0, 188}, {255, 255, 255, 0}, {192, 168, 0, 254}, {8, 8, 8, 8}, {0xA8, 0x61, 0x0A, 0xAE, 0x2C, 0x68},
   0
