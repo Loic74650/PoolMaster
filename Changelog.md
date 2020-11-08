@@ -1,5 +1,12 @@
 PoolMaster: change log
 =======================
+v5.0.1
+-------
+
+* bug fix: filtration start/stop hours now displayed properly on Nextion screen
+* added {"URTC":1} API function. This function launches an automatic update of Date/Time of RTC by sending an NTP request to a time server (requires an internet connection)
+* Updated font color of Nextion screen. Measurement values now displayed in white
+
 v5.0.0
 -------
 

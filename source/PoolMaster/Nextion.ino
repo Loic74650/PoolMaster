@@ -152,6 +152,7 @@ void UpdateTFT()
     TFTStruc.FSto = storage.FiltrationStop;
     TFTStruc.FSta = storage.FiltrationStart;
     String temp = String(TFTStruc.FSta) + F("/") + String(TFTStruc.FSto) + F("h");
+    myNex.writeStr(F("page0.vaStaSto.txt"), temp);
     if (CurrentPage == 0)  myNex.writeStr(F("page0.p0StaSto.txt"), temp);
     else if (CurrentPage == 1)  myNex.writeStr(F("page1.p1StaSto.txt"), temp);
     else if (CurrentPage == 2)  myNex.writeStr(F("page2.p2StaSto.txt"), temp);

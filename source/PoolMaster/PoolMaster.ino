@@ -77,6 +77,7 @@
   {"OrpPIDWSize":3600000}          -> set the window size of the Orp PID loop (in msec), 60mins in this example
   {"PhPIDWSize":3600000}           -> set the window size of the Ph PID loop (in msec), 60mins in this example
   {"Date":[1,1,1,18,13,32,0]}      -> set date/time of RTC module in the following format: (Day of the month, Day of the week, Month, Year, Hour, Minute, Seconds), in this example: Monday 1st January 2018 - 13h32mn00secs
+  {"URTC":1}                       -> Launch automatic update of Date/Time of RTC by sending an NTP request to a time server (requires an internet connection)
   {"FiltT0":9}                     -> set the earliest hour (9:00 in this example) to run filtration pump. Filtration pump will not run beofre that hour
   {"FiltT1":20}                    -> set the latest hour (20:00 in this example) to run filtration pump. Filtration pump will not run after that hour
   {"PubPeriod":30}                 -> set the periodicity (in seconds) at which the system info (pumps states, tank levels states, measured values, etc) will be published to the MQTT broker
@@ -109,7 +110,7 @@
   https://github.com/thijse/Arduino-EEPROMEx (rev 1.0.0)
   https://github.com/EinarArnason/ArduinoQueue
   https://github.com/Loic74650/Pump (rev 0.0.1)
-  https://github.com/PaulStoffregen/Time (rev 1.5)
+  https://github.com/PaulStoffregen/Time (rev 1.5) -> /!\ Bug: in file "Time.cpp" "static const uint8_t monthDays[]={31,28,31,30,31,30,31,31,30,31,30,31};" must be replaced by "static volatile const uint8_t monthDays[]={31,28,31,30,31,30,31,31,30,31,30,31};"
   https://github.com/adafruit/RTClib (rev 1.2.0)
   https://github.com/thomasfredericks/Bounce2 (rev 2.5.2)
   https://github.com/fasteddy516/ButtonEvents  (rev 1.0.1)
@@ -338,8 +339,6 @@ void setup()
   pinMode(PH_MEASURE, INPUT);
   pinMode(PSI_MEASURE, INPUT);
 
-  //8 seconds watchdog timer to reset system in case it freezes for more than 8 seconds
-  wdt_enable(WDTO_8S);
 
   // initialize Ethernet device
   // if the ip config is the default one, use DHCP to allocate an ip otherwise use the eeprom-stored config
@@ -355,6 +354,9 @@ void setup()
     Ethernet.begin(storage.mac, storage.ip, storage.dnsserver, storage.gateway, storage.subnet);
   }
   delay(1500);
+
+  //8 seconds watchdog timer to reset system in case it freezes for more than 8 seconds
+  wdt_enable(WDTO_8S);
 
   // start to listen for clients
   server.begin();
@@ -1683,6 +1685,10 @@ void ProcessCommand(String JSONCommand)
                     storage.FiltrationStopMax = (unsigned int)command[F("FiltT1")];
                     saveConfig();
                     PublishSettings();
+                  }
+                  else if (command.containsKey(F("URTC"))) //"URTC" command which updates RTC date/Time
+                  {
+                    UpdateRTC();
                   }
                   else if (command.containsKey(F("PubPeriod"))) //"PubPeriod" command which sets the periodicity for publishing system info to MQTT broker
                   {
