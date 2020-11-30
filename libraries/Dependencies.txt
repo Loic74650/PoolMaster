@@ -1,19 +1,23 @@
-https://github.com/256dpi/arduino-mqtt/releases (rev 2.4.3)
-https://github.com/CONTROLLINO-PLC/CONTROLLINO_Library (rev 3.0.4)
-https://github.com/PaulStoffregen/OneWire (rev 2.3.4)
-https://github.com/milesburton/Arduino-Temperature-Control-Library (rev 3.7.2)
-https://github.com/RobTillaart/Arduino/tree/master/libraries/RunningMedian (rev 0.1.15)
-https://github.com/prampec/arduino-softtimer (rev 3.1.3)
-https://github.com/bricofoy/yasm (rev 0.9.2)
-https://github.com/br3ttb/Arduino-PID-Library (rev 1.2.0)
-https://github.com/bblanchon/ArduinoJson (rev 5.13.4)
-https://github.com/arduino-libraries/LiquidCrystal (rev 1.0.7)
-https://github.com/thijse/Arduino-EEPROMEx (rev 1.0.0)
-https://github.com/EinarArnason/ArduinoQueue
-https://github.com/Loic74650/Pump (rev 0.0.1)
-https://github.com/PaulStoffregen/Time (rev 1.5)
-https://github.com/adafruit/RTClib (1.2.0)
-https://github.com/JChristensen/JC_Button (rev 2.1.1)
-http://arduiniana.org/libraries/streaming/ (rev 5)
-https://github.com/Seithan/EasyNextionLibrary
-https://github.com/TrippyLighting/EthernetBonjour
+  https://github.com/256dpi/arduino-mqtt/releases (rev 2.4.3)
+  https://github.com/CONTROLLINO-PLC/CONTROLLINO_Library (rev 3.0.4)
+  https://github.com/256dpi/arduino-mqtt/releases (rev 2.4.3)
+  https://github.com/CONTROLLINO-PLC/CONTROLLINO_Library (rev 3.0.4)
+  https://github.com/PaulStoffregen/OneWire (rev 2.3.4)
+  https://github.com/milesburton/Arduino-Temperature-Control-Library (rev 3.7.2)
+  https://github.com/RobTillaart/Arduino/tree/master/libraries/RunningMedian (rev 0.1.15)
+  https://github.com/prampec/arduino-softtimer (rev 3.1.3)
+  https://github.com/bricofoy/yasm (rev 0.9.2)
+  https://github.com/br3ttb/Arduino-PID-Library (rev 1.2.0)
+  https://github.com/bblanchon/ArduinoJson (rev 5.13.4)
+  https://github.com/johnrickman/LiquidCrystal_I2C (rev 1.1.2)
+  https://github.com/thijse/Arduino-EEPROMEx (rev 1.0.0)
+  https://github.com/EinarArnason/ArduinoQueue
+  https://github.com/Loic74650/Pump (rev 0.0.1)
+  https://github.com/PaulStoffregen/Time (rev 1.5) -> /!\ Bug: in file "Time.cpp" "static const uint8_t monthDays[]={31,28,31,30,31,30,31,31,30,31,30,31};" must be replaced by "static volatile const uint8_t monthDays[]={31,28,31,30,31,30,31,31,30,31,30,31};"
+  https://github.com/adafruit/RTClib (rev 1.2.0)
+  https://github.com/thomasfredericks/Bounce2 (rev 2.5.2)
+  https://github.com/fasteddy516/ButtonEvents  (rev 1.0.1)
+  https://github.com/TrippyLighting/EthernetBonjour
+  https://github.com/Seithan/EasyNextionLibrary (rev 1.0.3)
+  http://arduiniana.org/libraries/streaming/ (rev 5)
+  https://github.com/tardate/TextFinder
