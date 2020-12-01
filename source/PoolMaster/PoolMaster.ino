@@ -97,7 +97,7 @@
   {"RstPSICal":1}                   -> call this command to reset the calibration coefficients of the pressure sensor
 
 ***Dependencies and respective revisions used to compile this project***
-https://github.com/256dpi/arduino-mqtt/releases (rev 2.4.3)
+  https://github.com/256dpi/arduino-mqtt/releases (rev 2.4.3)
   https://github.com/CONTROLLINO-PLC/CONTROLLINO_Library (rev 3.0.4)
   https://github.com/256dpi/arduino-mqtt/releases (rev 2.4.3)
   https://github.com/CONTROLLINO-PLC/CONTROLLINO_Library (rev 3.0.4)
@@ -513,7 +513,7 @@ void MQTTConnect()
   if (MQTTClient.connected())
   {
     MQTTConnection = true;
-    
+
     //String PoolTopicAPI = "Home/Pool/Api";
     //Topic to which send/publish API commands for the Pool controls
     MQTTClient.subscribe(PoolTopicAPI);
@@ -882,7 +882,7 @@ void PublishSettings()
     root.set<uint8_t>(F("FDu"), (uint8_t)storage.FiltrationDuration);//Computed filtration duration based on water temperature (hours)
     root.set<uint8_t>(F("FStoM"), (uint8_t)storage.FiltrationStopMax);//Latest hour for the filtration to run. Whatever happens, filtration won't run later than this hour (hour)
     root.set<uint8_t>(F("FSto"), (uint8_t)storage.FiltrationStop);//Computed filtration stop hour, equal to FSta + FDu (hour)
-    root.set<uint8_t>(F("Dpid"), (uint8_t)storage.DelayPIDs);//Delay from FSta for the water regulation/PIDs to start (mins)  
+    root.set<uint8_t>(F("Dpid"), (uint8_t)storage.DelayPIDs);//Delay from FSta for the water regulation/PIDs to start (mins)
     root.set<uint8_t>(F("pHUTL"), (uint8_t)(storage.PhPumpUpTimeLimit / 60)); //Max allowed daily run time for the pH pump (/!\ mins)
     root.set<uint8_t>(F("ChlUTL"), (uint8_t)(storage.ChlPumpUpTimeLimit / 60)); //Max allowed daily run time for the Chl pump (/!\ mins)
 
@@ -1255,9 +1255,9 @@ bool loadConfig()
   Serial << storage.Ph_SetPoint << ", " << storage.Orp_SetPoint << ", " << storage.PSI_HighThreshold << ", " << storage.PSI_MedThreshold << ", " << storage.WaterTempLowThreshold << ", " << storage.WaterTemp_SetPoint << ", " << storage.TempExternal << ", " << storage.pHCalibCoeffs0 << ", " << storage.pHCalibCoeffs1 << ", " << storage.OrpCalibCoeffs0 << ", " << storage.OrpCalibCoeffs1 << ", " << storage.PSICalibCoeffs0 << ", " << storage.PSICalibCoeffs1 << '\n';
   Serial << storage.Ph_Kp << ", " << storage.Ph_Ki << ", " << storage.Ph_Kd << ", " << storage.Orp_Kp << ", " << storage.Orp_Ki << ", " << storage.Orp_Kd << ", " << storage.PhPIDOutput << ", " << storage.OrpPIDOutput << ", " << storage.TempValue << ", " << storage.PhValue << ", " << storage.OrpValue << ", " << storage.PSIValue << '\n';
   Serial << storage.AcidFill << ", " << storage.ChlFill << ", " << storage.pHTankVol << ", " << storage.ChlTankVol << ", " << storage.pHPumpFR << ", " << storage.ChlPumpFR << '\n';
-  Serial << storage.ip[0] << "." << storage.ip[1] << "." << storage.ip[2] << "." << storage.ip[3] << ", " << storage.subnet[0] << "." << storage.subnet[1] << "." << storage.subnet[2] << "." << storage.subnet[3] << ", " << storage.gateway[0] << "." << storage.gateway[1] << "." << storage.gateway[2] << "." << storage.gateway[3] << ", " << storage.dnsserver[0] << "." << storage.dnsserver[1] << "." << storage.dnsserver[2] << "." << storage.dnsserver[3] << ", " << _HEX(storage.mac[0]) << "."  << _HEX(storage.mac[1]) << "."<< _HEX(storage.mac[2]) << "."<< _HEX(storage.mac[3]) << "."<< _HEX(storage.mac[4]) << "."<< _HEX(storage.mac[5]) << '\n';
+  Serial << storage.ip[0] << "." << storage.ip[1] << "." << storage.ip[2] << "." << storage.ip[3] << ", " << storage.subnet[0] << "." << storage.subnet[1] << "." << storage.subnet[2] << "." << storage.subnet[3] << ", " << storage.gateway[0] << "." << storage.gateway[1] << "." << storage.gateway[2] << "." << storage.gateway[3] << ", " << storage.dnsserver[0] << "." << storage.dnsserver[1] << "." << storage.dnsserver[2] << "." << storage.dnsserver[3] << ", " << _HEX(storage.mac[0]) << "."  << _HEX(storage.mac[1]) << "." << _HEX(storage.mac[2]) << "." << _HEX(storage.mac[3]) << "." << _HEX(storage.mac[4]) << "." << _HEX(storage.mac[5]) << '\n';
   Serial << storage.ipConfiged << '\n' << '\n';
-  
+
   return (storage.ConfigVersion == CONFIG_VERSION);
 }
 
@@ -1682,6 +1682,15 @@ void ProcessCommand(String JSONCommand)
                   else if (command.containsKey(F("FiltT0"))) //"FiltT0" command which sets the earliest hour when starting Filtration pump
                   {
                     storage.FiltrationStart = (unsigned int)command[F("FiltT0")];
+                    storage.FiltrationDuration = round(storage.TempValue / 2);
+                    if (storage.FiltrationDuration < 3) storage.FiltrationDuration = 3;
+                    storage.FiltrationStop = storage.FiltrationStart + storage.FiltrationDuration;
+                    if (storage.FiltrationStop > storage.FiltrationStopMax)
+                      storage.FiltrationStop = storage.FiltrationStopMax;
+                    Serial << F("storage.FiltrationStart: ") << storage.FiltrationStart << _endl;
+                    Serial << F("storage.FiltrationStop: ") << storage.FiltrationStop << _endl;
+                    Serial << F("storage.FiltrationDuration: ") << storage.FiltrationDuration << _endl;
+
                     saveConfig();
                     PublishSettings();
                   }
