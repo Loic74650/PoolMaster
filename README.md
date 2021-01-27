@@ -10,12 +10,16 @@
 <br />
 <p align="center"> <img src="/docs/Nextion.png" width="802" title="Nextion 3.5" touch screen"> </p> <br /><br />
 
+<h4>Supported platforms</h4>
+
+<p>The code supports the Atmega2560 microcontroller (eg. Arduino Mega2560 or CONTROLLINO MAXI boards) and it was ported to the <a title="https://github.com/Gixy31/ESP32-PoolMaster" href="https://github.com/Gixy31/ESP32-PoolMaster">ESP32 platform by Gixy31</a> <br />
+
 <h4>Brief description</h4>
 	
 <p>Four main metrics are measured and periodically reported over MQTT and a 3.5" Nextion touch screen: water temperature and pressure, pH and ORP values.<br />
 Pumps states, tank-levels estimates and other parameters are also periodically reported<br />
 Two PID regulation loops are running in parallel: one for PH, one for ORP<br />
-An additional simple (on/off) regulation loop is handling the water temperature (it starts/stops the house-heating system circulator which brings heat to a heat exchanger mounted on the pool water pipes)<br />
+An additional simple (on/off) regulation loop is haling the water temperature (it starts/stops the house-heating system circulator which brings heat to a heat exchanger mounted on the pool water pipes)<br />
 pH is regulated by injecting Acid from a tank into the pool water (a relay starts/stops the Acid peristaltic pump)<br />
 ORP is regulated by injecting Chlorine from a tank into the pool water (a relay starts/stops the Chlorine peristaltic pump)<br />
 Defined time-slots and water temperature are used to start/stop the filtration pump for a daily given amount of time (a relay starts/stops the filtration pump)<br />
