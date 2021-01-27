@@ -1,5 +1,5 @@
 <h2>PoolMaster 5.0.0</h2>
-<h2>Arduino Mega2560 (or Controllino-Maxi) Ph/Orp (Chlorine) regulation system for home pools</h2>
+<h2>Ph/Orp (Chlorine) regulation system for home pools</h2>
 
 <br />
 <p align="center"> <img src="/docs/PoolMaster_2.jpg" width="802" title="Overview"> </p> <br /><br />
@@ -12,7 +12,7 @@
 
 <h4>Supported platforms</h4>
 
-<p>The code supports the Atmega2560 microcontroller (eg. Arduino Mega2560 or CONTROLLINO MAXI boards) and it was ported to the <a title="https://github.com/Gixy31/ESP32-PoolMaster" href="https://github.com/Gixy31/ESP32-PoolMaster">ESP32 platform by Gixy31</a> <br />
+<p>The code supports the Atmega2560 microcontroller (eg. Arduino Mega2560 or CONTROLLINO MAXI boards) and it was ported to the <a title="https://github.com/Gixy31/ESP32-PoolMaster" href="https://github.com/Gixy31/ESP32-PoolMaster">ESP32 platform by @Gixy31</a> <br />
 
 <h4>Brief description</h4>
 	
