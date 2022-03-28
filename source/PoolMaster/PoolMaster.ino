@@ -67,7 +67,7 @@
   {"OrpPID":1} or {"OrpPID":0}     -> start/stop the Orp PID regulation loop
   {"PhCalib":[4.02,3.8,9.0,9.11]}  -> multi-point linear regression calibration (minimum 1 point-couple, 6 max.) in the form [ProbeReading_0, BufferRating_0, xx, xx, ProbeReading_n, BufferRating_n]
   {"OrpCalib":[450,465,750,784]}   -> multi-point linear regression calibration (minimum 1 point-couple, 6 max.) in the form [ProbeReading_0, BufferRating_0, xx, xx, ProbeReading_n, BufferRating_n]
-  {"PSICalib":[0,0,0.71,0.6]}      -> multi-point linear regression calibration (minimum 2 point-couple, 6 max.) in the form [ElectronicPressureSensorReading_0, MechanicalPressureSensorReading_0, xx, xx, ElectronicPressureSensorReading_n, ElectronicPressureSensorReading_n]. Mechanical pressure sensor is typically located on the sand filter
+  {"PSICalib":[0,0,0.71,0.6]}      -> multi-point linear regression calibration (minimum 2 point-couple, 6 max.) in the form [ElectronicPressureSensorReading_0, MechanicalPressureSensorReading_0, xx, xx, ElectronicPressureSensorReading_n, MechanicalPressureSensorReading_n]. Mechanical pressure sensor is typically located on the sand filter
   {"PhSetPoint":7.4}               -> set the Ph setpoint, 7.4 in this example
   {"OrpSetPoint":750.0}            -> set the Orp setpoint, 750mV in this example
   {"WSetPoint":27.0}               -> set the water temperature setpoint, 27.0deg in this example
