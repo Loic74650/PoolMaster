@@ -108,7 +108,7 @@ If the error is positive, the duty cycle is set to a value between 0 and a max v
 So in practice the ouput of the PID.Compute() function is a duration in milliseconds during which the pump will be activated for every cycle.<br /> 
 If for instance, the WINDOW SIZE is set to 3600000ms (ie. one hour) and the output of the PID is 600000ms (ie. 10mins), the pump will be activated for 10mins at the begining of every hour cycle.<br /><br />
 
-<h5>On the default Kp,Ki,Kd parameter values of the PID</h5>
+On the default Kp,Ki,Kd parameter values of the PID:
 By default in this project, Ki and Kd are null for stability reasons and so the PID loop is only a P loop, ie. a proportional loop.<br />
 Adding some Ki and Kd to the PID loop may theoretically increase regulation performance but is also more complex to adjust and could result in instabilities. Since a P-only loop worked well enough and that safety considerations should be taken seriously in this project, I left it as is.<br />
 
@@ -117,7 +117,7 @@ For my 50m3 pool the Kp default values are 2000000 for the pH loop and 4500 for 
 I experimentally checked how much chemical was required to change the measured parameter (pH or Orp) by a certain amount. For instance I determined that 83ml of acid changed the pH by 0.1 for my 50m3 pool. The flow rate of the acid pump being 1.5L/hour, we can then determine for how many minutes the pump should be activated if the pH error is 0.1, which are (0.083*60/1.5) = 3.3minutes or roughly 200000ms.<br /> 
 And so for an error of 1 in the pH PID loop, the pump needs to be activated 10 times longer, ie. during 2000000ms, which should be taken as the Kp value. The same reasoning goes for the Kp value of the Orp PID loop.<br /><br />
 
-<h5>On the WINDOW SIZE</h5>
+On the WINDOW SIZE:
 Various parameters influence the speed at which an injected chemical in the pool water will result in a variation in the measured pH or Orp. <br />
 Experimentally I measured that in my case it can take up to 30minutes and therefore the injection cycle period should be at least 30mins or longer in order not to inject more chemical over the following cycles thinking that it required more when in fact the chemical reactions simply needed more time to take effect, which would eventually result in overshooting.
 So in my case I setlled for a safe one hour WINDOW SIZE (ie. 3600000ms) <br /><br />
