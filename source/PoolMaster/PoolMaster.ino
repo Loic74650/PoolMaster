@@ -462,21 +462,27 @@ void setup()
 
   //Ethernet client check loop
   SoftTimer.add(&t1);
+  t1.init();
 
   //Orp regulation loop
   SoftTimer.add(&t2);
+  t2.init();
 
   //PH regulation loop
   SoftTimer.add(&t3);
+  t3.init();
 
   //Publish loop
   SoftTimer.add(&t4);
+  t4.init();
 
   //Generic loop
   SoftTimer.add(&t5);
+  t5.init();
 
   //Button loop
   SoftTimer.add(&t6);
+  t6.init();
 
   //display remaining RAM space. For debug
   Serial << F("[memCheck]: ") << freeRam() << F("b") << _endl;
