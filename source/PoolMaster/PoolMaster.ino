@@ -116,7 +116,7 @@
   https://github.com/thomasfredericks/Bounce2 (rev 2.5.2)
   https://github.com/fasteddy516/ButtonEvents  (rev 1.0.1)
   https://github.com/TrippyLighting/EthernetBonjour
-  https://github.com/Seithan/EasyNextionLibrary (rev 1.0.3)
+  https://github.com/Seithan/EasyNextionLibrary (rev 1.0.6)
   http://arduiniana.org/libraries/streaming/ (rev 5)
   https://github.com/tardate/TextFinder
 
