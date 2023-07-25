@@ -1,11 +1,11 @@
-<h2>PoolMaster 5.0.0</h2>
+<h2>PoolMaster 6.0.0</h2>
 <h2>Ph/Orp (Chlorine) regulation system for home pools</h2>
 
 <br />
-<p align="center"> <img src="/docs/PoolMaster_2.jpg" width="802" title="Overview"> </p> <br /><br />
+<p align="center"> <img src="/docs/PoolMaster_3.jpg" width="802" title="Overview"> </p> <br /><br />
 
 <br />
-<p align="center"> <img src="/docs/Grafana.png" width="802" title="Dashboard"> </p> <br /><br />
+<p align="center"> <img src="/docs/PoolMasterIntegration.png" width="802" title="Dashboard"> </p> <br /><br />
 
 <br />
 <p align="center"> <img src="/docs/Nextion.png" width="802" title="Nextion 3.5" touch screen"> </p> <br /><br />
@@ -19,7 +19,7 @@
 <p>Four main metrics are measured and periodically reported over MQTT and a 3.5" Nextion touch screen: water temperature and pressure, pH and ORP values.<br />
 Pumps states, tank-levels estimates and other parameters are also periodically reported<br />
 Two PID regulation loops are running in parallel: one for PH, one for ORP<br />
-An additional simple (on/off) regulation loop is haling the water temperature (it starts/stops the house-heating system circulator which brings heat to a heat exchanger mounted on the pool water pipes)<br />
+An additional simple (on/off) regulation loop is handling the water temperature (it starts/stops the house-heating system circulator which brings heat to a heat exchanger mounted on the pool water pipes)<br />
 pH is regulated by injecting Acid from a tank into the pool water (a relay starts/stops the Acid peristaltic pump)<br />
 ORP is regulated by injecting Chlorine from a tank into the pool water (a relay starts/stops the Chlorine peristaltic pump)<br />
 Defined time-slots and water temperature are used to start/stop the filtration pump for a daily given amount of time (a relay starts/stops the filtration pump)<br />
@@ -123,7 +123,7 @@ Experimentally I measured that in my case it can take up to 30minutes and theref
 So in my case I setlled for a safe one hour WINDOW SIZE (ie. 3600000ms) <br /><br />
 
 
-<p align="center"> <img src="/docs/PoolMaster.jpg" width="702" title="Overview"> </p> <br /><br />
+<p align="center"> <img src="/docs/PoolMaster_3.jpg" width="702" title="Overview"> </p> <br /><br />
 <p align="center"> <img src="/docs/PoolMasterBox_pf.jpg" width="702" title="Overview"> </p> <br /><br />
 
 <h4>MQTT API</h4>
@@ -175,8 +175,7 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see hard
 <p>
 <ul>
 <li><a title="https://www.controllino.biz/product/controllino-maxi/" href="https://www.controllino.biz/product/controllino-maxi/">x1 CONTROLLINO MAXI (ATmega2560)</a> or Arduino Mega 2560 + Ethernet shield + relay shield + RTC module</li>
-<li><a title="https://www.phidgets.com/?tier=3&catid=11&pcid=9&prodid=103" href="https://www.phidgets.com/?tier=3&catid=11&pcid=9&prodid=103">x2 Phidgets PH/ORB amplifier modules</a></li> 
-<li><a title="https://www.dfrobot.com/product-1621.html" href="https://www.dfrobot.com/product-1621.html">x2 Galvanic isolator for the pH and Orp probes</a></li> 
+<li><a title="https://github.com/Loic74650/pH_Orp_Board" href="https://github.com/Loic74650/pH_Orp_Board">x1 pH_Orp_Board (digital interface to the pH and Orp probes with galavanic isolation)</a></li> 
 <li><a title="https://www.dosita.it/en/shop/fixed-displacement-peristaltic-pump-mp2-p-230-vac-power-supply/" href="https://www.dosita.it/en/shop/fixed-displacement-peristaltic-pump-mp2-p-230-vac-power-supply/">x2 Peristaltic pumps, suction lances for tanks, pH and Orp probes</a></li>
 <li><a title="http://electrolyseur.fr/pool-terre.html" href="http://electrolyseur.fr/pool-terre.html">x1 Water grounding</a></li>
 <li><a title="http://electrolyseur.fr/kit-sonde-DS18B20-filtration-piscine.html" href="http://electrolyseur.fr/kit-sonde-DS18B20-filtration-piscine.html">x1 Water temperature probe (DS18B20)</a></li>
@@ -204,7 +203,7 @@ See NodeRed folder for more info and code
 <h4>Non-cloud home automation integration example (Node-Red + InfluxDB + Grafana)</h4>
 <p>
 See the NodeRed folder for more info and this <a title="https://www.youtube.com/watch?v=JdV4x925au0" href="https://www.youtube.com/watch?v=JdV4x925au0">tutorial</a> on how to create a Grafana dashboard from MQTT data.<br />
-<p align="center"> <img src="/docs/Grafana.png" width="702" title="Overview"> </p> <br />
+<p align="center"> <img src="/docs/PoolMaster_3.jpg" width="702" title="Overview"> </p> <br />
 <p align="center"> <img src="/docs/NodeRedDashboard.png" width="702" title="Overview"> </p> <br />
 
 </p>

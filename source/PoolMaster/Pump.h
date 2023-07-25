@@ -15,12 +15,12 @@ NB: all timings are in milliseconds
 #define PUMP_VERSION "1.0.1"
 
 //Constants used in some of the functions below
-#define PUMP_ON  0
-#define PUMP_OFF 1
+#define PUMP_ON  1
+#define PUMP_OFF 0
 #define TANK_FULL  1
 #define TANK_EMPTY 0
-#define INTERLOCK_OK  0
-#define INTERLOCK_NOK 1
+#define INTERLOCK_OK  1
+#define INTERLOCK_NOK 0
 #define NO_LEVEL 170           // Pump with tank but without level switch
 #define NO_TANK 255            // Pump without tank
 #define NO_INTERLOCK 255  

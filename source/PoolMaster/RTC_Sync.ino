@@ -61,7 +61,7 @@ void UpdateRTC()
 #else //Mega2560 board specifics
       rtc.adjust(DateTime(epoch));
 #endif
-
+      UpdateNextionRTC(hour(epoch), minute(epoch), second(epoch));
     }
     else
     {

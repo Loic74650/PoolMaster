@@ -1,10 +1,18 @@
 /*
 
   Arduino/Controllino-Maxi/ATmega2560 based Ph/ORP regulator for home pool sysem
-  (c) Loic74 <loic74650@gmail.com> 2018-2020
+  (c) Loic74 <loic74650@gmail.com> 2018-2023
+
 ***how to compile***
   - select the target board type in the Arduino IDE (either "Arduino Mega 2560" or "Controllino Maxi")
-  - in the section below holding all the #define, change the following to refelect the board selected in the IDE (either "#define BOARD CONTRO_MAXI" or "#define BOARD MEGA_2560")
+  - in the Config.h file:
+      - uncomment "#define DEBUG" if you wish debug info on the serial interface
+      - if using a MEGA 2560 board with an Ethernet shield, update the MAC address of the Ethernet shield in order to reflect yours
+      - update the LAN IP address of the MQTT broker ("MqttServerIP") as well as the credentials if any
+      - update address of DS18b20 water temperature sensor ("DS18b20_0")
+      - comment the "#define pHOrpBoard" if you are NOT using the I2C pH_Orp_Board as interface to the pH and Orp probes but rather the analog Phidget boards (PoolMaster V5.0 and earlier)
+
+
 ***Compatibility***
   For this sketch to work on your setup you must change the following in the code:
   - possibly the pinout definitions in case you are not using a CONTROLLINO MAXI board
@@ -15,6 +23,7 @@
   - the Kp,Ki,Kd parameters for both PID loops in case your peristaltic pumps have a different throughput than 1.5Liters/hour for the pH pump and 3.0Liters/hour for the Chlorine pump.
   Also the default Kp values were adjusted for a 50m3 pool volume. You might have to adjust the Kp values in case of a different pool volume and/or peristaltic pumps throughput
   (start by adjusting it proportionally). In any case these parameters are likely to require adjustments for every pool
+
 ***Brief description:***
   Four main metrics are measured and periodically reported over MQTT: water temperature and pressure, PH and ORP values
   Pumps states, tank-level estimates and other parmaters are also periodically reported
@@ -99,8 +108,6 @@
 ***Dependencies and respective revisions used to compile this project***
   https://github.com/256dpi/arduino-mqtt/releases (rev 2.4.3)
   https://github.com/CONTROLLINO-PLC/CONTROLLINO_Library (rev 3.0.4)
-  https://github.com/256dpi/arduino-mqtt/releases (rev 2.4.3)
-  https://github.com/CONTROLLINO-PLC/CONTROLLINO_Library (rev 3.0.4)
   https://github.com/PaulStoffregen/OneWire (rev 2.3.4)
   https://github.com/milesburton/Arduino-Temperature-Control-Library (rev 3.7.2)
   https://github.com/RobTillaart/Arduino/tree/master/libraries/RunningMedian (rev 0.1.15)
@@ -108,13 +115,10 @@
   https://github.com/bricofoy/yasm (rev 0.9.2)
   https://github.com/br3ttb/Arduino-PID-Library (rev 1.2.0)
   https://github.com/bblanchon/ArduinoJson (rev 5.13.4)
-  https://github.com/johnrickman/LiquidCrystal_I2C (rev 1.1.2)
   https://github.com/thijse/Arduino-EEPROMEx (rev 1.0.0)
   https://github.com/EinarArnason/ArduinoQueue
   https://github.com/PaulStoffregen/Time (rev 1.5) -> /!\ Bug: in file "Time.cpp" "static const uint8_t monthDays[]={31,28,31,30,31,30,31,31,30,31,30,31};" must be replaced by "static volatile const uint8_t monthDays[]={31,28,31,30,31,30,31,31,30,31,30,31};"
   https://github.com/adafruit/RTClib (rev 1.2.0)
-  https://github.com/thomasfredericks/Bounce2 (rev 2.5.2)
-  https://github.com/fasteddy516/ButtonEvents  (rev 1.0.1)
   https://github.com/TrippyLighting/EthernetBonjour
   https://github.com/Seithan/EasyNextionLibrary (rev 1.0.6)
   http://arduiniana.org/libraries/streaming/ (rev 5)
@@ -133,19 +137,17 @@
 #include <PID_v1.h>
 #include <Streaming.h>
 #include <Wire.h>
-#include <LiquidCrystal_I2C.h>
 #include <avr/wdt.h>
 #include <stdlib.h>
 #include <ArduinoJson.h>
 #include <EEPROMex.h>
 #include "ArduinoQueue.h"
 #include "Pump.h"
-#include <ButtonEvents.h>
-#include <Bounce2.h>
 #include "EasyNextionLibrary.h"  // Include EasyNextionLibrary
+#include <ADS1115.h>
 
 // Firmware revision
-String Firmw = "5.0.1";
+String Firmw = "6.0.0";
 
 //Starting point address where to store the config data in EEPROM
 #define memoryBase 32
@@ -166,26 +168,7 @@ char Payload[PayloadBufferLength];
 //you wish to connect to (not "Serial" which is used for debug), here Serial2 UART
 EasyNex myNex(Serial2);
 
-//LCD init.
-LiquidCrystal_I2C lcd(0x27, 20, 4); // set the I2C LCD address to 0x27 for a 20 chars and 4 lines display
-bool LCDToggle = true;
-
-//Front panel push button switch used to reset system errors
-//Short press to toggle between LCD screens, double-tap to manually start/stop filtration or Long press to reset system errors (pH and Orp pumps overtime error or Pressure sensor error)
-const byte
-bBUTTON_PIN(PUSH_BUTTON_PIN),              // connect a button switch from this pin to ground
-            bGREEN_LED_PIN(GREEN_LED_PIN),             // Connect cathode of push button green LED to this pin. /!\ select appropriate ballast resistor in series!
-            bRED_LED_PIN(RED_LED_PIN);                 // Connect cathode of push butotn red LED to this pin. /!\ select appropriate ballast resistor in series!
-
-ButtonEvents myButton; //create an instance of the ButtonEvents class to attach to our button
-
 bool EmergencyStopFiltPump = false;             // flag will be (re)set by double-tapp button
-
-bool RedPushButtonLedToggle = false;
-
-//buffers for MQTT string payload
-#define LCD_BufferLength (20*4)+1
-char LCD_Buffer[LCD_BufferLength];
 
 //buffer used to capture HTTP requests
 String readString;
@@ -222,12 +205,19 @@ uint8_t BitMap2 = 0;
 //MQTT publishing periodicity of system info, in msecs
 unsigned long PublishPeriod = 30000;
 
+#if defined(pHOrpBoard) //using the I2C pHOrpBoard as interface to the pH and Orp probes
+//Instance of ADC library to measure pH and Orp using the pH_Orp_Board
+ADS1115 adc;
+#endif
+
 //Signal filtering library. Only used in this case to compute the average
 //over multiple measurements but offers other filtering functions such as median, etc.
 RunningMedian samples_Temp = RunningMedian(10);
 RunningMedian samples_Ph = RunningMedian(10);
 RunningMedian samples_Orp = RunningMedian(10);
 RunningMedian samples_PSI = RunningMedian(3);
+RunningMedian samples_Ph2 = RunningMedian(10);//temporary, for testing pH_Orp_Board
+RunningMedian samples_Orp2 = RunningMedian(10);//temporary, for testing pH_Orp_Board
 
 EthernetServer server(80);      //Create a server at port 80
 EthernetClient net;             //Ethernet client to connect to MQTT server
@@ -253,7 +243,6 @@ void EthernetClientCallback(Task* me);
 void OrpRegulationCallback(Task* me);
 void PHRegulationCallback(Task* me);
 void GenericCallback(Task* me);
-void ButtonCallback(Task* me);
 void PublishDataCallback(Task* me);
 
 Task t1(500, EthernetClientCallback);         //Check for Ethernet client every 0.5 secs
@@ -261,7 +250,19 @@ Task t2(1000, OrpRegulationCallback);         //ORP regulation loop every 1 sec
 Task t3(1100, PHRegulationCallback);          //PH regulation loop every 1.1 sec
 Task t4(PublishInterval, PublishDataCallback);          //Publish data to MQTT broker every 30 secs
 Task t5(600, GenericCallback);                 //Various things handled/updated in this loop every 0.6 secs
-Task t6(10, ButtonCallback);                    //Check Button every 0.01 sec (fast to detect double-tap)
+
+
+#if !defined(CONTROLLINO_MAXI)
+// provide function to sync time with RTC time
+time_t syncTimeRTC() {
+  DateTime now = rtc.now();
+
+  //convert Datetime to time_t
+  time_t tt = now.unixtime();
+
+  return tt;
+}
+#endif
 
 void setup()
 {
@@ -299,10 +300,6 @@ void setup()
   ChlPump.SetFlowRate(storage.ChlPumpFR);
   ChlPump.SetTankVolume(storage.ChlTankVol);
 
-  // set up the I2C LCD
-  lcd.init();                      // initialize the lcd
-  lcd.backlight();
-
   //RTC Stuff (embedded battery operated clock). In case board is MEGA_2560, need to initialize the date time!
 #if defined(CONTROLLINO_MAXI)
   Controllino_RTC_init(0);
@@ -324,8 +321,6 @@ void setup()
   pinMode(FILTRATION_PUMP, OUTPUT);
   pinMode(PH_PUMP, OUTPUT);
   pinMode(CHL_PUMP, OUTPUT);
-  pinMode(GREEN_LED_PIN, OUTPUT);
-  pinMode(RED_LED_PIN, OUTPUT);
   pinMode(HEAT_ON, OUTPUT);
 
   pinMode(RELAY_R1, OUTPUT);
@@ -337,7 +332,6 @@ void setup()
 
   pinMode(CHL_LEVEL, INPUT_PULLUP);
   pinMode(PH_LEVEL, INPUT_PULLUP);
-  pinMode(PUSH_BUTTON_PIN, INPUT_PULLUP);
 
   pinMode(ORP_MEASURE, INPUT);
   pinMode(PH_MEASURE, INPUT);
@@ -390,13 +384,11 @@ void setup()
   //Start temperature measurement state machine
   gettemp.next(gettemp_start);
 
-  // Set status LEDS Correct at power-on
-  if (!PSIError && !PhPump.UpTimeError && !ChlPump.UpTimeError) {
-    digitalWrite(bGREEN_LED_PIN, true);
-  }
-  else {
-    digitalWrite(bRED_LED_PIN, true);
-  }
+#if defined(pHOrpBoard) //using the I2C pHOrpBoard as interface to the pH and Orp probes
+  //Initialize ADC library of pH_Orp_Board
+  Wire.begin();
+  adc.setSpeed(ADS1115_SPEED_8SPS);
+#endif
 
   //start filtration pump at power-on if within scheduled time slots -- You can choose not to do this and start pump manually
   if (storage.AutoMode && (hour() >= storage.FiltrationStart) && (hour() < storage.FiltrationStop))
@@ -411,27 +403,6 @@ void setup()
   MQTTConnect();
 
   PublishSettings();
-
-  //Initialize the front panel push-button object
-
-  myButton.attach(PUSH_BUTTON_PIN);
-  //If your button is connected such that pressing it generates a high signal on the pin, you should specify
-  // that it is "activeHigh" instead of "activeLow".
-  myButton.activeLow();
-  // By default, the raw signal on the input pin has a 35ms debounce applied to it.  You can change the
-  // debounce time if necessary.
-  myButton.debounceTime(50); //apply 50ms debounce
-  // The double-tap detection window is set to 150ms by default.  Decreasing this value will result in
-  // more responsive single-tap events, but requires really fast tapping to trigger a double-tap event.
-  // Increasing this value will allow slower taps to still trigger a double-tap event, but will make
-  // single-tap events more laggy, and can cause taps that were meant to be separate to be treated as
-  // double-taps.  The necessary timing really depends on your use case, but I have found 150ms to be a
-  // reasonable starting point.  If you need to change the double-tap detection window, you can do so
-  // as follows:
-  myButton.doubleTapTime(250); // set double-tap detection window to 250ms
-  // The hold duration can be increased to require longer holds before an event is triggered, or reduced to
-  // have hold events trigger more quickly.
-  myButton.holdTime(2000); // require button to be held for 2000ms before triggering a hold event
 
   //Initialize PIDs
   storage.PhPIDwindowStartTime = millis();
@@ -479,26 +450,12 @@ void setup()
   SoftTimer.add(&t5);
   t5.init();
 
-  //Button loop
-  SoftTimer.add(&t6);
-  t6.init();
+  UpdateRTC();
 
   //display remaining RAM space. For debug
   Serial << F("[memCheck]: ") << freeRam() << F("b") << _endl;
 
 }
-
-#if !defined(CONTROLLINO_MAXI)
-// provide function to sync time with RTC time
-time_t syncTimeRTC() {
-  DateTime now = rtc.now();
-
-  //convert Datetime to time_t
-  time_t tt = now.unixtime();
-
-  return tt;
-}
-#endif
 
 
 //Connect to MQTT broker and subscribe to the PoolTopicAPI topic in order to receive future commands
@@ -562,54 +519,6 @@ void messageReceived(String &topic, String &payload)
   }
 }
 
-//Loop to check Button
-void ButtonCallback(Task* me)
-{
-  //Read the front panel push-button
-
-  // The update() method returns true if an event or state change occurred.  It serves as a passthru
-  // to the Bounce2 library update() function as well, so it will stll return true if a press/release
-  // is detected but has not triggered a tap/double-tap/hold event
-  if (myButton.update() == true) {
-
-    // The event() method returns tap, doubleTap, hold or none depending on which event was detected
-    // the last time the update() method was called.  The following code accomplishes the same thing
-    // we did in the 'Basic' example, but I personally prefer this arrangement.
-    switch (myButton.event()) {
-
-      // things to do if the button was tapped (single tap)
-      case (tap) : {
-          Serial.println(F("TAP event detected"));
-          LCDToggle = !LCDToggle; //toggle LCD screen
-          Serial << F("Push-Button short press. Toggling LCD screen") << endl;
-          break;
-        }
-
-      // things to do if the button was double-tapped
-      case (doubleTap) : {
-          Serial.println("DOUBLE-TAP event detected");
-          String Cmd0 = F("{\"FiltPump\":0}");
-          String Cmd1 = F("{\"FiltPump\":1}");
-
-          if (FiltrationPump.IsRunning()) {
-            queueIn.enqueue(Cmd0);
-          }
-          else {
-            queueIn.enqueue(Cmd1);
-          }
-          break;
-        }
-
-      // things to do if the button was held
-      case (hold) : {
-          Serial.println(F("HOLD event detected"));
-          String Cmd = F("{\"Clear\":1}");
-          queueIn.enqueue(Cmd);
-        }
-    }
-  }
-}
-
 //Loop where various tasks are updated/handled
 void GenericCallback(Task* me)
 {
@@ -628,16 +537,6 @@ void GenericCallback(Task* me)
 
   //UPdate Nextion TFT
   UpdateTFT();
-
-  //If any error flag is true, blink Red push-button LED
-  if (PhPump.UpTimeError || ChlPump.UpTimeError || PSIError || !PhPump.TankLevel() || !ChlPump.TankLevel())
-  {
-    digitalWrite(bGREEN_LED_PIN, false);
-    RedPushButtonLedToggle = !RedPushButtonLedToggle;
-    digitalWrite(bRED_LED_PIN, RedPushButtonLedToggle);
-  }
-  else
-    digitalWrite(bRED_LED_PIN, false);
 
   //update pumps
   HeatCirculatorPump.loop();
@@ -759,16 +658,8 @@ void GenericCallback(Task* me)
   {
     FiltrationPump.Stop();
     PSIError = true;
-    digitalWrite(bRED_LED_PIN, true);
-    digitalWrite(bGREEN_LED_PIN, false);
     MQTTClient.publish(PoolTopicError, F("PSI Error"), true, LWMQTT_QOS1);
   }
-
-  //UPdate LCD
-  if (LCDToggle)
-    LCDScreen1();
-  else
-    LCDScreen2();
 }
 
 //PublishData loop. Publishes system info/data to MQTT broker every XX secs (30 secs by default)
@@ -838,6 +729,8 @@ void PublishDataCallback(Task* me)
     root.set<int>(F("ChlF"), (int)(storage.ChlFill - ChlPump.GetTankUsage()));
     root.set<uint8_t>(F("IO"), BitMap);
     root.set<uint8_t>(F("IO2"), BitMap2);
+    root.set<int>(F("pH2"), (int)(storage.PhValue2 * 100));
+    root.set<int>(F("Orp2"), (int)storage.OrpValue2);
 
     //char Payload[PayloadBufferLength];
     if (jsonBuffer.size() < PayloadBufferLength)
@@ -1132,13 +1025,6 @@ void OrpRegulationCallback(Task * me)
   }
 }
 
-/*//Toggle between LCD screens
-  void LCDCallback(Task* me)
-  {
-  LCDToggle = !LCDToggle;
-  }
-*/
-
 //Enable/Disable Chl PID
 void SetPhPID(bool Enable)
 {
@@ -1222,6 +1108,56 @@ void getMeasures(DeviceAddress deviceAddress_0)
   } else {
     Serial << F("DS18b20_0: ") << storage.TempValue << F("°C") << F(" - ");
   }
+  /*
+    //Ph
+    float ph_sensor_value = analogRead(PH_MEASURE) * 5.0 / 1023.0;                                        // from 0.0 to 5.0 V
+    //storage.PhValue = 7.0 - ((2.5 - ph_sensor_value)/(0.257179 + 0.000941468 * storage.TempValue));     // formula to compute pH which takes water temperature into account
+    //storage.PhValue = (0.0178 * ph_sensor_value * 200.0) - 1.889;                                       // formula to compute pH without taking temperature into account (assumes 27deg water temp)
+    storage.PhValue = (storage.pHCalibCoeffs0 * ph_sensor_value) + storage.pHCalibCoeffs1;                //Calibrated sensor response based on multi-point linear regression
+    samples_Ph.add(storage.PhValue);                                                                      // compute average of pH from last 5 measurements
+    storage.PhValue = samples_Ph.getAverage(10);
+    Serial << F("Ph: ") << storage.PhValue << F(" - ");
+
+    //ORP
+    float orp_sensor_value = analogRead(ORP_MEASURE) * 5.0 / 1023.0;                                      // from 0.0 to 5.0 V
+    //storage.OrpValue = ((2.5 - orp_sensor_value) / 1.037) * 1000.0;                                     // from -2000 to 2000 mV where the positive values are for oxidizers and the negative values are for reducers
+    storage.OrpValue = (storage.OrpCalibCoeffs0 * orp_sensor_value) + storage.OrpCalibCoeffs1;            //Calibrated sensor response based on multi-point linear regression
+    samples_Orp.add(storage.OrpValue);                                                                    // compute average of ORP from last 5 measurements
+    storage.OrpValue = samples_Orp.getAverage(10);
+    Serial << F("Orp: ") << orp_sensor_value << " - " << storage.OrpValue << F("mV") << _endl;
+
+    //Ph2 temporary, for testing pH_Orp_Board
+    float ph_sensor_value2 = adc.convert(ADS1115_CHANNEL23,ADS1115_RANGE_6144) * 6.144 / 16383.0;          // from 0.0 to 5.0 V
+    storage.PhValue2 = (storage.pHCalibCoeffs0 * ph_sensor_value2) + storage.pHCalibCoeffs1;               //Calibrated sensor response based on multi-point linear regression
+    samples_Ph2.add(storage.PhValue2);                                                                     // compute average of pH from last 5 measurements
+    storage.PhValue2 = samples_Ph2.getAverage(10);
+    Serial << F("Ph2: ") << storage.PhValue2 << F(" - ");
+
+    //ORP2 temporary, for testing pH_Orp_Board
+    float orp_sensor_value2 = adc.convert(ADS1115_CHANNEL01,ADS1115_RANGE_6144) * 6.144 / 16383.0;         // from 0.0 to 5.0 V
+    storage.OrpValue2 = (storage.OrpCalibCoeffs0 * orp_sensor_value2) + storage.OrpCalibCoeffs1;           //Calibrated sensor response based on multi-point linear regression
+    samples_Orp2.add(storage.OrpValue2);                                                                   // compute average of ORP from last 5 measurements
+    storage.OrpValue2 = samples_Orp2.getAverage(10);
+    Serial << F("Orp2: ") << orp_sensor_value2 << " - " << storage.OrpValue2 << F("mV") << _endl;
+  */
+
+#if defined(pHOrpBoard) //using the I2C pHOrpBoard as interface to the pH and Orp probes
+
+  //Ph
+  float ph_sensor_value = adc.convert(ADS1115_CHANNEL23, ADS1115_RANGE_6144) * 6.144 / 16383.0;         // from 0.0 to 5.0 V
+  storage.PhValue = (storage.pHCalibCoeffs0 * -ph_sensor_value) + storage.pHCalibCoeffs1;               //Calibrated sensor response based on multi-point linear regression
+  samples_Ph.add(storage.PhValue);                                                                     // compute average of pH from last 5 measurements
+  storage.PhValue = samples_Ph.getAverage(2);
+  Serial << F("Ph: ") << storage.PhValue << F(" - ");
+
+  //ORP
+  float orp_sensor_value = adc.convert(ADS1115_CHANNEL01, ADS1115_RANGE_6144) * 6.144 / 16383.0;        // from 0.0 to 5.0 V
+  storage.OrpValue = (storage.OrpCalibCoeffs0 * orp_sensor_value) + storage.OrpCalibCoeffs1;           //Calibrated sensor response based on multi-point linear regression
+  samples_Orp.add(storage.OrpValue);                                                                   // compute average of ORP from last 5 measurements
+  storage.OrpValue = samples_Orp.getAverage(2);
+  Serial << F("Orp: ") << 2.5 - orp_sensor_value << " - " << storage.OrpValue << F("mV") << _endl;
+
+#else //using the Phidget analog boards (PoolMaster V5.0 and earlier)
 
   //Ph
   float ph_sensor_value = analogRead(PH_MEASURE) * 5.0 / 1023.0;                                        // from 0.0 to 5.0 V
@@ -1231,7 +1167,7 @@ void getMeasures(DeviceAddress deviceAddress_0)
   samples_Ph.add(storage.PhValue);                                                                      // compute average of pH from last 5 measurements
   storage.PhValue = samples_Ph.getAverage(10);
   Serial << F("Ph: ") << storage.PhValue << F(" - ");
-
+  
   //ORP
   float orp_sensor_value = analogRead(ORP_MEASURE) * 5.0 / 1023.0;                                      // from 0.0 to 5.0 V
   //storage.OrpValue = ((2.5 - orp_sensor_value) / 1.037) * 1000.0;                                     // from -2000 to 2000 mV where the positive values are for oxidizers and the negative values are for reducers
@@ -1239,6 +1175,8 @@ void getMeasures(DeviceAddress deviceAddress_0)
   samples_Orp.add(storage.OrpValue);                                                                    // compute average of ORP from last 5 measurements
   storage.OrpValue = samples_Orp.getAverage(10);
   Serial << F("Orp: ") << orp_sensor_value << " - " << storage.OrpValue << F("mV") << _endl;
+
+#endif
 
   //PSI (water pressure)
   float psi_sensor_value = ((analogRead(PSI_MEASURE) * 0.03) - 0.5) * 5.0 / 4.0;                        // from 0.5 to 4.5V -> 0.0 to 5.0 Bar (depends on sensor ref!)                                                                           // Remove this line when sensor is integrated!!!
@@ -1271,63 +1209,6 @@ void saveConfig()
 {
   //update function only writes to eeprom if the value is actually different. Increases the eeprom lifetime
   EEPROM.writeBlock(configAdress, storage);
-}
-
-// Print Screen1 to the LCD.
-void LCDScreen1()
-{
-  //Concatenate data into one buffer then print it ot the 20x4 LCD
-  ///!\LCD driver wrapps lines in a strange order: line 1, then 3, then 2 then 4
-  lcd.setCursor(0, 0);
-  memset(LCD_Buffer, 0, sizeof(LCD_Buffer));
-  char *p = &LCD_Buffer[0];
-  char buff2[10];
-  char buff3[13];
-  uint8_t Nb = 0;
-  uint8_t TNb = 0;
-
-  Nb = sprintf(p, "Rx:%4dmV      ", (int)storage.OrpValue); p += Nb; TNb += Nb;
-  Nb = sprintf(p, "(%3d)", (int)storage.Orp_SetPoint); p += Nb; TNb += Nb;
-  dtostrf(storage.TempValue, 5, 2, buff2);
-  Nb = sprintf(p, "W:%6sC", buff2); p += Nb; TNb += Nb;
-  dtostrf(storage.TempExternal, 1, 1, buff2);
-  sprintf(buff3, "A:%sC", buff2);
-  Nb = sprintf(p, "%11s", buff3); p += Nb; TNb += Nb;
-  dtostrf(storage.PhValue, 4, 2, buff2);
-  Nb = sprintf(p, "pH:%5s      ", buff2); p += Nb; TNb += Nb;
-  dtostrf(storage.Ph_SetPoint, 3, 1, buff2);
-  Nb = sprintf(p, " (%3s)", buff2); p += Nb; TNb += Nb;
-  dtostrf(storage.PSIValue, 4, 2, buff2);
-  Nb = sprintf(p, "P: %4sb      ", buff2); p += Nb; TNb += Nb;
-  Nb = sprintf(p, "%2d/%2dh", storage.FiltrationStart, storage.FiltrationStop); TNb += Nb;
-
-  if (TNb <= sizeof(LCD_Buffer))
-    lcd.print(LCD_Buffer);
-}
-
-// Print Screen2 to the LCD.
-void LCDScreen2()
-{
-  //Concatenate data into one buffer then print it ot the 20x4 LCD
-  ///!\LCD driver wrapps lines in a strange order: line 1, then 3, then 2 then 4
-  //Here we reuse the MQTT Payload buffer while it is not being used
-  lcd.setCursor(0, 0);
-  memset(LCD_Buffer, 0, sizeof(LCD_Buffer));
-  char *p = &LCD_Buffer[0];
-  uint8_t Nb = 0;
-  uint8_t TNb = 0;
-
-  Nb = sprintf(p, "Auto:%d      ", storage.AutoMode); p += Nb; TNb += Nb;
-  Nb = sprintf(p, "%02d:%02d:%02d", hour(), minute(), second()); p += Nb; TNb += Nb;
-  Nb = sprintf(p, "Cl pump:%2dmn  ", (int)(ChlPump.UpTime / 1000 / 60));  p += Nb; TNb += Nb;
-  Nb = sprintf(p, " Err:%d", ChlPump.UpTimeError); p += Nb; TNb += Nb;
-  Nb = sprintf(p, "pH pump:%2dmn  ", (int)(PhPump.UpTime / 1000 / 60)); p += Nb; TNb += Nb;
-  Nb = sprintf(p, " Err:%d", PhPump.UpTimeError); p += Nb; TNb += Nb;
-  Nb = sprintf(p, "pHTk:%3d%%  ", (int)(storage.AcidFill - PhPump.GetTankUsage())); p += Nb; TNb += Nb;
-  Nb = sprintf(p, "ClTk:%3d%%", (int)(storage.ChlFill - ChlPump.GetTankUsage()));  TNb += Nb;
-
-  if (TNb <= sizeof(LCD_Buffer))
-    lcd.print(LCD_Buffer);
 }
 
 void ProcessCommand(String JSONCommand)
@@ -1728,8 +1609,6 @@ void ProcessCommand(String JSONCommand)
                     if (ChlPump.UpTimeError)
                       ChlPump.ClearErrors();
 
-                    digitalWrite(bRED_LED_PIN, false);
-                    digitalWrite(bGREEN_LED_PIN, true);
                     MQTTClient.publish(PoolTopicError, "", true, LWMQTT_QOS1);
 
                     //start filtration pump if within scheduled time slots
