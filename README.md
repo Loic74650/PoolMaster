@@ -175,8 +175,7 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see hard
 <p>
 <ul>
 <li><a title="https://www.controllino.biz/product/controllino-maxi/" href="https://www.controllino.biz/product/controllino-maxi/">x1 CONTROLLINO MAXI (ATmega2560)</a> or Arduino Mega 2560 + Ethernet shield + relay shield + RTC module</li>
-<li><a title="https://www.phidgets.com/?tier=3&catid=11&pcid=9&prodid=103" href="https://www.phidgets.com/?tier=3&catid=11&pcid=9&prodid=103">x2 Phidgets PH/ORB amplifier modules</a></li> 
-<li><a title="https://www.dfrobot.com/product-1621.html" href="https://www.dfrobot.com/product-1621.html">x2 Galvanic isolator for the pH and Orp probes</a></li> 
+<li><a title="https://github.com/Loic74650/pH_Orp_Board" href="https://github.com/Loic74650/pH_Orp_Board">x1 pH_Orp_Board (digital interface to the pH and Orp probes with galavanic isolation)</a></li> 
 <li><a title="https://www.dosita.it/en/shop/fixed-displacement-peristaltic-pump-mp2-p-230-vac-power-supply/" href="https://www.dosita.it/en/shop/fixed-displacement-peristaltic-pump-mp2-p-230-vac-power-supply/">x2 Peristaltic pumps, suction lances for tanks, pH and Orp probes</a></li>
 <li><a title="http://electrolyseur.fr/pool-terre.html" href="http://electrolyseur.fr/pool-terre.html">x1 Water grounding</a></li>
 <li><a title="http://electrolyseur.fr/kit-sonde-DS18B20-filtration-piscine.html" href="http://electrolyseur.fr/kit-sonde-DS18B20-filtration-piscine.html">x1 Water temperature probe (DS18B20)</a></li>
