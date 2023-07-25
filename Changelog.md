@@ -1,5 +1,11 @@
 PoolMaster: change log
 =======================
+v6.0.0
+-------
+
+* replaced the commercial and analog Phidget and Gravity boards by the pH_Orp_Board (https://github.com/Loic74650/pH_Orp_Board) to interface the pH and Orp probes
+* removed the Liquid crystal display from the code
+
 v5.0.1
 -------
 
