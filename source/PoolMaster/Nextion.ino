@@ -38,8 +38,8 @@ void UpdateTFT()
 {
   myNex.NextionListen();
 
-  sprintf(HourBuffer, "%02d:%02d:%02d", hour(), minute(), second());
-  myNex.writeStr("page0.vaTime.txt", HourBuffer);
+  //  sprintf(HourBuffer, "%02d:%02d:%02d", hour(), minute(), second());
+  //  myNex.writeStr("page0.vaTime.txt", HourBuffer);
 
   if (Firmw != TFTStruc.FW)
   {
@@ -364,26 +364,28 @@ void UpdateTFT()
       myNex.writeStr(F("page0.vapHUTErr.val=0"));
   }
 
-  //update time at top of displayed page
-  switch (CurrentPage)
-  {
-    case 0: {
-        myNex.writeStr(F("p0Time.txt"), HourBuffer);
-        break;
-      }
-    case 1: {
-        myNex.writeStr(F("p1Time.txt"), HourBuffer);
-        break;
-      }
-    case 2: {
-        myNex.writeStr(F("p2Time.txt"), HourBuffer);
-        break;
-      }
-    case 3: {
-        myNex.writeStr(F("p3Time.txt"), HourBuffer);
-        break;
-      }
-  }
+  /*
+    //update time at top of displayed page
+    switch (CurrentPage)
+    {
+      case 0: {
+          myNex.writeStr(F("p0Time.txt"), HourBuffer);
+          break;
+        }
+      case 1: {
+          myNex.writeStr(F("p1Time.txt"), HourBuffer);
+          break;
+        }
+      case 2: {
+          myNex.writeStr(F("p2Time.txt"), HourBuffer);
+          break;
+        }
+      case 3: {
+          myNex.writeStr(F("p3Time.txt"), HourBuffer);
+          break;
+        }
+    }
+  */
 }
 
 //reset TFT at start of controller
@@ -567,4 +569,12 @@ void trigger12()
   DEBUG_PRINT(F("Clear errors event"));
   String Cmd = F("{\"Clear\":1}");
   queueIn.enqueue(Cmd);
+}
+
+//Update internal RTC of Nextion
+void UpdateNextionRTC(uint32_t Hour, uint32_t Min, uint32_t Sec)
+{
+  myNex.writeNum(F("rtc3"), Hour);
+  myNex.writeNum(F("rtc4"), Min);
+  myNex.writeNum(F("rtc5"), Sec);
 }

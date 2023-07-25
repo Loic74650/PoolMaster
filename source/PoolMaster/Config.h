@@ -1,6 +1,8 @@
 #include "OneWire.h"
 
-#define DEBUG           ->comment this line to prevent code from writing debug messages to serial port
+//#define DEBUG           ->comment this line to prevent code from writing debug messages to serial port
+#define pHOrpBoard        //->comment this line if your setup is using the Phidget boards ((PoolMaster V5.0 and earlier) as interface to the pH and Orp probes instead of the default pHOrpBoard(https://github.com/Loic74650/pH_Orp_Board)
+
 #include "DebugUtils.h"
 
 #if defined(CONTROLLINO_MAXI) //Controllino Maxi board specifics
@@ -31,11 +33,6 @@
 
 //Analog input pin connected to pressure sensor
 #define PSI_MEASURE CONTROLLINO_A9      //CONTROLLINO_A9 pin A9 on pin header connector, not on screw terminal (/!\)
-
-//Front panel push button switch
-#define PUSH_BUTTON_PIN  CONTROLLINO_A5   //CONTROLLINO_A5 pin A5. Connect a button switch from this pin to ground
-#define GREEN_LED_PIN    CONTROLLINO_D0  //CONTROLLINO_D0). Digital output pin to switch ON/OFF Green LED of push button
-#define RED_LED_PIN      CONTROLLINO_D2  //CONTROLLINO_D2). Digital output pin to switch ON/OFF Red LED of push button
 
 #else //Mega2560 board specifics
 
@@ -75,11 +72,6 @@ RTC_DS3231 rtc;
 //Analog input pin connected to pressure sensor
 #define PSI_MEASURE     A10
 
-//Front panel push button switch
-#define PUSH_BUTTON_PIN  A12   //Connect a button switch from this pin to ground
-#define GREEN_LED_PIN    2  //Digital output pin to switch ON/OFF Green LED of push button
-#define RED_LED_PIN      5  //Digital output pin to switch ON/OFF Red LED of push button
-
 #endif
 
 //One wire bus for the water temperature measurement
@@ -106,7 +98,7 @@ String sArduinoMac;
 
 //Version of config stored in Eeprom
 //Random value. Change this value (to any other value) to revert the config to default values
-#define CONFIG_VERSION 122
+#define CONFIG_VERSION 120
 
 //interval (in miilisec) between MQTT publishes of measurement data
 #define PublishInterval 30000
@@ -120,7 +112,7 @@ struct StoreStruct
   unsigned long PhPumpUpTimeLimit, ChlPumpUpTimeLimit;
   unsigned long PhPIDWindowSize, OrpPIDWindowSize, PhPIDwindowStartTime, OrpPIDwindowStartTime;
   double Ph_SetPoint, Orp_SetPoint, PSI_HighThreshold, PSI_MedThreshold, WaterTempLowThreshold, WaterTemp_SetPoint, TempExternal, pHCalibCoeffs0, pHCalibCoeffs1, OrpCalibCoeffs0, OrpCalibCoeffs1, PSICalibCoeffs0, PSICalibCoeffs1;
-  double Ph_Kp, Ph_Ki, Ph_Kd, Orp_Kp, Orp_Ki, Orp_Kd, PhPIDOutput, OrpPIDOutput, TempValue, PhValue, OrpValue, PSIValue;
+  double Ph_Kp, Ph_Ki, Ph_Kd, Orp_Kp, Orp_Ki, Orp_Kd, PhPIDOutput, OrpPIDOutput, TempValue, PhValue, OrpValue, PSIValue, PhValue2, OrpValue2;
   double AcidFill, ChlFill, pHTankVol, ChlTankVol, pHPumpFR, ChlPumpFR;
   byte ip[4], subnet[4], gateway[4], dnsserver[4], mac[6];
   bool ipConfiged;
@@ -131,35 +123,20 @@ struct StoreStruct
   8, 13, 21, 20, 120,
   900, 2500,
   3000000, 3600000, 0, 0,
+#if defined(pHOrpBoard) //using the I2C pHOrpBoard as interface to the pH and Orp probes
+  7.4, 750.0, 0.5, 0.25, 10.0, 27.0, 3.0, 1.15, 6.97, 244.42, -18.15, 1.11, 0.00,
+#else
   7.4, 750.0, 0.5, 0.25, 10.0, 27.0, 3.0, 4.78, -2.54, -1291, 2580, 1.11, 0.0,
-  2000000.0, 0.0, 0.0, 4500.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4,
+#endif
+  2000000.0, 0.0, 0.0, 4500.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4, 0.0, 0.0,
   100.0, 100.0, 20.0, 20.0, 1.5, 3.0,
   {192, 168, 0, 188}, {255, 255, 255, 0}, {192, 168, 0, 254}, {8, 8, 8, 8}, {0xA8, 0x61, 0x0A, 0xAE, 0x2C, 0x68},
   0
 };
 
-  // MAC address of Ethernet shield (in case of Controllino board, set an arbitrary MAC address)
-  byte mac[] = { 0xA8, 0x61, 0x0A, 0xAE, 0x65, 0x04}; //-> Mega2560 dev setup with Ethernet shield
-/*
-  //MQTT stuff including local broker/server IP address, login and pwd
-  MQTTClient MQTTClient;
-  const char* MqttServerIP = "192.168.0.38";
-  //const char* MqttServerIP = "broker.mqttdashboard.com";//cloud-based MQTT broker to test when node-red and MQTT broker are not installed locally (/!\ public and unsecure!)
-  const char* MqttServerClientID = "ArduinoPoolTest"; // /!\ choose a client ID which is unique to this Arduino board
-  const char* MqttServerLogin = nullptr;  //replace by const char* MqttServerLogin = nullptr; in case broker does not require a login/pwd
-  const char* MqttServerPwd = nullptr; //replace by const char* MqttServerPwd = nullptr; in case broker does not require a login/pwd
-  const char* PoolTopicMeas1 = "Home/PoolTest/Meas1";
-  const char* PoolTopicMeas2 = "Home/PoolTest/Meas2";
-  const char* PoolTopicSet1 = "Home/PoolTest/Set1";
-  const char* PoolTopicSet2 = "Home/PoolTest/Set2";
-  const char* PoolTopicSet3 = "Home/PoolTest/Set3";
-  const char* PoolTopicSet4 = "Home/PoolTest/Set4";
-  const char* PoolTopicSet5 = "Home/PoolTest/Set5";
-  const char* PoolTopicAPI = "Home/PoolTest/API";
-  const char* PoolTopicStatus = "Home/PoolTest/status";
-  const char* PoolTopicError = "Home/PoolTest/Err";
+// MAC address of Ethernet shield (in case of Controllino board, set an arbitrary MAC address)
+byte mac[] = { 0xA8, 0x61, 0x0A, 0xAE, 0x65, 0x04}; //-> Mega2560 dev setup with Ethernet shield
 
-*/
 //MQTT stuff including local broker/server IP address, login and pwd
 MQTTClient MQTTClient;
 const char* MqttServerIP = "192.168.0.38";
