@@ -111,13 +111,12 @@
   https://github.com/johnrickman/LiquidCrystal_I2C (rev 1.1.2)
   https://github.com/thijse/Arduino-EEPROMEx (rev 1.0.0)
   https://github.com/EinarArnason/ArduinoQueue
-  https://github.com/Loic74650/Pump (rev 0.0.1)
   https://github.com/PaulStoffregen/Time (rev 1.5) -> /!\ Bug: in file "Time.cpp" "static const uint8_t monthDays[]={31,28,31,30,31,30,31,31,30,31,30,31};" must be replaced by "static volatile const uint8_t monthDays[]={31,28,31,30,31,30,31,31,30,31,30,31};"
   https://github.com/adafruit/RTClib (rev 1.2.0)
   https://github.com/thomasfredericks/Bounce2 (rev 2.5.2)
   https://github.com/fasteddy516/ButtonEvents  (rev 1.0.1)
   https://github.com/TrippyLighting/EthernetBonjour
-  https://github.com/Seithan/EasyNextionLibrary (rev 1.0.3)
+  https://github.com/Seithan/EasyNextionLibrary (rev 1.0.6)
   http://arduiniana.org/libraries/streaming/ (rev 5)
   https://github.com/tardate/TextFinder
 
@@ -140,7 +139,7 @@
 #include <ArduinoJson.h>
 #include <EEPROMex.h>
 #include "ArduinoQueue.h"
-#include <Pump.h>
+#include "Pump.h"
 #include <ButtonEvents.h>
 #include <Bounce2.h>
 #include "EasyNextionLibrary.h"  // Include EasyNextionLibrary
@@ -462,21 +461,27 @@ void setup()
 
   //Ethernet client check loop
   SoftTimer.add(&t1);
+  t1.init();
 
   //Orp regulation loop
   SoftTimer.add(&t2);
+  t2.init();
 
   //PH regulation loop
   SoftTimer.add(&t3);
+  t3.init();
 
   //Publish loop
   SoftTimer.add(&t4);
+  t4.init();
 
   //Generic loop
   SoftTimer.add(&t5);
+  t5.init();
 
   //Button loop
   SoftTimer.add(&t6);
+  t6.init();
 
   //display remaining RAM space. For debug
   Serial << F("[memCheck]: ") << freeRam() << F("b") << _endl;

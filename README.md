@@ -97,6 +97,31 @@ b/ the ORP reading is strongly affected by the pH value and the water temperatur
 c/ prefer platinium ORP probes for setpoints >500mV (ie. Pools and spas)<br />
 e/ the response time of ORP sensors can be fast in reference buffer solutions (10 secs) and yet very slow in pool water (minutes or more) as it depends on the water composition <br /><br />
 
+<h4>Details on the PID regulation</h4>
+<p>
+In this project the Arduino PID library is used to start/stop the chemicals pumps in a cyclic manner, similar to a "PWM" signal.<br />
+The period of the cycle is defined by the WINDOW SIZE parameter which is fixed (in Milliseconds). What the PID library does is vary the duty cycle of the cycle.<br /> 
+
+If the computed error in the PID loop is null or negative, the duty cycle is set to zero (the ouput of the function PID.Compute()) and the pump is never actuated.<br />
+If the error is positive, the duty cycle is set to a value between 0 and a max value (equal to the WINDOW SIZE, ie. the pump is running full time).<br /> 
+
+So in practice the ouput of the PID.Compute() function is a duration in milliseconds during which the pump will be activated for every cycle.<br /> 
+If for instance, the WINDOW SIZE is set to 3600000ms (ie. one hour) and the output of the PID is 600000ms (ie. 10mins), the pump will be activated for 10mins at the begining of every hour cycle.<br /><br />
+
+On the default Kp,Ki,Kd parameter values of the PID:<br />
+By default in this project, Ki and Kd are null for stability reasons and so the PID loop is only a P loop, ie. a proportional loop.<br />
+Adding some Ki and Kd to the PID loop may theoretically increase regulation performance but is also more complex to adjust and could result in instabilities. Since a P-only loop worked well enough and that safety considerations should be taken seriously in this project, I left it as is.<br />
+
+For my 50m3 pool the Kp default values are 2000000 for the pH loop and 4500 for the Orp loop. They were chosen experimentally in the following way:<br />
+
+I experimentally checked how much chemical was required to change the measured parameter (pH or Orp) by a certain amount. For instance I determined that 83ml of acid changed the pH by 0.1 for my 50m3 pool. The flow rate of the acid pump being 1.5L/hour, we can then determine for how many minutes the pump should be activated if the pH error is 0.1, which are (0.083*60/1.5) = 3.3minutes or roughly 200000ms.<br /> 
+And so for an error of 1 in the pH PID loop, the pump needs to be activated 10 times longer, ie. during 2000000ms, which should be taken as the Kp value. The same reasoning goes for the Kp value of the Orp PID loop.<br /><br />
+
+On the WINDOW SIZE:<br />
+Various parameters influence the speed at which an injected chemical in the pool water will result in a variation in the measured pH or Orp. <br />
+Experimentally I measured that in my case it can take up to 30minutes and therefore the injection cycle period should be at least 30mins or longer in order not to inject more chemical over the following cycles thinking that it required more when in fact the chemical reactions simply needed more time to take effect, which would eventually result in overshooting.
+So in my case I setlled for a safe one hour WINDOW SIZE (ie. 3600000ms) <br /><br />
+
 
 <p align="center"> <img src="/docs/PoolMaster.jpg" width="702" title="Overview"> </p> <br /><br />
 <p align="center"> <img src="/docs/PoolMasterBox_pf.jpg" width="702" title="Overview"> </p> <br /><br />
