@@ -106,7 +106,7 @@
   {"RstPSICal":1}                   -> call this command to reset the calibration coefficients of the pressure sensor
 
 ***Dependencies and respective revisions used to compile this project***
-  https://github.com/256dpi/arduino-mqtt/releases (rev 2.4.3)
+ https://github.com/256dpi/arduino-mqtt/releases (rev 2.4.3)
   https://github.com/CONTROLLINO-PLC/CONTROLLINO_Library (rev 3.0.4)
   https://github.com/PaulStoffregen/OneWire (rev 2.3.4)
   https://github.com/milesburton/Arduino-Temperature-Control-Library (rev 3.7.2)
@@ -123,7 +123,7 @@
   https://github.com/Seithan/EasyNextionLibrary (rev 1.0.6)
   http://arduiniana.org/libraries/streaming/ (rev 5)
   https://github.com/tardate/TextFinder
-  https://lygte-info.dk/project/ADS1115Library%20UK.html (rev 1.0.0)
+  https://lygte-info.dk/pic/Projects/ADS1115Library/ADS1115.zip (rev 1.0.0)  -> documentation here: https://lygte-info.dk/project/ADS1115Library%20UK.html
 
 */
 #include "Config.h"
