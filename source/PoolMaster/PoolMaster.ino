@@ -123,6 +123,7 @@
   https://github.com/Seithan/EasyNextionLibrary (rev 1.0.6)
   http://arduiniana.org/libraries/streaming/ (rev 5)
   https://github.com/tardate/TextFinder
+  https://lygte-info.dk/project/ADS1115Library%20UK.html (rev 1.0.0)
 
 */
 #include "Config.h"
