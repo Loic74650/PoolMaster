@@ -1107,7 +1107,7 @@ void getMeasures(DeviceAddress deviceAddress_0)
   if (storage.TempValue == -127.00) {
     Serial << F("Error getting temperature from DS18b20_0") << _endl;
   } else {
-    Serial << F("DS18b20_0: ") << storage.TempValue << F("°C") << F(" - ");
+    Serial << F("DS18b20_0: ") << storage.TempValue << F("°C") << _endl;
   }
   /*
     //Ph
@@ -1149,14 +1149,14 @@ void getMeasures(DeviceAddress deviceAddress_0)
   storage.PhValue = (storage.pHCalibCoeffs0 * -ph_sensor_value) + storage.pHCalibCoeffs1;               //Calibrated sensor response based on multi-point linear regression
   samples_Ph.add(storage.PhValue);                                                                     // compute average of pH from last 5 measurements
   storage.PhValue = samples_Ph.getAverage(2);
-  Serial << F("Ph: ") << storage.PhValue << F(" - ");
+  Serial << F("Ph: ") << (2.5 - ph_sensor_value)*1000.0 << F("mV - ") << storage.PhValue  << _endl;
 
   //ORP
   float orp_sensor_value = adc.convert(ADS1115_CHANNEL01, ADS1115_RANGE_6144) * 6.144 / 16383.0;        // from 0.0 to 5.0 V
   storage.OrpValue = (storage.OrpCalibCoeffs0 * orp_sensor_value) + storage.OrpCalibCoeffs1;           //Calibrated sensor response based on multi-point linear regression
   samples_Orp.add(storage.OrpValue);                                                                   // compute average of ORP from last 5 measurements
   storage.OrpValue = samples_Orp.getAverage(2);
-  Serial << F("Orp: ") << 2.5 - orp_sensor_value << " - " << storage.OrpValue << F("mV") << _endl;
+  Serial << F("Orp: ") << (2.5 - orp_sensor_value)*1000.0 << F("mV - ") << storage.OrpValue << F("mV") << _endl;
 
 #else //using the Phidget analog boards (PoolMaster V5.0 and earlier)
 
