@@ -1,7 +1,7 @@
 unsigned int localPort = 8888;                  // local port to listen for UDP packets
 // IPAddress timeServer(193, 190, 147, 153);    // be.pool.ntp.org NTP server
 IPAddress timeServer(212, 18, 3, 19);           // pool.ntp.org NTP server
-int timeZOffset = 2;                            // timezone offset in hours (2 for CET)
+int timeZOffset = 1;                            // timezone offset in hours (2 for CET)
 const int NTP_PACKET_SIZE = 48;                 // NTP time stamp is in the first 48 bytes of the message
 byte packetBuffer[NTP_PACKET_SIZE];                       // buffer to hold incoming and outgoing packets for NTP server
 
@@ -39,9 +39,24 @@ void UpdateRTC()
       unsigned long secsSince1900 = highWord << 16 | lowWord;
       const unsigned long seventyYears = 2208988800UL;
       unsigned long epoch = secsSince1900 - seventyYears;
-      epoch += (timeZOffset * 3600L);
 
-      String ts = "timestamp: " + String(epoch);
+      // Adjustment Daylight Saving Time (DST)
+      if (weekday() == 7 && month() == 10 && day() >= 25 && storage.DST == 1)
+      {
+        storage.DST = 0;
+        saveConfig();
+      }
+      if (weekday() == 7 && month() == 3 && day() >= 25 && storage.DST == 0)
+      {
+        storage.DST = 1;
+        saveConfig();
+      }
+
+      epoch += ((timeZOffset + storage.DST) * 3600L);
+
+      String ts = "storage.DST: " + String(storage.DST);
+      DEBUG_PRINT(ts);
+      ts = "timestamp: " + String(epoch);
       DEBUG_PRINT(ts);
 
       setTime(epoch);
