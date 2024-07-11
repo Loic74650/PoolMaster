@@ -1,0 +1,2867 @@
+[
+    {
+        "id": "b366a6c8.9010b8",
+        "type": "tab",
+        "label": "PoolMaster Oper DashBoard",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "1348dd89.f4cefa",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "Slider input to JSON",
+        "func": "if(msg.payload != \"0\")\n    msg.payload = {\"PhSetPoint\":msg.payload};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 1935,
+        "y": 466,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "931a17a3.e35068",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "Slider input to JSON",
+        "func": "if(msg.payload != \"0\")\n    msg.payload = {\"OrpSetPoint\":msg.payload};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 1935,
+        "y": 506,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "621e6488.cd65b4",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "Slider input to JSON",
+        "func": "if(msg.payload != \"0\")\n    msg.payload = {\"WSetPoint\":msg.payload};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 1935,
+        "y": 546,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "c0a10377.350b5",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "Dropdown input to JSON",
+        "func": "if(msg.payload != \"0\")\n    msg.payload = {\"FiltT0\":msg.payload};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 1955,
+        "y": 26,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "32a178af.9b7c58",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "Dropdown input to JSON",
+        "func": "if(msg.payload != \"0\")\n    msg.payload = {\"FiltT1\":msg.payload};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 1955,
+        "y": 66,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "2bdd1861.f6262",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "NumInput input to JSON",
+        "func": "if(msg.payload != \"0\")\n    msg.payload = {\"PubPeriod\":msg.payload};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 1945,
+        "y": 106,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "f920af.00bd675",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "NumInput input to JSON",
+        "func": "if(msg.payload != \"0\")\n    msg.payload = {\"PumpsMaxUp\":msg.payload*60};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 1945,
+        "y": 186,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "3823f636.798a8a",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "NumInput input to JSON",
+        "func": "//if(msg.payload != \"0\")\n    msg.payload = {\"DelayPID\":msg.payload};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 1945,
+        "y": 146,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "7dcf290b.29be8",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "NumInput input to JSON",
+        "func": "if(msg.payload != \"0\")\n    msg.payload = {\"PSIHigh\":msg.payload};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 1945,
+        "y": 226,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "3f1c0fb2.d36628",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "FormInput input to JSON",
+        "func": "if(msg.payload != { \"Volume_pH\": 0, \"Fill_pH\": 0 })\n    msg.payload = {\"pHTank\":[msg.payload.Volume_pH,msg.payload.Fill_pH]};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 1955,
+        "y": 666,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "e64a73a2.237fa8",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "FormInput input to JSON",
+        "func": "if(msg.payload != { \"Volume_Chl\": 0, \"Fill_Chl\": 0 })\n    msg.payload = {\"ChlTank\":[msg.payload.Volume_Chl,msg.payload.Fill_Chl]};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 1955,
+        "y": 706,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "d0593b01.8facb8",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "NumInput input to JSON",
+        "func": "if(msg.payload != \"20\")\n    msg.payload = {\"WTempLow\":msg.payload};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 1945,
+        "y": 306,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "300189b6.6ecdee",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "FormInput input to JSON",
+        "func": "if(typeof msg.payload.DV1 !== 'undefined')\n{\n    var DV1=msg.payload.DV1;\n    var BV1=msg.payload.BV1;\n    var DV2=msg.payload.DV2;\n    var BV2=msg.payload.BV2;\n    var DV3=msg.payload.DV3;\n    var BV3=msg.payload.BV3;\n    var DV4=msg.payload.DV4;\n    var BV4=msg.payload.BV4;\n    var DV5=msg.payload.DV5;\n    var BV5=msg.payload.BV5;\n    var DV6=msg.payload.DV6;\n    var BV6=msg.payload.BV6;\n   if(DV1!==0 & BV1!==0 & DV2!==0 & BV2!==0 & DV3!==0 & BV3!==0 & DV4!==0 & BV4!==0 & DV5!==0 & BV5!==0 & DV6!==0 & BV6!==0)\n   {\n    msg.payload = {\"F_PhCalib\":[DV1,BV1,DV2,BV2,DV3,BV3,DV4,BV4,DV5,BV5,DV6,BV6]};\n   }\n   if(DV1!==0 & BV1!==0 & DV2!==0 & BV2!==0 & DV3!==0 & BV3!==0 & DV4!==0 & BV4!==0 & DV5!==0 & BV5!==0 & DV6===null & BV6===null)\n   {\n    msg.payload = {\"F_PhCalib\":[DV1,BV1,DV2,BV2,DV3,BV3,DV4,BV4,DV5,BV5]};\n   }\n   if(DV1!==0 & BV1!==0 & DV2!==0 & BV2!==0 & DV3!==0 & BV3!==0 & DV4!==0 & BV4!==0 & DV5===null & BV5===null & DV6===null & BV6===null)\n   {\n    msg.payload = {\"F_PhCalib\":[DV1,BV1,DV2,BV2,DV3,BV3,DV4,BV4]};\n   }\n   if(DV1!==0 & BV1!==0 & DV2!==0 & BV2!==0 & DV3!==0 & BV3!==0 & DV4===null & BV4===null & DV5===null & BV5===null & DV6===null & BV6===null)\n   {\n    msg.payload = {\"F_PhCalib\":[DV1,BV1,DV2,BV2,DV3,BV3]};\n   }\n   if(DV1!==0 & BV1!==0 & DV2!==0 & BV2!==0 & DV3===null & BV3===null & DV4===null & BV4===null & DV5===null & BV5===null & DV6===null & BV6===null)\n   {\n    msg.payload = {\"F_PhCalib\":[DV1,BV1,DV2,BV2,]};\n   }\n    return msg\n}\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 2495,
+        "y": 1266,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "37240362.29839c",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "FormInput input to JSON",
+        "func": "if(typeof msg.payload.DV1 !== 'undefined')\n{\n    var DV1=msg.payload.DV1;\n    var BV1=msg.payload.BV1;\n    var DV2=msg.payload.DV2;\n    var BV2=msg.payload.BV2;\n    var DV3=msg.payload.DV3;\n    var BV3=msg.payload.BV3;\n    var DV4=msg.payload.DV4;\n    var BV4=msg.payload.BV4;\n    var DV5=msg.payload.DV5;\n    var BV5=msg.payload.BV5;\n    var DV6=msg.payload.DV6;\n    var BV6=msg.payload.BV6;\n   if(DV1!==0 & BV1!==0 & DV2!==0 & BV2!==0 & DV3!==0 & BV3!==0 & DV4!==0 & BV4!==0 & DV5!==0 & BV5!==0 & DV6!==0 & BV6!==0)\n   {\n    msg.payload = {\"F_OrpCalib\":[DV1,BV1,DV2,BV2,DV3,BV3,DV4,BV4,DV5,BV5,DV6,BV6]};\n   }\n   if(DV1!==0 & BV1!==0 & DV2!==0 & BV2!==0 & DV3!==0 & BV3!==0 & DV4!==0 & BV4!==0 & DV5!==0 & BV5!==0 & DV6===null & BV6===null)\n   {\n    msg.payload = {\"F_OrpCalib\":[DV1,BV1,DV2,BV2,DV3,BV3,DV4,BV4,DV5,BV5]};\n   }\n   if(DV1!==0 & BV1!==0 & DV2!==0 & BV2!==0 & DV3!==0 & BV3!==0 & DV4!==0 & BV4!==0 & DV5===null & BV5===null & DV6===null & BV6===null)\n   {\n    msg.payload = {\"F_OrpCalib\":[DV1,BV1,DV2,BV2,DV3,BV3,DV4,BV4]};\n   }\n   if(DV1!==0 & BV1!==0 & DV2!==0 & BV2!==0 & DV3!==0 & BV3!==0 & DV4===null & BV4===null & DV5===null & BV5===null & DV6===null & BV6===null)\n   {\n    msg.payload = {\"F_OrpCalib\":[DV1,BV1,DV2,BV2,DV3,BV3]};\n   }\n   if(DV1!==0 & BV1!==0 & DV2!==0 & BV2!==0 & DV3===null & BV3===null & DV4===null & BV4===null & DV5===null & BV5===null & DV6===null & BV6===null)\n   {\n    msg.payload = {\"F_OrpCalib\":[DV1,BV1,DV2,BV2,]};\n   }\n    return msg\n}\n",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 2495,
+        "y": 1306,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "c8eb9eeb.354a1",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "FormInput input to JSON",
+        "func": "if(typeof msg.payload.DV1 !== 'undefined')\n{\n    var DV1=msg.payload.DV1;\n    var BV1=msg.payload.BV1;\n    var DV2=msg.payload.DV2;\n    var BV2=msg.payload.BV2;\n    var DV3=msg.payload.DV3;\n    var BV3=msg.payload.BV3;\n    var DV4=msg.payload.DV4;\n    var BV4=msg.payload.BV4;\n    var DV5=msg.payload.DV5;\n    var BV5=msg.payload.BV5;\n    var DV6=msg.payload.DV6;\n    var BV6=msg.payload.BV6;\n   if(DV1!==0 & BV1!==0 & DV2!==0 & BV2!==0 & DV3!==0 & BV3!==0 & DV4!==0 & BV4!==0 & DV5!==0 & BV5!==0 & DV6!==0 & BV6!==0)\n   {\n    msg.payload = {\"F_PSICalib\":[DV1,BV1,DV2,BV2,DV3,BV3,DV4,BV4,DV5,BV5,DV6,BV6]};\n   }\n   if(DV1!==0 & BV1!==0 & DV2!==0 & BV2!==0 & DV3!==0 & BV3!==0 & DV4!==0 & BV4!==0 & DV5!==0 & BV5!==0 & DV6===null & BV6===null)\n   {\n    msg.payload = {\"F_PSICalib\":[DV1,BV1,DV2,BV2,DV3,BV3,DV4,BV4,DV5,BV5]};\n   }\n   if(DV1!==0 & BV1!==0 & DV2!==0 & BV2!==0 & DV3!==0 & BV3!==0 & DV4!==0 & BV4!==0 & DV5===null & BV5===null & DV6===null & BV6===null)\n   {\n    msg.payload = {\"F_PSICalib\":[DV1,BV1,DV2,BV2,DV3,BV3,DV4,BV4]};\n   }\n   if(DV1!==0 & BV1!==0 & DV2!==0 & BV2!==0 & DV3!==0 & BV3!==0 & DV4===null & BV4===null & DV5===null & BV5===null & DV6===null & BV6===null)\n   {\n    msg.payload = {\"F_PSICalib\":[DV1,BV1,DV2,BV2,DV3,BV3]};\n   }\n   if(DV1!==0 & BV1!==0 & DV2!==0 & BV2!==0 & DV3===null & BV3===null & DV4===null & BV4===null & DV5===null & BV5===null & DV6===null & BV6===null)\n   {\n    msg.payload = {\"F_PSICalib\":[DV1,BV1,DV2,BV2,]};\n   }\n    return msg\n}\n",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 2495,
+        "y": 1346,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "3eefa82.063dcd8",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "FormInput input to JSON",
+        "func": "if(msg.payload != { KP: 0, KI: 0, KD:0 })\n    msg.payload = {\"PhPIDParams\":[msg.payload.KP,msg.payload.KI,msg.payload.KD]};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 1955,
+        "y": 586,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "a6b4f936.46eb88",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "FormInput input to JSON",
+        "func": "if(msg.payload != { KP: 0, KI: 0, KD:0 })\n    msg.payload = {\"OrpPIDParams\":[msg.payload.KP,msg.payload.KI,msg.payload.KD]};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "x": 1955,
+        "y": 626,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "93ada175.449b7",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "Split Meas1 Message",
+        "func": "if(msg.topic == \"Home/Pool/Meas1\")\n{\n    var msg0={};\n    var msg1={};\n    var msg2={};\n    var msg3={};\n    var msg4={};\n    var msg5={};\n    var msg6={};\n    var msg7={};\n \n    msg0.payload = msg.payload.TE/100.0; //External temperature\n    msg0.topic   = \"TE\";\n    msg1.payload = msg.payload.Tmp/100.0;//W temp\n    msg1.topic   = \"Tmp\";\n    msg2.payload = msg.payload.pH/100.0;//pH\n    msg2.topic   = \"pH\";\n    msg3.payload = msg.payload.PSI/100.0;//PSI\n    msg3.topic   = \"PSI\";\n    msg4.payload = msg.payload.Orp/10;//Orp\n    msg4.topic   = \"Orp\";\n    msg5.payload = msg.payload.FilUpT/60.0;//Filtration Uptime\n    msg6.payload = msg.payload.PhUpT/60.0;//pH Uptime\n    msg7.payload = msg.payload.ChlUpT/60.0;//Chl Uptime\n  \n    \n    return [msg0,msg1,msg2,msg3,msg4,msg5,msg6,msg7];\n}",
+        "outputs": 8,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 625,
+        "y": 1226,
+        "wires": [
+            [
+                "39e3ddcd.b8af02",
+                "4a09582f.236ae",
+                "a035e831.e73038"
+            ],
+            [
+                "39e3ddcd.b8af02",
+                "53553768.aeb74",
+                "19aac1b7.406e26"
+            ],
+            [
+                "39e3ddcd.b8af02",
+                "fa4ef4a9.7088c"
+            ],
+            [
+                "39e3ddcd.b8af02",
+                "eb85d306.592b28"
+            ],
+            [
+                "39e3ddcd.b8af02",
+                "b45fa92a.6fc92"
+            ],
+            [],
+            [
+                "b2daf3ad.7bccd"
+            ],
+            [
+                "157cbe33.672132"
+            ]
+        ]
+    },
+    {
+        "id": "98f37548.b363f",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "Split IO mask",
+        "func": "var mask = msg.payload;\n\nvar msg0={};\nvar msg1={};\nvar msg2={};\nvar msg3={};\nvar msg4={};\nvar msg5={};\nvar msg6={};\nvar msg7={};\n\nmsg0.payload = {\"FiltPump\":(mask >> 7) & 1};\nmsg1.payload = {\"PhPump\":(mask >> 6) & 1};\nmsg2.payload = {\"ChlPump\":(mask >> 5) & 1};\nmsg3.payload = (mask >> 4) & 1;\nmsg4.payload = (mask >> 3) & 1;\nmsg5.payload = (mask >> 2) & 1;\nmsg6.payload = (mask >> 1) & 1;\nmsg7.payload = (mask >> 0) & 1;\n\nreturn [msg0,msg1,msg2,msg3,msg4,msg5,msg6,msg7];",
+        "outputs": 8,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 1465,
+        "y": 926,
+        "wires": [
+            [
+                "a9ba9df6.9307b8"
+            ],
+            [
+                "72ba47a8.a754a"
+            ],
+            [
+                "3c023e55.f2b402"
+            ],
+            [
+                "f8f5bdd4.a80048"
+            ],
+            [
+                "672b2a13.4bbc2c"
+            ],
+            [],
+            [
+                "13a2fd3b.021c33"
+            ],
+            [
+                "6b6172c0.31ad94"
+            ]
+        ]
+    },
+    {
+        "id": "7a0714fc.b2451c",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "Split IO2 mask",
+        "func": "var mask = msg.payload;\n\nvar msg0={};\nvar msg1={};\nvar msg2={};\nvar msg3={};\nvar msg4={};\nvar msg5={};\nvar msg6={};\n\n\nmsg0.payload = {\"PhPID\":(mask >> 7) & 1};\nmsg1.payload = {\"OrpPID\":(mask >> 6) & 1};\nmsg2.payload = {\"Mode\":(mask >> 5) & 1};\nmsg3.payload = {\"RobotPump\":(mask >> 4) & 1};\nmsg4.payload = {\"Relay\":[0,(mask >> 3) & 1]};\nmsg5.payload = {\"Relay\":[1,(mask >> 2) & 1]};\nmsg6.payload = {\"Winter\":(mask >> 1) & 1};\n\nreturn [msg0,msg1,msg2,msg3,msg4,msg5,msg6];",
+        "outputs": 7,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 1465,
+        "y": 1066,
+        "wires": [
+            [
+                "76050328.3fa704"
+            ],
+            [
+                "799b0470.f3ae7c"
+            ],
+            [
+                "38a3d976.8e2386"
+            ],
+            [
+                "91c2167c.9abb8"
+            ],
+            [
+                "1e9e471f.5e9821"
+            ],
+            [
+                "bb8cac6a.dc5668"
+            ],
+            [
+                "2d6f9e2b.6a39ba"
+            ]
+        ]
+    },
+    {
+        "id": "7d51b871.3d1938",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "Split Set1 Message",
+        "func": "if(msg.topic == \"Home/Pool/Set1\")\n{\n    var msg0={};\n    var msg1={};\n    var msg2={};\n    var msg3={};\n    var msg4={};\n    var msg5={};\n    var msg6={};\n    var msg7={};\n\n\n    msg0.payload = msg.payload.FW;     //FW version\n    msg1.payload = msg.payload.FSta;   //Filtration start hour, in the morning (hours)\n    msg2.payload = msg.payload.FStaM;  //Earliest filtration start hour   \n    msg3.payload = msg.payload.FDu;    //Computed filtration duration based on water temperature (hours)\n    msg4.payload = msg.payload.FStoM;  //Latest hour for the filtration to run. Whatever happens, filtration won't run later than this hour (hour)\n    msg5.payload = msg.payload.FSto;   //Computed filtration stop hour, equal to FSta + FDu (hour)\n    msg6.payload = msg.payload.pHUTL;  //Max allowed daily run time for the pH pump (/!\\ mins)\n    msg7.payload = msg.payload.ChlUTL; //Max allowed daily run time for the Chl pump (/!\\ mins)\n    \n    return [msg0,msg1,msg2,msg3,msg4,msg5,msg6,msg7];\n}",
+        "outputs": 8,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 625,
+        "y": 506,
+        "wires": [
+            [
+                "3ee913ca.942964"
+            ],
+            [
+                "68a35da1.15768c"
+            ],
+            [
+                "be88fabc.96d3c"
+            ],
+            [],
+            [
+                "2539b8d6.13351"
+            ],
+            [
+                "347ac92f.ebae2e"
+            ],
+            [],
+            [
+                "1e9b8223.e87fe6"
+            ]
+        ]
+    },
+    {
+        "id": "5c517819.1a3a88",
+        "type": "delay",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "pauseType": "delay",
+        "timeout": "200",
+        "timeoutUnits": "milliseconds",
+        "rate": "1",
+        "nbRateUnits": "1",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "outputs": 1,
+        "x": 355,
+        "y": 506,
+        "wires": [
+            [
+                "93ada175.449b7",
+                "8bffb1fb.80a428",
+                "7d51b871.3d1938",
+                "3cbca389.4ebb64",
+                "a9eb887c.65d1e",
+                "b0f6ff87.1db198",
+                "5372fbb1.8024ec"
+            ]
+        ]
+    },
+    {
+        "id": "8bffb1fb.80a428",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "Split Meas2 Message",
+        "func": "if(msg.topic == \"Home/Pool/Meas2\"){\n    var msg0={};\n    var msg1={};\n    var msg2={};\n    var msg3={};\n    var msg4={};\n    var msg5={};\n\n    msg0.payload = msg.payload.AcidF;\n    msg0.topic = \"Fill_pH\";\n    \n    msg1.payload = msg.payload.ChlF;\n    msg1.topic = \"Fill_Chl\";\n\n    msg2.payload = msg.payload.IO;//IO\n    msg2.topic   = \"IO\";\n    msg3.payload = msg.payload.IO2;//IO2; \n    msg3.topic   = \"IO2\";\n    msg4.payload = msg.payload.AcidF;//pH Tank Fill\n    msg5.payload = msg.payload.ChlF; //Chl Tank Fill\n\n    return [msg0,msg1,msg2,msg3,msg4,msg5];\n}    ",
+        "outputs": 6,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 625,
+        "y": 1106,
+        "wires": [
+            [
+                "8feca98e.f2114",
+                "39e3ddcd.b8af02"
+            ],
+            [
+                "ab132295.e8475",
+                "39e3ddcd.b8af02"
+            ],
+            [
+                "98f37548.b363f",
+                "39e3ddcd.b8af02"
+            ],
+            [
+                "7a0714fc.b2451c",
+                "39e3ddcd.b8af02"
+            ],
+            [
+                "8f63b3b7.0463b8"
+            ],
+            [
+                "7c58b134.05c7b"
+            ]
+        ]
+    },
+    {
+        "id": "3cbca389.4ebb64",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "Split Set2 Message",
+        "func": "if(msg.topic == \"Home/Pool/Set2\")\n{\n    var msg0={};\n    var msg1={};\n    var msg2={};\n    var msg3={};\n    var msg4={};\n    var msg5={};\n    var msg6={};\n    var msg7={};\n   \n    msg0.payload = msg.payload.pHWS; //pH PID window size (/!\\ mins)\n    msg1.payload = msg.payload.ChlWS; //Orp PID window size (/!\\ mins)\n    msg2.payload = msg.payload.pHSP/100; //pH setpoint (/!\\ x100)\n    msg2.topic = \"pHSP\";\n    msg3.payload = msg.payload.OrpSP; //Orp setpoint (/!\\ x100)\n    msg3.topic = \"OrpSP\";\n    msg4.payload = msg.payload.WSP/100; //Water temperature setpoint (/!\\ x100)\n    msg5.payload = msg.payload.WLT/100; //Water temperature low threshold to activate anti-freeze mode (/!\\ x100)\n    msg6.payload = msg.payload.PSIHT/100; //Water pressure high threshold to trigger error (/!\\ x100)\n    msg7.payload = msg.payload.PSIMT/100; //Water pressure medium threshold (unused yet) (/!\\ x100)\n    \n    return [msg0,msg1,msg2,msg3,msg4,msg5,msg6,msg7];\n}",
+        "outputs": 8,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 625,
+        "y": 646,
+        "wires": [
+            [
+                "e54c6f7d.289a8"
+            ],
+            [],
+            [
+                "ba59d87c.0ce09",
+                "39e3ddcd.b8af02"
+            ],
+            [
+                "c7c593ed.aeb7b8",
+                "39e3ddcd.b8af02"
+            ],
+            [
+                "31063547.d35f6a",
+                "87c67b90.6f008"
+            ],
+            [
+                "486fabba.8f071c"
+            ],
+            [
+                "9ab5a302.0f5aa"
+            ],
+            [
+                "d7b46b26.3e4a18"
+            ]
+        ]
+    },
+    {
+        "id": "a9eb887c.65d1e",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "Split Set3 Message",
+        "func": "if(msg.topic == \"Home/Pool/Set3\")\n{\n    var msg0={};\n    var msg1={};\n    var msg2={};\n    var msg3={};\n    var msg4={};\n    var msg5={};\n    var msg6={};\n\n   \n    msg0.payload = msg.payload.pHC0;    //pH sensor calibration coefficient C0\n    msg1.payload = msg.payload.pHC1;    //pH sensor calibration coefficient C1\n    msg2.payload = msg.payload.OrpC0;   //Orp sensor calibration coefficient C0\n    msg3.payload = msg.payload.OrpC1;   //Orp sensor calibration coefficient C1\n    msg4.payload = msg.payload.PSIC0;   //Pressure sensor calibration coefficient C0\n    msg5.payload = msg.payload.PSIC1;   //Pressure sensor calibration coefficient C1\n    \n    return [msg0,msg1,msg2,msg3,msg4,msg5,msg6];\n}",
+        "outputs": 6,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 625,
+        "y": 766,
+        "wires": [
+            [],
+            [],
+            [],
+            [],
+            [],
+            []
+        ]
+    },
+    {
+        "id": "b0f6ff87.1db198",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "Split Set4 Message",
+        "func": "if(msg.topic == \"Home/Pool/Set4\")\n{\n    var msg0={};\n    var msg1={};\n    var msg2={};\n    var msg3={};\n\n    msg0.payload = {\"KP\":msg.payload.pHKp,\"KI\":msg.payload.pHKi,\"KD\":msg.payload.pHKd};    //pH  PID coefficients Kp,Ki,Kd\n    msg1.payload = {\"KP\":msg.payload.OrpKp,\"KI\":msg.payload.OrpKi,\"KD\":msg.payload.OrpKd}; //Chl PID coefficients Kp,Ki,Kd\n    msg2.payload = msg.payload.Dpid;   //Delay from FSta for the water regulation/PIDs to start (mins) \n    msg3.payload = msg.payload.PubP;   // Settings publish period in sec\n    return [msg0,msg1,msg2,msg3];\n}",
+        "outputs": 4,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 625,
+        "y": 855,
+        "wires": [
+            [
+                "53813f79.8d7938"
+            ],
+            [
+                "ed57a9e7.1ff638"
+            ],
+            [
+                "cfb47e56.f49c"
+            ],
+            [
+                "c6f21094.86b5e8"
+            ]
+        ]
+    },
+    {
+        "id": "5372fbb1.8024ec",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "Split Set5 Message",
+        "func": "if(msg.topic == \"Home/Pool/Set5\"){\n    var msg0={};\n    var msg1={};\n    var msg2={};\n    var msg3={};\n    \n    msg0.payload = msg.payload.pHTV;  //pH tank nominal volume (Liters)\n    msg0.topic = \"Volume_pH\";\n    msg1.payload = msg.payload.ChlTV; //Chl tank nominal volume (Liters)\n    msg1.topic = \"Volume_Chl\";\n    \n    msg2.payload = msg.payload.pHFR; //pH pump flow rate (L/hour)\n    msg3.payload = msg.payload.OrpFR; //Chl pump flow rate (L/hour)\n    \n    return [msg0,msg1,msg2,msg3];\n}",
+        "outputs": 4,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 626,
+        "y": 929,
+        "wires": [
+            [
+                "8feca98e.f2114"
+            ],
+            [
+                "ab132295.e8475"
+            ],
+            [
+                "92740137.3beb08"
+            ],
+            [
+                "9c49ebb5.38a8a8"
+            ]
+        ]
+    },
+    {
+        "id": "e4786dab.10d33",
+        "type": "mqtt in",
+        "z": "b366a6c8.9010b8",
+        "name": "All JSON from Poolmaster",
+        "topic": "Home/Pool/#",
+        "qos": "1",
+        "datatype": "json",
+        "broker": "93a591a0.fbf418",
+        "nl": false,
+        "rap": false,
+        "inputs": 0,
+        "x": 115,
+        "y": 506,
+        "wires": [
+            [
+                "5c517819.1a3a88",
+                "e41d96c0.0917",
+                "df645fed.80ac08"
+            ]
+        ]
+    },
+    {
+        "id": "715c0f96.dd27f",
+        "type": "mqtt out",
+        "z": "b366a6c8.9010b8",
+        "name": "MQTT Broker",
+        "topic": "Home/Pool",
+        "qos": "1",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "93a591a0.fbf418",
+        "x": 2847,
+        "y": 184,
+        "wires": []
+    },
+    {
+        "id": "44105429.f51f34",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "NumInput input to JSON",
+        "func": "if(msg.payload != \"50\")\n    msg.payload = {\"pHPumpFR\":msg.payload};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 1945,
+        "y": 746,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "d203d5b4.54e048",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "NumInput input to JSON",
+        "func": "if(msg.payload != \"50\")\n    msg.payload = {\"ChlPumpFR\":msg.payload};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 1945,
+        "y": 786,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "e41d96c0.0917",
+        "type": "debug",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 315,
+        "y": 586,
+        "wires": []
+    },
+    {
+        "id": "fa4ef4a9.7088c",
+        "type": "change",
+        "z": "b366a6c8.9010b8",
+        "name": "Change font sizes",
+        "rules": [
+            {
+                "t": "set",
+                "p": "ui_control.options.valueMinFontSize",
+                "pt": "msg",
+                "to": "36",
+                "tot": "num"
+            },
+            {
+                "t": "set",
+                "p": "ui_control.options.maxLabelMinFontSize",
+                "pt": "msg",
+                "to": "18",
+                "tot": "str"
+            },
+            {
+                "t": "set",
+                "p": "ui_control.options.minLabelMinFontSize",
+                "pt": "msg",
+                "to": "18",
+                "tot": "str"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 1055,
+        "y": 1266,
+        "wires": [
+            [
+                "980ed2a2.e51d7"
+            ]
+        ]
+    },
+    {
+        "id": "b45fa92a.6fc92",
+        "type": "change",
+        "z": "b366a6c8.9010b8",
+        "name": "Change font sizes",
+        "rules": [
+            {
+                "t": "set",
+                "p": "ui_control.options.valueMinFontSize",
+                "pt": "msg",
+                "to": "36",
+                "tot": "num"
+            },
+            {
+                "t": "set",
+                "p": "ui_control.options.maxLabelMinFontSize",
+                "pt": "msg",
+                "to": "18",
+                "tot": "num"
+            },
+            {
+                "t": "set",
+                "p": "ui_control.options.minLabelMinFontSize",
+                "pt": "msg",
+                "to": "18",
+                "tot": "num"
+            },
+            {
+                "t": "set",
+                "p": "ui_control.options.labelMinFontSize",
+                "pt": "msg",
+                "to": "24",
+                "tot": "num"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 1055,
+        "y": 1306,
+        "wires": [
+            [
+                "6113471.6e49f38"
+            ]
+        ]
+    },
+    {
+        "id": "53553768.aeb74",
+        "type": "change",
+        "z": "b366a6c8.9010b8",
+        "name": "Change font sizes",
+        "rules": [
+            {
+                "t": "set",
+                "p": "ui_control.options.valueMinFontSize",
+                "pt": "msg",
+                "to": "24",
+                "tot": "num"
+            },
+            {
+                "t": "set",
+                "p": "ui_control.options.maxLabelMinFontSize",
+                "pt": "msg",
+                "to": "18",
+                "tot": "num"
+            },
+            {
+                "t": "set",
+                "p": "ui_control.options.minLabelMinFontSize",
+                "pt": "msg",
+                "to": "18",
+                "tot": "num"
+            },
+            {
+                "t": "set",
+                "p": "ui_control.options.labelMinFontSize",
+                "pt": "msg",
+                "to": "18",
+                "tot": "num"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 1055,
+        "y": 1226,
+        "wires": [
+            [
+                "89579724.424b48"
+            ]
+        ]
+    },
+    {
+        "id": "37f5969b.559252",
+        "type": "inject",
+        "z": "b366a6c8.9010b8",
+        "name": "Mise à l'heure",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "{\"Date\":[11,5,12,20,12,49,0]}",
+        "payloadType": "json",
+        "x": 2475,
+        "y": 866,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "8feca98e.f2114",
+        "type": "join",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "mode": "custom",
+        "build": "object",
+        "property": "payload",
+        "propertyType": "msg",
+        "key": "topic",
+        "joiner": "\\n",
+        "joinerType": "str",
+        "accumulate": true,
+        "timeout": "10",
+        "count": "2",
+        "reduceRight": false,
+        "reduceExp": "",
+        "reduceInit": "",
+        "reduceInitType": "",
+        "reduceFixup": "",
+        "x": 1515,
+        "y": 666,
+        "wires": [
+            [
+                "6124548c.b3c19c"
+            ]
+        ]
+    },
+    {
+        "id": "ab132295.e8475",
+        "type": "join",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "mode": "custom",
+        "build": "object",
+        "property": "payload",
+        "propertyType": "msg",
+        "key": "topic",
+        "joiner": "\\n",
+        "joinerType": "str",
+        "accumulate": true,
+        "timeout": "10",
+        "count": "2",
+        "reduceRight": false,
+        "reduceExp": "",
+        "reduceInit": "",
+        "reduceInitType": "",
+        "reduceFixup": "",
+        "x": 1515,
+        "y": 706,
+        "wires": [
+            [
+                "665b7fe4.94ea5"
+            ]
+        ]
+    },
+    {
+        "id": "39e3ddcd.b8af02",
+        "type": "join",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "mode": "custom",
+        "build": "object",
+        "property": "payload",
+        "propertyType": "msg",
+        "key": "topic",
+        "joiner": "\\n",
+        "joinerType": "str",
+        "accumulate": true,
+        "timeout": "",
+        "count": "11",
+        "reduceRight": false,
+        "reduceExp": "",
+        "reduceInit": "",
+        "reduceInitType": "",
+        "reduceFixup": "",
+        "x": 1065,
+        "y": 1886,
+        "wires": [
+            [
+                "f7120dfe.b3361"
+            ]
+        ]
+    },
+    {
+        "id": "f7120dfe.b3361",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "Format to influxDB",
+        "func": "var mask  = msg.payload.IO;\nvar mask2 = msg.payload.IO2;\nmsg.payload = {\n    FiltPump:(mask >> 7) &1,\n    pHPump:(mask >> 6) & 1,\n    ChlPump:(mask >> 5) & 1,\n    RobotPump:(mask2 >> 4) & 1,\n    pH:msg.payload.pH,\n    Orp:msg.payload.Orp,\n    Tmp:msg.payload.Tmp,\n    Fill_pH:msg.payload.Fill_pH,\n    Fill_Chl:msg.payload.Fill_Chl,\n    AT:msg.payload.TE,\n    WP:msg.payload.PSI,\n    OrpSP:msg.payload.OrpSP,\n    pHSP:msg.payload.pHSP,\n}\nmsg.measurement = \"PoolMaster\";\n    \nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1275,
+        "y": 1886,
+        "wires": [
+            [
+                "e770f577.44bf28",
+                "eface050.2782c8"
+            ]
+        ]
+    },
+    {
+        "id": "e770f577.44bf28",
+        "type": "debug",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1495,
+        "y": 1946,
+        "wires": []
+    },
+    {
+        "id": "4a09582f.236ae",
+        "type": "change",
+        "z": "b366a6c8.9010b8",
+        "name": "Change font sizes",
+        "rules": [
+            {
+                "t": "set",
+                "p": "ui_control.options.valueMinFontSize",
+                "pt": "msg",
+                "to": "24",
+                "tot": "num"
+            },
+            {
+                "t": "set",
+                "p": "ui_control.options.maxLabelMinFontSize",
+                "pt": "msg",
+                "to": "18",
+                "tot": "num"
+            },
+            {
+                "t": "set",
+                "p": "ui_control.options.minLabelMinFontSize",
+                "pt": "msg",
+                "to": "18",
+                "tot": "num"
+            },
+            {
+                "t": "set",
+                "p": "ui_control.options.labelMinFontSize",
+                "pt": "msg",
+                "to": "18",
+                "tot": "num"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 1055,
+        "y": 1186,
+        "wires": [
+            [
+                "52f12b8d.01aa44"
+            ]
+        ]
+    },
+    {
+        "id": "df645fed.80ac08",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "Get Time",
+        "func": "function addZero(i) {\n  if (i < 10) {\n    i = \"0\" + i;\n  }\n  return i;\n}\n\nvar d = new Date();\nvar D = addZero(d.getDate());\nvar M = addZero(d.getMonth()+1);\nvar Y = addZero(d.getYear()-100);\nvar h = addZero(d.getHours());\nvar m = addZero(d.getMinutes());\nvar s = addZero(d.getSeconds());\nmsg.payload = D + \"/\" + M + \"/\" + Y + \"  \" + h + \":\" + m + \":\" +s;\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 585,
+        "y": 1426,
+        "wires": [
+            [
+                "5a818b5.fc1bc74"
+            ]
+        ]
+    },
+    {
+        "id": "f8f5bdd4.a80048",
+        "type": "switch",
+        "z": "b366a6c8.9010b8",
+        "name": "Check pH Tank Level!",
+        "property": "payload",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "0",
+                "vt": "num"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 1,
+        "x": 1785,
+        "y": 1586,
+        "wires": [
+            [
+                "618c9461.589814"
+            ]
+        ]
+    },
+    {
+        "id": "672b2a13.4bbc2c",
+        "type": "switch",
+        "z": "b366a6c8.9010b8",
+        "name": "Check Chl Tank Level!",
+        "property": "payload",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "0",
+                "vt": "num"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 1,
+        "x": 1785,
+        "y": 1666,
+        "wires": [
+            [
+                "618c9461.589814"
+            ]
+        ]
+    },
+    {
+        "id": "92d93542.72cc28",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "NumInput input to JSON",
+        "func": "if(msg.payload != \"0\")\n    msg.payload = {\"PSILow\":msg.payload};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 1945,
+        "y": 266,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "347e957c.94aeaa",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "NumInput input to JSON",
+        "func": "var msg0 = {};\nvar msg1 = {};\n\n    msg0.payload = {\"OrpPIDWSize\":msg.payload};\n    msg1.payload = {\"PhPIDWSize\":msg.payload};\nreturn [msg0,msg1];",
+        "outputs": 2,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 1945,
+        "y": 406,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ],
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "9edcd630.f4a818",
+        "type": "function",
+        "z": "b366a6c8.9010b8",
+        "name": "NumInput input to JSON",
+        "func": "if(msg.payload != \"0\")\n    msg.payload = {\"WSetPoint\":msg.payload};\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 1945,
+        "y": 346,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "514514.c09aeaec",
+        "type": "ui_button",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "group": "462be43.2bf2e1c",
+        "order": 17,
+        "width": 3,
+        "height": 1,
+        "passthru": false,
+        "label": "Clear Error",
+        "tooltip": "reset the pH and Orp pumps overtime error flags in order to let the regulation loops continue. \"Mode\", \"PhPID\" and \"OrpPID\" commands need to be switched back On after an error flag was raised",
+        "color": "",
+        "bgcolor": "#FF9540",
+        "icon": "",
+        "payload": "{\"Clear\":1}",
+        "payloadType": "json",
+        "topic": "",
+        "x": 1915,
+        "y": 1506,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "16eecee2.2cff69",
+        "type": "ui_button",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "group": "462be43.2bf2e1c",
+        "order": 18,
+        "width": 3,
+        "height": 1,
+        "passthru": false,
+        "label": "Restart",
+        "tooltip": "reboot the controller (after 8 seconds from calling this command)",
+        "color": "",
+        "bgcolor": "#C6162A",
+        "icon": "",
+        "payload": "{\"Reboot\":1} ",
+        "payloadType": "json",
+        "topic": "",
+        "x": 1905,
+        "y": 1446,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "82d07ca7.7abf78",
+        "type": "ui_button",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "group": "e5327ae7.49c6e8",
+        "order": 10,
+        "width": "6",
+        "height": "1",
+        "passthru": false,
+        "label": "Refresh",
+        "tooltip": "Request values refresh ",
+        "color": "",
+        "bgcolor": "",
+        "icon": "",
+        "payload": "{\"Settings\":1}",
+        "payloadType": "json",
+        "topic": "",
+        "x": 2465,
+        "y": 946,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "be88fabc.96d3c",
+        "type": "ui_dropdown",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "label": "Filtration Start Min",
+        "tooltip": "set the earliest hour to run filtration pump",
+        "place": "Select option",
+        "group": "e5327ae7.49c6e8",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "multiple": false,
+        "options": [
+            {
+                "label": "1",
+                "value": 1,
+                "type": "num"
+            },
+            {
+                "label": "2",
+                "value": 2,
+                "type": "num"
+            },
+            {
+                "label": "3",
+                "value": 3,
+                "type": "num"
+            },
+            {
+                "label": "4",
+                "value": 4,
+                "type": "num"
+            },
+            {
+                "label": "5",
+                "value": 5,
+                "type": "num"
+            },
+            {
+                "label": "6",
+                "value": 6,
+                "type": "num"
+            },
+            {
+                "label": "7",
+                "value": 7,
+                "type": "num"
+            },
+            {
+                "label": "8",
+                "value": 8,
+                "type": "num"
+            },
+            {
+                "label": "9",
+                "value": 9,
+                "type": "num"
+            },
+            {
+                "label": "10",
+                "value": 10,
+                "type": "num"
+            },
+            {
+                "label": "11",
+                "value": 11,
+                "type": "num"
+            },
+            {
+                "label": "12",
+                "value": 12,
+                "type": "num"
+            },
+            {
+                "label": "13",
+                "value": 13,
+                "type": "num"
+            },
+            {
+                "label": "14",
+                "value": 14,
+                "type": "num"
+            },
+            {
+                "label": "15",
+                "value": 15,
+                "type": "num"
+            },
+            {
+                "label": "16",
+                "value": 16,
+                "type": "num"
+            },
+            {
+                "label": "17",
+                "value": 17,
+                "type": "num"
+            },
+            {
+                "label": "18",
+                "value": 18,
+                "type": "num"
+            },
+            {
+                "label": "19",
+                "value": 19,
+                "type": "num"
+            },
+            {
+                "label": "20",
+                "value": 20,
+                "type": "num"
+            },
+            {
+                "label": "21",
+                "value": 21,
+                "type": "num"
+            },
+            {
+                "label": "22",
+                "value": 22,
+                "type": "num"
+            },
+            {
+                "label": "23",
+                "value": 23,
+                "type": "num"
+            },
+            {
+                "label": "24",
+                "value": 24,
+                "type": "num"
+            }
+        ],
+        "payload": "",
+        "topic": "Home/Pool/API",
+        "x": 1675,
+        "y": 26,
+        "wires": [
+            [
+                "c0a10377.350b5"
+            ]
+        ]
+    },
+    {
+        "id": "2539b8d6.13351",
+        "type": "ui_dropdown",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "label": "Filtration End  Max",
+        "tooltip": "set the latest hour to run filtration pump",
+        "place": "Select option",
+        "group": "e5327ae7.49c6e8",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "multiple": false,
+        "options": [
+            {
+                "label": "1",
+                "value": 1,
+                "type": "num"
+            },
+            {
+                "label": "2",
+                "value": 2,
+                "type": "num"
+            },
+            {
+                "label": "3",
+                "value": 3,
+                "type": "num"
+            },
+            {
+                "label": "4",
+                "value": 4,
+                "type": "num"
+            },
+            {
+                "label": "5",
+                "value": 5,
+                "type": "num"
+            },
+            {
+                "label": "6",
+                "value": 6,
+                "type": "num"
+            },
+            {
+                "label": "7",
+                "value": 7,
+                "type": "num"
+            },
+            {
+                "label": "8",
+                "value": 8,
+                "type": "num"
+            },
+            {
+                "label": "9",
+                "value": 9,
+                "type": "num"
+            },
+            {
+                "label": "10",
+                "value": 10,
+                "type": "num"
+            },
+            {
+                "label": "11",
+                "value": 11,
+                "type": "num"
+            },
+            {
+                "label": "12",
+                "value": 12,
+                "type": "num"
+            },
+            {
+                "label": "13",
+                "value": 13,
+                "type": "num"
+            },
+            {
+                "label": "14",
+                "value": 14,
+                "type": "num"
+            },
+            {
+                "label": "15",
+                "value": 15,
+                "type": "num"
+            },
+            {
+                "label": "16",
+                "value": 16,
+                "type": "num"
+            },
+            {
+                "label": "17",
+                "value": 17,
+                "type": "num"
+            },
+            {
+                "label": "18",
+                "value": 18,
+                "type": "num"
+            },
+            {
+                "label": "19",
+                "value": 19,
+                "type": "num"
+            },
+            {
+                "label": "20",
+                "value": 20,
+                "type": "num"
+            },
+            {
+                "label": "21",
+                "value": 21,
+                "type": "num"
+            },
+            {
+                "label": "22",
+                "value": 22,
+                "type": "num"
+            },
+            {
+                "label": "23",
+                "value": 23,
+                "type": "num"
+            },
+            {
+                "label": "24",
+                "value": 24,
+                "type": "num"
+            }
+        ],
+        "payload": "",
+        "topic": "Home/Pool/API",
+        "x": 1675,
+        "y": 66,
+        "wires": [
+            [
+                "32a178af.9b7c58"
+            ]
+        ]
+    },
+    {
+        "id": "a9ba9df6.9307b8",
+        "type": "ui_switch",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "label": "Filtration Pump",
+        "tooltip": "This will manually turn the Filtration Pump ON or OFF",
+        "group": "462be43.2bf2e1c",
+        "order": 3,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "decouple": "true",
+        "topic": "Home/Pool/API",
+        "style": "",
+        "onvalue": "{\"FiltPump\":1}",
+        "onvalueType": "json",
+        "onicon": "",
+        "oncolor": "",
+        "offvalue": "{\"FiltPump\":0}",
+        "offvalueType": "json",
+        "officon": "",
+        "offcolor": "",
+        "x": 1925,
+        "y": 846,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "72ba47a8.a754a",
+        "type": "ui_switch",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "label": "pH Pump",
+        "tooltip": "This will manually turn the pHPump ON or OFF",
+        "group": "462be43.2bf2e1c",
+        "order": 5,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "decouple": "true",
+        "topic": "Home/Pool/API",
+        "style": "",
+        "onvalue": "{\"PhPump\":1}",
+        "onvalueType": "json",
+        "onicon": "",
+        "oncolor": "",
+        "offvalue": "{\"PhPump\":0}",
+        "offvalueType": "json",
+        "officon": "",
+        "offcolor": "",
+        "x": 1895,
+        "y": 906,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "3c023e55.f2b402",
+        "type": "ui_switch",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "label": "Chl Pump",
+        "tooltip": "This will manually turn the Chl Pump ON or OFF",
+        "group": "462be43.2bf2e1c",
+        "order": 6,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "decouple": "true",
+        "topic": "Home/Pool/API",
+        "style": "",
+        "onvalue": "{\"ChlPump\":1}",
+        "onvalueType": "json",
+        "onicon": "",
+        "oncolor": "",
+        "offvalue": "{\"ChlPump\":0}",
+        "offvalueType": "json",
+        "officon": "",
+        "offcolor": "",
+        "x": 1905,
+        "y": 966,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "1e9e471f.5e9821",
+        "type": "ui_switch",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "label": "Projecteur",
+        "tooltip": "Turn projector ON/OFF",
+        "group": "462be43.2bf2e1c",
+        "order": 9,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "decouple": "true",
+        "topic": "Home/Pool/API",
+        "style": "",
+        "onvalue": "{\"Relay\":[0,1]} ",
+        "onvalueType": "json",
+        "onicon": "",
+        "oncolor": "",
+        "offvalue": "{\"Relay\":[0,0]} ",
+        "offvalueType": "json",
+        "officon": "",
+        "offcolor": "",
+        "x": 1905,
+        "y": 1266,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "38a3d976.8e2386",
+        "type": "ui_switch",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "label": "Auto Mode",
+        "tooltip": "In Auto, filtration starts/stops at set times of the day ",
+        "group": "462be43.2bf2e1c",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "decouple": "true",
+        "topic": "Home/Pool/API",
+        "style": "",
+        "onvalue": "{\"Mode\":1}",
+        "onvalueType": "json",
+        "onicon": "",
+        "oncolor": "",
+        "offvalue": "{\"Mode\":0}",
+        "offvalueType": "json",
+        "officon": "",
+        "offcolor": "",
+        "x": 1915,
+        "y": 1146,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "76050328.3fa704",
+        "type": "ui_switch",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "label": "PhPID",
+        "tooltip": "start/stop the Ph PID regulation loop",
+        "group": "462be43.2bf2e1c",
+        "order": 7,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "decouple": "true",
+        "topic": "Home/Pool/API",
+        "style": "",
+        "onvalue": "{\"PhPID\":1}",
+        "onvalueType": "json",
+        "onicon": "",
+        "oncolor": "",
+        "offvalue": "{\"PhPID\":0}",
+        "offvalueType": "json",
+        "officon": "",
+        "offcolor": "",
+        "x": 1895,
+        "y": 1026,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "799b0470.f3ae7c",
+        "type": "ui_switch",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "label": "OrpPID",
+        "tooltip": "start/stop the Orp PID regulation loop",
+        "group": "462be43.2bf2e1c",
+        "order": 8,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "decouple": "true",
+        "topic": "Home/Pool/API",
+        "style": "",
+        "onvalue": "{\"OrpPID\":1}",
+        "onvalueType": "json",
+        "onicon": "",
+        "oncolor": "",
+        "offvalue": "{\"OrpPID\":0}",
+        "offvalueType": "json",
+        "officon": "",
+        "offcolor": "",
+        "x": 1895,
+        "y": 1086,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "91c2167c.9abb8",
+        "type": "ui_switch",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "label": "Robot Pump",
+        "tooltip": "start/stop the regulation of the pool water temperature ",
+        "group": "462be43.2bf2e1c",
+        "order": 4,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "decouple": "true",
+        "topic": "Home/Pool/API",
+        "style": "",
+        "onvalue": "{\"RobotPump\":1}",
+        "onvalueType": "json",
+        "onicon": "",
+        "oncolor": "",
+        "offvalue": "{\"RobotPump\":0}",
+        "offvalueType": "json",
+        "officon": "",
+        "offcolor": "",
+        "x": 1915,
+        "y": 1206,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "bb8cac6a.dc5668",
+        "type": "ui_switch",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "label": "Relay R6",
+        "tooltip": "Turn Relay6 ON/OFF",
+        "group": "462be43.2bf2e1c",
+        "order": 10,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "decouple": "true",
+        "topic": "Home/Pool/API",
+        "style": "",
+        "onvalue": "{\"Relay\":[1,1]} ",
+        "onvalueType": "json",
+        "onicon": "",
+        "oncolor": "",
+        "offvalue": "{\"Relay\":[1,0]} ",
+        "offvalueType": "json",
+        "officon": "",
+        "offcolor": "",
+        "x": 1905,
+        "y": 1326,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "2d6f9e2b.6a39ba",
+        "type": "ui_switch",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "label": "Winter Mode",
+        "tooltip": "Activate Winter Mode",
+        "group": "462be43.2bf2e1c",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "decouple": "true",
+        "topic": "Home/Pool/API",
+        "style": "",
+        "onvalue": "{\"Winter\":1} ",
+        "onvalueType": "json",
+        "onicon": "",
+        "oncolor": "",
+        "offvalue": "{\"Winter\":0} ",
+        "offvalueType": "json",
+        "officon": "",
+        "offcolor": "",
+        "x": 1915,
+        "y": 1386,
+        "wires": [
+            [
+                "715c0f96.dd27f"
+            ]
+        ]
+    },
+    {
+        "id": "1e9b8223.e87fe6",
+        "type": "ui_numeric",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "label": "Max Uptime pH/Chl",
+        "tooltip": "set the Max Uptime (in min) for the Ph and Chl pumps over a 24h period. If over, PID regulation is stopped and a warning flag is raised",
+        "group": "115a7e93.2554c9",
+        "order": 3,
+        "width": 0,
+        "height": 0,
+        "wrap": false,
+        "passthru": false,
+        "topic": "Home/Pool/API",
+        "format": "{{value}}",
+        "min": "10",
+        "max": "45",
+        "step": "5",
+        "x": 1675,
+        "y": 186,
+        "wires": [
+            [
+                "f920af.00bd675"
+            ]
+        ]
+    },
+    {
+        "id": "cfb47e56.f49c",
+        "type": "ui_numeric",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "label": "Delay PID",
+        "tooltip": "Delay (in mins) after FiltT0 before the PID regulation loops will start. This is to let the Orp and pH readings stabilize first. Should not be > 59mins",
+        "group": "115a7e93.2554c9",
+        "order": 2,
+        "width": "3",
+        "height": "1",
+        "wrap": false,
+        "passthru": false,
+        "topic": "Home/Pool/API",
+        "format": "{{value}}",
+        "min": "0",
+        "max": "120",
+        "step": "5",
+        "x": 1645,
+        "y": 146,
+        "wires": [
+            [
+                "3823f636.798a8a"
+            ]
+        ]
+    },
+    {
+        "id": "9ab5a302.0f5aa",
+        "type": "ui_numeric",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "label": "WPr High",
+        "tooltip": "Set the water high-pressure threshold. When water pressure is over that threshold, an error flag is set.",
+        "group": "e5327ae7.49c6e8",
+        "order": 4,
+        "width": "3",
+        "height": "1",
+        "wrap": false,
+        "passthru": false,
+        "topic": "Home/Pool/API",
+        "format": "{{value}}",
+        "min": "1.5",
+        "max": "3",
+        "step": "0.1",
+        "x": 1645,
+        "y": 226,
+        "wires": [
+            [
+                "7dcf290b.29be8"
+            ]
+        ]
+    },
+    {
+        "id": "486fabba.8f071c",
+        "type": "ui_numeric",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "label": "WTemp Low",
+        "tooltip": "Set the water low-temperature threshold below which there is no need to regulate Orp and Ph (ie. in winter) and filtration is only 2 hours. Above this threshold, filtration duration is 1/3rd of water temperature",
+        "group": "e5327ae7.49c6e8",
+        "order": 5,
+        "width": "3",
+        "height": "1",
+        "wrap": false,
+        "passthru": false,
+        "topic": "Home/Pool/API",
+        "format": "{{value}}",
+        "min": "8",
+        "max": "15",
+        "step": "1",
+        "x": 1655,
+        "y": 306,
+        "wires": [
+            [
+                "d0593b01.8facb8"
+            ]
+        ]
+    },
+    {
+        "id": "c6f21094.86b5e8",
+        "type": "ui_numeric",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "label": "MQTT Publish Interval (s)",
+        "tooltip": "set the periodicity (in seconds) at which the system info (pumps states, tank levels states, measured values, etc) will be published to the MQTT broker",
+        "group": "e5327ae7.49c6e8",
+        "order": 7,
+        "width": 0,
+        "height": 0,
+        "wrap": false,
+        "passthru": false,
+        "topic": "Hope/Pool/API",
+        "format": "{{value}}",
+        "min": "10",
+        "max": "600",
+        "step": "10",
+        "x": 1695,
+        "y": 106,
+        "wires": [
+            [
+                "2bdd1861.f6262"
+            ]
+        ]
+    },
+    {
+        "id": "92740137.3beb08",
+        "type": "ui_numeric",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "label": "ph Pump (L/h)",
+        "tooltip": "set pH pump flow rate un L/h",
+        "group": "115a7e93.2554c9",
+        "order": 4,
+        "width": 0,
+        "height": 0,
+        "wrap": false,
+        "passthru": false,
+        "topic": "Home/Pool/API",
+        "format": "{{value}}",
+        "min": "0.5",
+        "max": "10",
+        "step": "0.5",
+        "x": 1665,
+        "y": 746,
+        "wires": [
+            [
+                "44105429.f51f34"
+            ]
+        ]
+    },
+    {
+        "id": "9c49ebb5.38a8a8",
+        "type": "ui_numeric",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "label": "Chl Pump (L/h)",
+        "tooltip": "set Chl pump flow rate un L/h",
+        "group": "115a7e93.2554c9",
+        "order": 5,
+        "width": 0,
+        "height": 0,
+        "wrap": false,
+        "passthru": false,
+        "topic": "Home/Pool/API",
+        "format": "{{value}}",
+        "min": "0.5",
+        "max": "10",
+        "step": "0.5",
+        "x": 1665,
+        "y": 786,
+        "wires": [
+            [
+                "d203d5b4.54e048"
+            ]
+        ]
+    },
+    {
+        "id": "d7b46b26.3e4a18",
+        "type": "ui_numeric",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "label": "WPr Low",
+        "tooltip": "Set the water low-pressure threshold. When water pressure is below that threshold, an error flag is set and filtration stops..",
+        "group": "e5327ae7.49c6e8",
+        "order": 3,
+        "width": "3",
+        "height": "1",
+        "wrap": false,
+        "passthru": false,
+        "topic": "Home/Pool/API",
+        "format": "{{value}}",
+        "min": "0.4",
+        "max": "1.2",
+        "step": "0.1",
+        "x": 1645,
+        "y": 266,
+        "wires": [
+            [
+                "92d93542.72cc28"
+            ]
+        ]
+    },
+    {
+        "id": "e54c6f7d.289a8",
+        "type": "ui_numeric",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "label": "PID WSize",
+        "tooltip": "PID window size ",
+        "group": "115a7e93.2554c9",
+        "order": 1,
+        "width": "3",
+        "height": "1",
+        "wrap": false,
+        "passthru": false,
+        "topic": "Home/Pool/API",
+        "format": "{{value}}",
+        "min": "10",
+        "max": "120",
+        "step": "5",
+        "x": 1655,
+        "y": 406,
+        "wires": [
+            [
+                "347e957c.94aeaa"
+            ]
+        ]
+    },
+    {
+        "id": "87c67b90.6f008",
+        "type": "ui_numeric",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "label": "WTemp High",
+        "tooltip": "Set the water high-temperature threshold over which filtration duration is 1/2 of the water temperature",
+        "group": "e5327ae7.49c6e8",
+        "order": 6,
+        "width": "3",
+        "height": "1",
+        "wrap": false,
+        "passthru": false,
+        "topic": "Home/Pool/API",
+        "format": "{{value}}",
+        "min": "15",
+        "max": "25",
+        "step": "1",
+        "x": 1655,
+        "y": 346,
+        "wires": [
+            [
+                "9edcd630.f4a818"
+            ]
+        ]
+    },
+    {
+        "id": "ba59d87c.0ce09",
+        "type": "ui_slider",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "label": "Ph Setpoint",
+        "tooltip": "",
+        "group": "ff9785ef.2f7b6",
+        "order": 4,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "outs": "end",
+        "topic": "Home/Pool/API",
+        "min": "6.8",
+        "max": "7.8",
+        "step": "0.1",
+        "x": 1655,
+        "y": 466,
+        "wires": [
+            [
+                "1348dd89.f4cefa"
+            ]
+        ]
+    },
+    {
+        "id": "c7c593ed.aeb7b8",
+        "type": "ui_slider",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "label": "Chl Setpoint",
+        "tooltip": "",
+        "group": "ff9785ef.2f7b6",
+        "order": 6,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "outs": "end",
+        "topic": "Home/Pool/API",
+        "min": "700",
+        "max": "800",
+        "step": "10",
+        "x": 1655,
+        "y": 506,
+        "wires": [
+            [
+                "931a17a3.e35068"
+            ]
+        ]
+    },
+    {
+        "id": "31063547.d35f6a",
+        "type": "ui_slider",
+        "z": "b366a6c8.9010b8",
+        "d": true,
+        "name": "",
+        "label": "Water Temp. Setpoint",
+        "tooltip": "set the water temperature setpoint",
+        "group": "ff9785ef.2f7b6",
+        "order": 12,
+        "width": 0,
+        "height": 0,
+        "passthru": true,
+        "outs": "end",
+        "topic": "",
+        "topicType": "str",
+        "min": "15",
+        "max": "30",
+        "step": "0.5",
+        "className": "",
+        "x": 1685,
+        "y": 546,
+        "wires": [
+            [
+                "621e6488.cd65b4"
+            ]
+        ]
+    },
+    {
+        "id": "6124548c.b3c19c",
+        "type": "ui_form",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "label": "pH Tank ",
+        "group": "e5327ae7.49c6e8",
+        "order": 8,
+        "width": 0,
+        "height": 0,
+        "options": [
+            {
+                "label": "Volume in L (0-25)",
+                "value": "Volume_pH",
+                "type": "number",
+                "required": true,
+                "rows": null
+            },
+            {
+                "label": "Fill in % (0-100)",
+                "value": "Fill_pH",
+                "type": "number",
+                "required": true,
+                "rows": null
+            }
+        ],
+        "formValue": {
+            "Volume_pH": "",
+            "Fill_pH": ""
+        },
+        "payload": "",
+        "submit": "update",
+        "cancel": "cancel",
+        "topic": "",
+        "x": 1645,
+        "y": 666,
+        "wires": [
+            [
+                "3f1c0fb2.d36628"
+            ]
+        ]
+    },
+    {
+        "id": "665b7fe4.94ea5",
+        "type": "ui_form",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "label": "Chl Tank ",
+        "group": "e5327ae7.49c6e8",
+        "order": 9,
+        "width": 0,
+        "height": 0,
+        "options": [
+            {
+                "label": "Volume in L (0-25)",
+                "value": "Volume_Chl",
+                "type": "number",
+                "required": true,
+                "rows": null
+            },
+            {
+                "label": "Fill in % (0-100)",
+                "value": "Fill_Chl",
+                "type": "number",
+                "required": true,
+                "rows": null
+            }
+        ],
+        "formValue": {
+            "Volume_Chl": "",
+            "Fill_Chl": ""
+        },
+        "payload": "",
+        "submit": "update",
+        "cancel": "cancel",
+        "topic": "",
+        "x": 1645,
+        "y": 706,
+        "wires": [
+            [
+                "e64a73a2.237fa8"
+            ]
+        ]
+    },
+    {
+        "id": "53813f79.8d7938",
+        "type": "ui_form",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "label": "pH PID",
+        "group": "115a7e93.2554c9",
+        "order": 6,
+        "width": 0,
+        "height": 0,
+        "options": [
+            {
+                "label": "Kp",
+                "value": "KP",
+                "type": "number",
+                "required": true,
+                "rows": null
+            },
+            {
+                "label": "Ki",
+                "value": "KI",
+                "type": "number",
+                "required": true,
+                "rows": null
+            },
+            {
+                "label": "Kd",
+                "value": "KD",
+                "type": "number",
+                "required": true,
+                "rows": null
+            }
+        ],
+        "formValue": {
+            "KP": "",
+            "KI": "",
+            "KD": ""
+        },
+        "payload": "",
+        "submit": "update",
+        "cancel": "cancel",
+        "topic": "",
+        "x": 1635,
+        "y": 586,
+        "wires": [
+            [
+                "3eefa82.063dcd8"
+            ]
+        ]
+    },
+    {
+        "id": "ed57a9e7.1ff638",
+        "type": "ui_form",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "label": "Orp PID",
+        "group": "115a7e93.2554c9",
+        "order": 7,
+        "width": 0,
+        "height": 0,
+        "options": [
+            {
+                "label": "Kp",
+                "value": "KP",
+                "type": "number",
+                "required": true,
+                "rows": null
+            },
+            {
+                "label": "Ki",
+                "value": "KI",
+                "type": "number",
+                "required": true,
+                "rows": null
+            },
+            {
+                "label": "Kd",
+                "value": "KD",
+                "type": "number",
+                "required": true,
+                "rows": null
+            }
+        ],
+        "formValue": {
+            "KP": "",
+            "KI": "",
+            "KD": ""
+        },
+        "payload": "",
+        "submit": "update",
+        "cancel": "cancel",
+        "topic": "",
+        "x": 1645,
+        "y": 626,
+        "wires": [
+            [
+                "a6b4f936.46eb88"
+            ]
+        ]
+    },
+    {
+        "id": "980ed2a2.e51d7",
+        "type": "ui_gauge",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "group": "ff9785ef.2f7b6",
+        "order": 3,
+        "width": 0,
+        "height": 0,
+        "gtype": "gage",
+        "title": "Actual pH",
+        "label": "",
+        "format": "{{value | number:2}}",
+        "min": "6.8",
+        "max": "7.8",
+        "colors": [
+            "#c6162a",
+            "#3d9533",
+            "#c6162a"
+        ],
+        "seg1": "7.1",
+        "seg2": "7.5",
+        "x": 1245,
+        "y": 1266,
+        "wires": []
+    },
+    {
+        "id": "6113471.6e49f38",
+        "type": "ui_gauge",
+        "z": "b366a6c8.9010b8",
+        "name": "",
+        "group": "ff9785ef.2f7b6",
+        "order": 5,
+        "width": 0,
+        "height": 0,
+        "gtype": "gage",
+        "title": "Actual Chl",
+        "label": "mV",
+        "format": "{{value | number:0 }}",
+        "min": "600",
+        "max": "800",
+        "colors": [
+            "#ff8040",
+            "#3d9533",
+            "#ff8040"
+        ],
+        "seg1": "630",
+        "seg2": "770",
+        "x": 1245,
+        "y": 1306,
+        "wires": []
+    },
+    {
+        "id": "89579724.424b48",
+        "type": "ui_gauge",
+        "z": "b366a6c8.9010b8",
+        "d": true,
+        "name": "",
+        "group": "ff9785ef.2f7b6",
+        "order": 10,
+        "width": 3,
+        "height": 3,
+        "gtype": "gage",
+        "title": "Actual Water Temp.",
+        "label": "°C",
+        "format": "{{value | number:1}}",
+        "min": "8",
+        "max": "30",
+        "colors": [
+            "#000080",
+            "#3d9533",
+            "#c6162a"
+        ],
+        "seg1": "18",
+        "seg2": "24",
+        "x": 1275,
+        "y": 1226,
+        "wires": []
+    },
+    {
+        "id": "8f63b3b7.0463b8",
+        "type": "ui_gauge",
+        "z": "b366a6c8.9010b8",
+        "name": "pH Tank level",
+        "group": "462be43.2bf2e1c",
+        "order": 11,
+        "width": 3,
+        "height": 3,
+        "gtype": "donut",
+        "title": "pH Tank",
+        "label": "%",
+        "format": "{{value | number:0}}",
+        "min": 0,
+        "max": "100",
+        "colors": [
+            "#c6162a",
+            "#ff8040",
+            "#3d9533"
+        ],
+        "seg1": "10",
+        "seg2": "20",
+        "x": 1265,
+        "y": 1106,
+        "wires": []
+    },
+    {
+        "id": "7c58b134.05c7b",
+        "type": "ui_gauge",
+        "z": "b366a6c8.9010b8",
+        "name": "Chl Tank level",
+        "group": "462be43.2bf2e1c",
+        "order": 12,
+        "width": 3,
+        "height": 3,
+        "gtype": "donut",
+        "title": "Chl Tank",
+        "label": "%",
+        "format": "{{value | number:0}}",
+        "min": 0,
+        "max": "100",
+        "colors": [
+            "#c6162a",
+            "#ff8040",
+            "#3d9533"
+        ],
+        "seg1": "10",
+        "seg2": "20",
+        "x": 1265,
+        "y": 1146,
+        "wires": []
+    },
+    {
+        "id": "52f12b8d.01aa44",
+        "type": "ui_gauge",
+        "z": "b366a6c8.9010b8",
+        "d": true,
+        "name": "",
+        "group": "ff9785ef.2f7b6",
+        "order": 11,
+        "width": 3,
+        "height": 3,
+        "gtype": "gage",
+        "title": "Actual AirTemp.",
+        "label": "°C",
+        "format": "{{value | number:1}}",
+        "min": "-5",
+        "max": "40",
+        "colors": [
+            "#000080",
+            "#3d9533",
+            "#c6162a"
+        ],
+        "seg1": "15",
+        "seg2": "25",
+        "x": 1265,
+        "y": 1186,
+        "wires": []
+    },
+    {
+        "id": "618c9461.589814",
+        "type": "ui_toast",
+        "z": "b366a6c8.9010b8",
+        "position": "top right",
+        "displayTime": "25",
+        "highlight": "",
+        "sendall": true,
+        "outputs": 0,
+        "ok": "OK",
+        "cancel": "",
+        "raw": false,
+        "topic": "Check Chl and/or pH+ Tank Level!",
+        "name": "Check Chl and/or pH+ Tank Level!",
+        "x": 2205,
+        "y": 1626,
+        "wires": []
+    },
+    {
+        "id": "13a2fd3b.021c33",
+        "type": "ui_text",
+        "z": "b366a6c8.9010b8",
+        "group": "462be43.2bf2e1c",
+        "order": 13,
+        "width": 3,
+        "height": 1,
+        "name": "pH Error",
+        "label": "pH Error:  ",
+        "format": "{{msg.payload}}",
+        "layout": "row-center",
+        "x": 1685,
+        "y": 946,
+        "wires": []
+    },
+    {
+        "id": "6b6172c0.31ad94",
+        "type": "ui_text",
+        "z": "b366a6c8.9010b8",
+        "group": "462be43.2bf2e1c",
+        "order": 14,
+        "width": 3,
+        "height": 1,
+        "name": "Chl Error",
+        "label": "Chl Error:  ",
+        "format": "{{msg.payload}}",
+        "layout": "row-center",
+        "x": 1685,
+        "y": 986,
+        "wires": []
+    },
+    {
+        "id": "b2daf3ad.7bccd",
+        "type": "ui_text",
+        "z": "b366a6c8.9010b8",
+        "group": "462be43.2bf2e1c",
+        "order": 15,
+        "width": 3,
+        "height": 1,
+        "name": "",
+        "label": "pH UpT:  ",
+        "format": "{{value | number:1}}",
+        "layout": "row-center",
+        "x": 1245,
+        "y": 1346,
+        "wires": []
+    },
+    {
+        "id": "157cbe33.672132",
+        "type": "ui_text",
+        "z": "b366a6c8.9010b8",
+        "group": "462be43.2bf2e1c",
+        "order": 16,
+        "width": 3,
+        "height": 1,
+        "name": "",
+        "label": "Chl UpT:  ",
+        "format": "{{value | number:1}}",
+        "layout": "row-center",
+        "x": 1245,
+        "y": 1386,
+        "wires": []
+    },
+    {
+        "id": "5a818b5.fc1bc74",
+        "type": "ui_text",
+        "z": "b366a6c8.9010b8",
+        "group": "ff9785ef.2f7b6",
+        "order": 13,
+        "width": 6,
+        "height": "1",
+        "name": "Date / Heure",
+        "label": "",
+        "format": "<font size=5>{{msg.payload}}",
+        "layout": "row-center",
+        "x": 1255,
+        "y": 1626,
+        "wires": []
+    },
+    {
+        "id": "3ee913ca.942964",
+        "type": "ui_text",
+        "z": "b366a6c8.9010b8",
+        "group": "ff9785ef.2f7b6",
+        "order": 14,
+        "width": 0,
+        "height": 0,
+        "name": "",
+        "label": "(c) DLF - 05/08/23 Version ",
+        "format": "{{msg.payload}}",
+        "layout": "row-center",
+        "className": "",
+        "style": false,
+        "font": "",
+        "fontSize": "",
+        "color": "#000000",
+        "x": 1225,
+        "y": 1026,
+        "wires": []
+    },
+    {
+        "id": "68a35da1.15768c",
+        "type": "ui_text",
+        "z": "b366a6c8.9010b8",
+        "group": "ff9785ef.2f7b6",
+        "order": 1,
+        "width": 3,
+        "height": 1,
+        "name": "",
+        "label": "Start : ",
+        "format": "{{value | number:0}}:00",
+        "layout": "row-center",
+        "x": 1235,
+        "y": 1426,
+        "wires": []
+    },
+    {
+        "id": "347ac92f.ebae2e",
+        "type": "ui_text",
+        "z": "b366a6c8.9010b8",
+        "group": "ff9785ef.2f7b6",
+        "order": 2,
+        "width": 3,
+        "height": 1,
+        "name": "",
+        "label": "Stop : ",
+        "format": "{{value | number:0}}:00",
+        "layout": "row-center",
+        "x": 1235,
+        "y": 1466,
+        "wires": []
+    },
+    {
+        "id": "19aac1b7.406e26",
+        "type": "ui_text",
+        "z": "b366a6c8.9010b8",
+        "group": "ff9785ef.2f7b6",
+        "order": 7,
+        "width": "6",
+        "height": "1",
+        "name": "Water Temperature",
+        "label": "Water Temperature:",
+        "format": "<font size=5>{{value | number:1}}°C",
+        "layout": "row-spread",
+        "x": 1275,
+        "y": 1546,
+        "wires": []
+    },
+    {
+        "id": "a035e831.e73038",
+        "type": "ui_text",
+        "z": "b366a6c8.9010b8",
+        "group": "ff9785ef.2f7b6",
+        "order": 9,
+        "width": "6",
+        "height": "1",
+        "name": "Air Temperature",
+        "label": "Air Temperature:",
+        "format": "<font size=5>{{value | number:1}}°C",
+        "layout": "row-spread",
+        "x": 1265,
+        "y": 1506,
+        "wires": []
+    },
+    {
+        "id": "eb85d306.592b28",
+        "type": "ui_text",
+        "z": "b366a6c8.9010b8",
+        "group": "ff9785ef.2f7b6",
+        "order": 8,
+        "width": "6",
+        "height": "1",
+        "name": "Water Pressure",
+        "label": "Water Pressure:",
+        "format": "<font size=5>{{value | number:1}}bar",
+        "layout": "row-spread",
+        "x": 1265,
+        "y": 1586,
+        "wires": []
+    },
+    {
+        "id": "eface050.2782c8",
+        "type": "influxdb out",
+        "z": "b366a6c8.9010b8",
+        "influxdb": "d7bb931ace94f401",
+        "name": "influxDB",
+        "measurement": "PoolMaster",
+        "precision": "",
+        "retentionPolicy": "",
+        "database": "data",
+        "precisionV18FluxV20": "s",
+        "retentionPolicyV18Flux": "",
+        "org": "DomoMaya",
+        "bucket": "PoolMaster",
+        "x": 1485,
+        "y": 1886,
+        "wires": []
+    },
+    {
+        "id": "93a591a0.fbf418",
+        "type": "mqtt-broker",
+        "name": "Jeedom - mqtt",
+        "broker": "192.168.1.50",
+        "port": "1883",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "compatmode": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "Home/Pool",
+        "birthQos": "1",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "462be43.2bf2e1c",
+        "type": "ui_group",
+        "name": "Controls",
+        "tab": "afe6da0d.815bd",
+        "order": 2,
+        "disp": true,
+        "width": "6",
+        "collapse": false
+    },
+    {
+        "id": "e5327ae7.49c6e8",
+        "type": "ui_group",
+        "name": "Set Points",
+        "tab": "f64b926a.4e5b1",
+        "order": 1,
+        "disp": true,
+        "width": "6",
+        "collapse": false
+    },
+    {
+        "id": "115a7e93.2554c9",
+        "type": "ui_group",
+        "name": "PID Tuning",
+        "tab": "f64b926a.4e5b1",
+        "order": 2,
+        "disp": true,
+        "width": "6",
+        "collapse": false
+    },
+    {
+        "id": "ff9785ef.2f7b6",
+        "type": "ui_group",
+        "name": "Measures",
+        "tab": "afe6da0d.815bd",
+        "order": 1,
+        "disp": true,
+        "width": "6",
+        "collapse": false
+    },
+    {
+        "id": "d7bb931ace94f401",
+        "type": "influxdb",
+        "hostname": "127.0.0.1",
+        "port": "8086",
+        "protocol": "http",
+        "database": "PoolMaster",
+        "name": "PoolMaster",
+        "usetls": false,
+        "tls": "",
+        "influxdbVersion": "2.0",
+        "url": "http://192.168.1.31:8086",
+        "rejectUnauthorized": true
+    },
+    {
+        "id": "afe6da0d.815bd",
+        "type": "ui_tab",
+        "name": "PoolMaster Oper Dashboard",
+        "icon": "dashboard",
+        "order": 3,
+        "disabled": false,
+        "hidden": false
+    },
+    {
+        "id": "f64b926a.4e5b1",
+        "type": "ui_tab",
+        "name": "PoolMaster Oper Settings",
+        "icon": "dashboard",
+        "order": 4,
+        "disabled": false,
+        "hidden": false
+    }
+]
