@@ -148,7 +148,7 @@
 #include <ADS1115.h>
 
 // Firmware revision
-String Firmw = "6.0.0";
+String Firmw = "6.0.1";
 
 //Starting point address where to store the config data in EEPROM
 #define memoryBase 32
@@ -208,17 +208,16 @@ unsigned long PublishPeriod = 30000;
 
 #if defined(pHOrpBoard) //using the I2C pHOrpBoard as interface to the pH and Orp probes
 //Instance of ADC library to measure pH and Orp using the pH_Orp_Board
-ADS1115 adc;
+//If required change the I2C address in Config.h file
+ADS1115 adc(pHOrp_Board_adress);
 #endif
 
 //Signal filtering library. Only used in this case to compute the average
 //over multiple measurements but offers other filtering functions such as median, etc.
 RunningMedian samples_Temp = RunningMedian(10);
-RunningMedian samples_Ph = RunningMedian(10);
-RunningMedian samples_Orp = RunningMedian(10);
+RunningMedian samples_Ph = RunningMedian(3);
+RunningMedian samples_Orp = RunningMedian(3);
 RunningMedian samples_PSI = RunningMedian(3);
-RunningMedian samples_Ph2 = RunningMedian(10);//temporary, for testing pH_Orp_Board
-RunningMedian samples_Orp2 = RunningMedian(10);//temporary, for testing pH_Orp_Board
 
 EthernetServer server(80);      //Create a server at port 80
 EthernetClient net;             //Ethernet client to connect to MQTT server
@@ -1109,50 +1108,18 @@ void getMeasures(DeviceAddress deviceAddress_0)
   } else {
     Serial << F("DS18b20_0: ") << storage.TempValue << F("°C") << F(" - ");
   }
-  /*
-    //Ph
-    float ph_sensor_value = analogRead(PH_MEASURE) * 5.0 / 1023.0;                                        // from 0.0 to 5.0 V
-    //storage.PhValue = 7.0 - ((2.5 - ph_sensor_value)/(0.257179 + 0.000941468 * storage.TempValue));     // formula to compute pH which takes water temperature into account
-    //storage.PhValue = (0.0178 * ph_sensor_value * 200.0) - 1.889;                                       // formula to compute pH without taking temperature into account (assumes 27deg water temp)
-    storage.PhValue = (storage.pHCalibCoeffs0 * ph_sensor_value) + storage.pHCalibCoeffs1;                //Calibrated sensor response based on multi-point linear regression
-    samples_Ph.add(storage.PhValue);                                                                      // compute average of pH from last 5 measurements
-    storage.PhValue = samples_Ph.getAverage(10);
-    Serial << F("Ph: ") << storage.PhValue << F(" - ");
-
-    //ORP
-    float orp_sensor_value = analogRead(ORP_MEASURE) * 5.0 / 1023.0;                                      // from 0.0 to 5.0 V
-    //storage.OrpValue = ((2.5 - orp_sensor_value) / 1.037) * 1000.0;                                     // from -2000 to 2000 mV where the positive values are for oxidizers and the negative values are for reducers
-    storage.OrpValue = (storage.OrpCalibCoeffs0 * orp_sensor_value) + storage.OrpCalibCoeffs1;            //Calibrated sensor response based on multi-point linear regression
-    samples_Orp.add(storage.OrpValue);                                                                    // compute average of ORP from last 5 measurements
-    storage.OrpValue = samples_Orp.getAverage(10);
-    Serial << F("Orp: ") << orp_sensor_value << " - " << storage.OrpValue << F("mV") << _endl;
-
-    //Ph2 temporary, for testing pH_Orp_Board
-    float ph_sensor_value2 = adc.convert(ADS1115_CHANNEL23,ADS1115_RANGE_6144) * 6.144 / 16383.0;          // from 0.0 to 5.0 V
-    storage.PhValue2 = (storage.pHCalibCoeffs0 * ph_sensor_value2) + storage.pHCalibCoeffs1;               //Calibrated sensor response based on multi-point linear regression
-    samples_Ph2.add(storage.PhValue2);                                                                     // compute average of pH from last 5 measurements
-    storage.PhValue2 = samples_Ph2.getAverage(10);
-    Serial << F("Ph2: ") << storage.PhValue2 << F(" - ");
-
-    //ORP2 temporary, for testing pH_Orp_Board
-    float orp_sensor_value2 = adc.convert(ADS1115_CHANNEL01,ADS1115_RANGE_6144) * 6.144 / 16383.0;         // from 0.0 to 5.0 V
-    storage.OrpValue2 = (storage.OrpCalibCoeffs0 * orp_sensor_value2) + storage.OrpCalibCoeffs1;           //Calibrated sensor response based on multi-point linear regression
-    samples_Orp2.add(storage.OrpValue2);                                                                   // compute average of ORP from last 5 measurements
-    storage.OrpValue2 = samples_Orp2.getAverage(10);
-    Serial << F("Orp2: ") << orp_sensor_value2 << " - " << storage.OrpValue2 << F("mV") << _endl;
-  */
-
+ 
 #if defined(pHOrpBoard) //using the I2C pHOrpBoard as interface to the pH and Orp probes
 
   //Ph
-  float ph_sensor_value = adc.convert(ADS1115_CHANNEL23, ADS1115_RANGE_6144) * 6.144 / 16383.0;         // from 0.0 to 5.0 V
-  storage.PhValue = (storage.pHCalibCoeffs0 * -ph_sensor_value) + storage.pHCalibCoeffs1;               //Calibrated sensor response based on multi-point linear regression
+  float ph_sensor_value = adc.convert(ADS1115_CHANNEL23, ADS1115_RANGE_6144) * 0.1875 / 1000.0;         // from 0.0 to 5.0 V
+  storage.PhValue = (storage.pHCalibCoeffs0 * ph_sensor_value) + storage.pHCalibCoeffs1;               //Calibrated sensor response based on multi-point linear regression
   samples_Ph.add(storage.PhValue);                                                                     // compute average of pH from last 5 measurements
   storage.PhValue = samples_Ph.getAverage(2);
   Serial << F("Ph: ") << storage.PhValue << F(" - ");
 
   //ORP
-  float orp_sensor_value = adc.convert(ADS1115_CHANNEL01, ADS1115_RANGE_6144) * 6.144 / 16383.0;        // from 0.0 to 5.0 V
+  float orp_sensor_value = adc.convert(ADS1115_CHANNEL01, ADS1115_RANGE_6144) * 0.1875 / 1000.0;        // from 0.0 to 5.0 V
   storage.OrpValue = (storage.OrpCalibCoeffs0 * orp_sensor_value) + storage.OrpCalibCoeffs1;           //Calibrated sensor response based on multi-point linear regression
   samples_Orp.add(storage.OrpValue);                                                                   // compute average of ORP from last 5 measurements
   storage.OrpValue = samples_Orp.getAverage(2);

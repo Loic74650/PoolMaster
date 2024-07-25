@@ -78,6 +78,10 @@ RTC_DS3231 rtc;
 //Data wire is connected to input digital pin 6 on the Arduino
 #define ONE_WIRE_BUS_A 6
 
+#if defined(pHOrpBoard) //using the I2C pHOrpBoard as interface to the pH and Orp probes
+#define pHOrp_Board_adress ADS1115ADDRESS+1 // or +2 or +3 depending on board setup
+#endif
+
 // Setup a oneWire instance to communicate with any OneWire devices
 OneWire oneWire_A(ONE_WIRE_BUS_A);
 #include <DallasTemperature.h>
@@ -98,7 +102,7 @@ String sArduinoMac;
 
 //Version of config stored in Eeprom
 //Random value. Change this value (to any other value) to revert the config to default values
-#define CONFIG_VERSION 122
+#define CONFIG_VERSION 120
 
 //interval (in miilisec) between MQTT publishes of measurement data
 #define PublishInterval 30000
@@ -125,9 +129,9 @@ struct StoreStruct
   900, 2500,
   3000000, 3600000, 0, 0,
 #if defined(pHOrpBoard) //using the I2C pHOrpBoard as interface to the pH and Orp probes
-  7.4, 750.0, 0.5, 0.25, 10.0, 27.0, 3.0, 1.15, 6.97, 244.42, -18.15, 1.11, 0.00,
+  7.4, 750.0, 0.5, 0.25, 10.0, 27.0, 3.0, -2.22, 7.0, 431, 0, 1.11, 0.0,
 #else
-  7.4, 750.0, 0.5, 0.25, 10.0, 27.0, 3.0, 4.78, -2.54, -1291, 2580, 1.11, 0.0,
+  7.4, 750.0, 0.5, 0.25, 10.0, 27.0, 3.0, -4.78, -2.54, -1291, 2580, 1.11, 0.0,
 #endif
   2000000.0, 0.0, 0.0, 4500.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.4, 0.0, 0.0,
   100.0, 100.0, 20.0, 20.0, 1.5, 3.0,
