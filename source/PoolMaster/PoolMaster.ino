@@ -111,7 +111,7 @@
   https://github.com/PaulStoffregen/OneWire (rev 2.3.4)
   https://github.com/milesburton/Arduino-Temperature-Control-Library (rev 3.7.2)
   https://github.com/RobTillaart/Arduino/tree/master/libraries/RunningMedian (rev 0.1.15)
-  https://github.com/prampec/arduino-softtimer (rev 3.1.3)
+  https://github.com/prampec/arduino-softtimer (rev 3.3.0)
   https://github.com/bricofoy/yasm (rev 0.9.2)
   https://github.com/br3ttb/Arduino-PID-Library (rev 1.2.0)
   https://github.com/bblanchon/ArduinoJson (rev 5.13.4)
