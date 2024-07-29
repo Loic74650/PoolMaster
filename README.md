@@ -127,7 +127,8 @@ So in my case I setlled for a safe one hour WINDOW SIZE (ie. 3600000ms) <br /><b
 
 <h4>MQTT API</h4>
 <p>
-By default, the system will connect to a public, cloud-based, MQTT broker (broker.hivemq.com). This is to ensure that an MQTT broker is always available, even if none is installed on your local LAN. PoolMaster will log into this broker with a unique Client ID which looks like "PoolMaster_FZXC0wg0";  the first part is always "PoolMaster_" and the second part is a random 8 character code which is created at first startup of the hardware and stored in the EEPROM. Even if the hardware is restarted it will remain the same. It is possible to generate a new unique Client ID by re-flashing the firmware with a different value for CONFIG_VERSION defined in the Config.h file (which will also restore all EEPROM content to its default values). The MQTT topics on which PoolMaster will publish its data all start with this unique Client ID. Here is the list:
+By default, the system will connect to a public, cloud-based, MQTT broker (broker.hivemq.com). This is to ensure that an MQTT broker is always available, even if none is installed on your local LAN. PoolMaster will log into this broker with a unique Client ID which looks like "PoolMaster_FZXC0wg0";  the first part is always "PoolMaster_" and the second part is a random 8 character code which is created at first startup of the hardware and stored in the EEPROM. Even if the hardware is restarted it will remain the same. It is possible to generate a new unique Client ID by re-flashing the firmware with a different value for CONFIG_VERSION defined in the Config.h file (which will also restore all EEPROM content to its default values). The unique Client ID is displayed on the serial terminal at startup.<br />
+The MQTT topics on which PoolMaster will publish its data all start with this unique Client ID. Here is the list:
 
 <ul>
 <li>PoolMaster_FZXC0wg0/Meas1 -> Measurement data</li>
@@ -140,7 +141,7 @@ By default, the system will connect to a public, cloud-based, MQTT broker (broke
 <li>PoolMaster_FZXC0wg0/API -> Topic where to send API commands</li>
 <li>PoolMaster_FZXC0wg0/status -> Connection status</li>
 <li>PoolMaster_FZXC0wg0/Err -> Error messages</li>
-</ul><br />
+</ul>
 
 Below are the Payloads/commands to publish on the "_PoolTopicAPI" topic (see in code) or in the serial terminal in Json format in order to launch actions on the Arduino:<br />
 <ul>
