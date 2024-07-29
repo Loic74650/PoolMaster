@@ -1,4 +1,4 @@
-<h2>PoolMaster 6.0.0</h2>
+<h2>PoolMaster 7.0.0</h2>
 <h2>Ph/Orp (Chlorine) regulation system for home pools</h2>
 
 <br />
@@ -80,8 +80,7 @@ IO2: a variable of type BYTE where each individual bit is the state of a digital
 - possibly the pinout definitions depending on your wiring<br />
 - the unique address of the DS18b20 water temperature sensor<br />
 - MAC and IP address of the Ethernet shield<br />
-- MQTT broker IP address and login credentials<br />
-- possibly the topic names on the MQTT broker to subscribe and publish to<br />
+- MQTT broker IP address and login credentials (only if you wish to use another broker than the default one)<br />
 - the Kp,Ki,Kd parameters for both PID loops in case your peristaltic pumps have a different throughput than 1.5Liters/hour for the pH pump and 3.0Liters/hour for the Chlorine pump. Also the default Kp values were adjusted for a 50m3 pool volume. You might have to adjust the Kp values in case of a different pool volume and/or peristaltic pumps throughput (start by adjusting it proportionally). In any case these parameters are likely to require adjustments for every pool<br /></p>
 
 <h4>Tips</h4>
@@ -128,7 +127,7 @@ So in my case I setlled for a safe one hour WINDOW SIZE (ie. 3600000ms) <br /><b
 
 <h4>MQTT API</h4>
 <p>
-Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see hardcoded in code) in Json format in order to launch actions on the Arduino:<br />
+Below are the Payloads/commands to publish on the "_PoolTopicAPI" topic (see in code) or in the serial terminal in Json format in order to launch actions on the Arduino:<br />
 <ul>
 <li>{"Mode":1} or {"Mode":0}         -> set "Mode" to manual (0) or Auto (1). In Auto, filtration starts/stops at set times of the day and pH and Orp are regulated</li> 
 <li>{"Heat":1} or {"Heat":0}         -> start/stop the regulation of the pool water temperature</li>
@@ -165,8 +164,8 @@ Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see hard
 <li>{"RstpHCal":1}                   -> call this command to reset the calibration coefficients of the pH probe</li>
 <li>{"RstOrpCal":1}                  -> call this command to reset the calibration coefficients of the Orp probe</li>
 <li>{"RstPSICal":1}                  -> call this command to reset the calibration coefficients of the pressure sensor</li>
-
-
+<li>{"SetMQTTBroker":["broker.hivemq.com",1883,"",""]} -> call this command to set the IP address, port, login and password of the MQTT broker<li>
+<li>{"SetMQTTBroker":["192.168.0.38",1883,"",""]} -> call this command to set the IP address, port, login and password of the MQTT broker<li>
 </ul>
 </p><br />
 

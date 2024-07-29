@@ -21,13 +21,17 @@ struct TFTStruct
   boolean Mode, NetW, Filt, Heat, R0, R1, R2, pHUTErr, ChlUTErr, PSIErr, pHTLErr, ChlTLErr;
   unsigned long pHPpRT, OrpPpRT;
   String FW;
+  String BrokerIP, BrokerLogin, BrokerPwd;
+  int BrokerPort;
 } TFTStruc =
 { //default values.
   7.30, 730, 7.4, 740, 27.11, 28.5, 25.5, 0.80,
   8, 20, 100, 100,
   1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   0, 0,
-  ""
+  "",
+  "","","",
+  0
 };
 
 

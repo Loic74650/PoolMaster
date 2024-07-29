@@ -8,7 +8,6 @@
   - in the Config.h file:
       - uncomment "#define DEBUG" if you wish debug info on the serial interface
       - if using a MEGA 2560 board with an Ethernet shield, update the MAC address of the Ethernet shield in order to reflect yours
-      - update the LAN IP address of the MQTT broker ("MqttServerIP") as well as the credentials if any
       - update address of DS18b20 water temperature sensor ("DS18b20_0")
       - comment the "#define pHOrpBoard" if you are NOT using the I2C pH_Orp_Board as interface to the pH and Orp probes but rather the analog Phidget boards (PoolMaster V5.0 and earlier)
 
@@ -18,8 +17,6 @@
   - possibly the pinout definitions in case you are not using a CONTROLLINO MAXI board
   - MAC address of DS18b20 water temperature sensor
   - MAC and IP address of the Ethernet shield
-  - MQTT broker IP address and login credentials
-  - possibly the topic names on the MQTT broker to subscribe and publish to
   - the Kp,Ki,Kd parameters for both PID loops in case your peristaltic pumps have a different throughput than 1.5Liters/hour for the pH pump and 3.0Liters/hour for the Chlorine pump.
   Also the default Kp values were adjusted for a 50m3 pool volume. You might have to adjust the Kp values in case of a different pool volume and/or peristaltic pumps throughput
   (start by adjusting it proportionally). In any case these parameters are likely to require adjustments for every pool
@@ -33,8 +30,8 @@
   ORP is regulated by injecting Chlorine from a tank into the pool water (a relay starts/stops the Chlorine peristaltic pump)
   Defined time-slots and water temperature are used to start/stop the filtration pump for a daily given amount of time (a relay starts/stops the filtration pump)
   A lightweight webserver provides a simple dynamic webpage with a summary of all system parameters
-  Communication with the system is performed using the MQTT protocol over an Ethernet connection to the local network/MQTT broker.
-  Every 30 seconds (by default), the system will publish on the "PoolTopicMeas1" and "PoolTopicMeas2"(see in code below) the following payloads in Json format:
+  Communication with the system is performed using the MQTT protocol over an Ethernet connection to the local network.
+  Every 30 seconds (by default), the system will publish on the "_PoolTopicMeas1" and "_PoolTopicMeas2"(see in code below) the following payloads in Json format:
   {"Tmp":818,"pH":321,"PSI":56,"Orp":583,"FilUpT":8995,"PhUpT":0,"ChlUpT":0}
   {"AcidF":100,"ChlF":100,"IO":11,"IO2":0}
   Tmp: measured Water temperature value in °C x100 (8.18°C in the above example payload)
@@ -66,7 +63,7 @@
     R7: state of Relay7
 
 ***MQTT API***
-  Below are the Payloads/commands to publish on the "PoolTopicAPI" topic (see in code below) in Json format in order to launch actions on the Arduino:
+  Below are the Payloads/commands to publish on the "_PoolTopicAPI" topic (see in code below) or in the serial monitor in Json format in order to launch actions on the Arduino:
   {"Mode":1} or {"Mode":0}         -> set "Mode" to manual (0) or Auto (1). In Auto, filtration starts/stops at set times of the day and PID's are enabled/disabled
   {"Heat":1} or {"Heat":0}         -> start/stop the regulation of the pool water temperature
   {"FiltPump":1} or {"FiltPump":0} -> manually start/stop the filtration pump.
@@ -104,9 +101,11 @@
   {"RstpHCal":1}                   -> call this command to reset the calibration coefficients of the pH probe
   {"RstOrpCal":1}                   -> call this command to reset the calibration coefficients of the Orp probe
   {"RstPSICal":1}                   -> call this command to reset the calibration coefficients of the pressure sensor
+  {"SetMQTTBroker":["broker.hivemq.com",1883,"",""]} -> call this command to set the IP and credentials of the MQTT broker
+  {"SetMQTTBroker":["192.168.0.38",1883,"",""]} -> call this command to set the IP and credentials of the MQTT broker
 
 ***Dependencies and respective revisions used to compile this project***
- https://github.com/256dpi/arduino-mqtt/releases (rev 2.4.3)
+  https://github.com/256dpi/arduino-mqtt/releases (rev 2.4.3)
   https://github.com/CONTROLLINO-PLC/CONTROLLINO_Library (rev 3.0.4)
   https://github.com/PaulStoffregen/OneWire (rev 2.3.4)
   https://github.com/milesburton/Arduino-Temperature-Control-Library (rev 3.7.2)
@@ -148,7 +147,7 @@
 #include <ADS1115.h>
 
 // Firmware revision
-String Firmw = "6.0.2";
+String Firmw = "7.0.0";
 
 //Starting point address where to store the config data in EEPROM
 #define memoryBase 32
@@ -164,6 +163,18 @@ ArduinoQueue<String> queueIn(QUEUE_SIZE_ITEMS, QUEUE_SIZE_BYTES);
 //buffers for MQTT string payload
 #define PayloadBufferLength 150
 char Payload[PayloadBufferLength];
+
+//MQTT topics arrays
+const char _PoolTopicMeas1 [40];
+const char _PoolTopicMeas2 [40];
+const char _PoolTopicSet1 [40];
+const char _PoolTopicSet2 [40];
+const char _PoolTopicSet3 [40];
+const char _PoolTopicSet4 [40];
+const char _PoolTopicSet5 [40];
+const char _PoolTopicAPI [40];
+const char _PoolTopicStatus [40];
+const char _PoolTopicError [40];
 
 //Nextion TFT object. Choose which ever Serial port
 //you wish to connect to (not "Serial" which is used for debug), here Serial2 UART
@@ -308,7 +319,7 @@ void setup()
   if (! rtc.begin())
   {
     Serial << F("Couldn't find RTC") << endl;
-    while (1);
+    //while (1);
   }
   else
   {
@@ -394,11 +405,22 @@ void setup()
   if (storage.AutoMode && (hour() >= storage.FiltrationStart) && (hour() < storage.FiltrationStop))
     FiltrationPump.Start();
 
-  //Init MQTT
+  //Create MQTT topics
+  strcpy (_PoolTopicMeas1, storage.uid); strcat (_PoolTopicMeas1, PoolTopicMeas1);
+  strcpy (_PoolTopicMeas2, storage.uid); strcat (_PoolTopicMeas2, PoolTopicMeas2);
+  strcpy (_PoolTopicSet1, storage.uid); strcat (_PoolTopicSet1, PoolTopicSet1);
+  strcpy (_PoolTopicSet2, storage.uid); strcat (_PoolTopicSet2, PoolTopicSet2);
+  strcpy (_PoolTopicSet3, storage.uid); strcat (_PoolTopicSet3, PoolTopicSet3);
+  strcpy (_PoolTopicSet4, storage.uid); strcat (_PoolTopicSet4, PoolTopicSet4);
+  strcpy (_PoolTopicSet5, storage.uid); strcat (_PoolTopicSet5, PoolTopicSet5);
+  strcpy (_PoolTopicAPI, storage.uid); strcat (_PoolTopicAPI, PoolTopicAPI);
+  strcpy (_PoolTopicStatus, storage.uid); strcat (_PoolTopicStatus, PoolTopicStatus);
+  strcpy (_PoolTopicError, storage.uid); strcat (_PoolTopicError, PoolTopicError);
+
   MQTTClient.setOptions(60, false, 6000);
-  MQTTClient.setWill(PoolTopicStatus, "offline", true, LWMQTT_QOS1);
-  MQTTClient.begin(MqttServerIP, net);
-  // MQTTClient.setHost(MqttServerIP, 21883);
+  MQTTClient.setWill(_PoolTopicStatus, "offline", true, LWMQTT_QOS1);
+  MQTTClient.begin(storage.BrokerIP, storage.BrokerPort, net);
+  // MQTTClient.setHost(storage.BrokerIP, 21883);
   MQTTClient.onMessage(messageReceived);
   MQTTConnect();
 
@@ -464,9 +486,10 @@ void setup()
 void MQTTConnect()
 {
   //MQTTClient.connect(MqttServerClientID);
-  MQTTClient.connect(MqttServerClientID, MqttServerLogin, MqttServerPwd);
+  //MQTTClient.connect(MqttServerClientID, storage.MqttServerLogin, storage.MqttServerPwd);
+  MQTTClient.connect(storage.BrokerIP, storage.MqttServerLogin, storage.MqttServerPwd);
   /*  int8_t Count=0;
-    while (!MQTTClient.connect(MqttServerClientID, MqttServerLogin, MqttServerPwd) && (Count<4))
+    while (!MQTTClient.connect(MqttServerClientID, storage.MqttServerLogin, storage.MqttServerPwd) && (Count<4))
     {
       Serial<<F(".")<<_endl;
       delay(500);
@@ -479,10 +502,10 @@ void MQTTConnect()
 
     //String PoolTopicAPI = "Home/Pool/Api";
     //Topic to which send/publish API commands for the Pool controls
-    MQTTClient.subscribe(PoolTopicAPI);
+    MQTTClient.subscribe(_PoolTopicAPI);
 
     //tell status topic we are online
-    if (MQTTClient.publish(PoolTopicStatus, F("online"), true, LWMQTT_QOS1))
+    if (MQTTClient.publish(_PoolTopicStatus, F("online"), true, LWMQTT_QOS1))
       Serial << F("published: Home/Pool/status - online") << _endl;
     else
     {
@@ -502,7 +525,7 @@ void MQTTConnect()
 //Add the received command to a message queue for later processing and exit the callback
 void messageReceived(String &topic, String &payload)
 {
-  String TmpStrPool(PoolTopicAPI);
+  String TmpStrPool(_PoolTopicAPI);
 
   //Pool commands. This check might be redundant since we only subscribed to this topic
   if (topic == TmpStrPool)
@@ -661,7 +684,7 @@ void GenericCallback(Task* me)
   {
     FiltrationPump.Stop();
     PSIError = true;
-    MQTTClient.publish(PoolTopicError, F("PSI Error"), true, LWMQTT_QOS1);
+    MQTTClient.publish(_PoolTopicError, F("PSI Error"), true, LWMQTT_QOS1);
   }
 }
 
@@ -700,7 +723,7 @@ void PublishDataCallback(Task* me)
     if (jsonBuffer.size() < PayloadBufferLength)
     {
       root.printTo(Payload, PayloadBufferLength);
-      if (MQTTClient.publish(PoolTopicMeas1, Payload, strlen(Payload), true, LWMQTT_QOS1))
+      if (MQTTClient.publish(_PoolTopicMeas1, Payload, strlen(Payload), true, LWMQTT_QOS1))
       {
         Serial << F("Payload: ") << Payload << F(" - ");
         Serial << F("Payload size: ") << jsonBuffer.size() << _endl;
@@ -739,7 +762,7 @@ void PublishDataCallback(Task* me)
     if (jsonBuffer.size() < PayloadBufferLength)
     {
       root.printTo(Payload, PayloadBufferLength);
-      if (MQTTClient.publish(PoolTopicMeas2, Payload, strlen(Payload), true, LWMQTT_QOS1))
+      if (MQTTClient.publish(_PoolTopicMeas2, Payload, strlen(Payload), true, LWMQTT_QOS1))
       {
         Serial << F("Payload: ") << Payload << F(" - ");
         Serial << F("Payload size: ") << jsonBuffer.size() << _endl;
@@ -792,7 +815,7 @@ void PublishSettings()
     if (jsonBuffer.size() < PayloadBufferLength)
     {
       root.printTo(Payload, PayloadBufferLength);
-      if (MQTTClient.publish(PoolTopicSet1, Payload, strlen(Payload), true, LWMQTT_QOS1))
+      if (MQTTClient.publish(_PoolTopicSet1, Payload, strlen(Payload), true, LWMQTT_QOS1))
       {
         Serial << F("Payload: ") << Payload << F(" - ");
         Serial << F("Payload size: ") << jsonBuffer.size() << _endl;
@@ -837,7 +860,7 @@ void PublishSettings()
     if (jsonBuffer.size() < PayloadBufferLength)
     {
       root.printTo(Payload, PayloadBufferLength);
-      if (MQTTClient.publish(PoolTopicSet2, Payload, strlen(Payload), true, LWMQTT_QOS1))
+      if (MQTTClient.publish(_PoolTopicSet2, Payload, strlen(Payload), true, LWMQTT_QOS1))
       {
         Serial << F("Payload: ") << Payload << F(" - ");
         Serial << F("Payload size: ") << jsonBuffer.size() << _endl;
@@ -879,7 +902,7 @@ void PublishSettings()
     if (jsonBuffer.size() < PayloadBufferLength)
     {
       root.printTo(Payload, PayloadBufferLength);
-      if (MQTTClient.publish(PoolTopicSet3, Payload, strlen(Payload), true, LWMQTT_QOS1))
+      if (MQTTClient.publish(_PoolTopicSet3, Payload, strlen(Payload), true, LWMQTT_QOS1))
       {
         Serial << F("Payload: ") << Payload << F(" - ");
         Serial << F("Payload size: ") << jsonBuffer.size() << _endl;
@@ -919,7 +942,7 @@ void PublishSettings()
     if (jsonBuffer.size() < PayloadBufferLength)
     {
       root.printTo(Payload, PayloadBufferLength);
-      if (MQTTClient.publish(PoolTopicSet4, Payload, strlen(Payload), true, LWMQTT_QOS1))
+      if (MQTTClient.publish(_PoolTopicSet4, Payload, strlen(Payload), true, LWMQTT_QOS1))
       {
         Serial << F("Payload: ") << Payload << F(" - ");
         Serial << F("Payload size: ") << jsonBuffer.size() << _endl;
@@ -957,7 +980,7 @@ void PublishSettings()
     if (jsonBuffer.size() < PayloadBufferLength)
     {
       root.printTo(Payload, PayloadBufferLength);
-      if (MQTTClient.publish(PoolTopicSet5, Payload, strlen(Payload), true, LWMQTT_QOS1))
+      if (MQTTClient.publish(_PoolTopicSet5, Payload, strlen(Payload), true, LWMQTT_QOS1))
       {
         Serial << F("Payload: ") << Payload << F(" - ");
         Serial << F("Payload size: ") << jsonBuffer.size() << _endl;
@@ -1111,7 +1134,7 @@ void getMeasures(DeviceAddress deviceAddress_0)
   } else {
     Serial << F("DS18b20_0: ") << storage.TempValue << F("°C") << F(" - ");
   }
- 
+
 #if defined(pHOrpBoard) //using the I2C pHOrpBoard as interface to the pH and Orp probes
 
   //Ph
@@ -1138,7 +1161,7 @@ void getMeasures(DeviceAddress deviceAddress_0)
   samples_Ph.add(storage.PhValue);                                                                      // compute average of pH from last 5 measurements
   storage.PhValue = samples_Ph.getAverage(10);
   Serial << F("Ph: ") << storage.PhValue << F(" - ");
-  
+
   //ORP
   float orp_sensor_value = analogRead(ORP_MEASURE) * 5.0 / 1023.0;                                      // from 0.0 to 5.0 V
   //storage.OrpValue = ((2.5 - orp_sensor_value) / 1.037) * 1000.0;                                     // from -2000 to 2000 mV where the positive values are for oxidizers and the negative values are for reducers
@@ -1172,13 +1195,17 @@ bool loadConfig()
   Serial << storage.AcidFill << ", " << storage.ChlFill << ", " << storage.pHTankVol << ", " << storage.ChlTankVol << ", " << storage.pHPumpFR << ", " << storage.ChlPumpFR << '\n';
   Serial << storage.ip[0] << "." << storage.ip[1] << "." << storage.ip[2] << "." << storage.ip[3] << ", " << storage.subnet[0] << "." << storage.subnet[1] << "." << storage.subnet[2] << "." << storage.subnet[3] << ", " << storage.gateway[0] << "." << storage.gateway[1] << "." << storage.gateway[2] << "." << storage.gateway[3] << ", " << storage.dnsserver[0] << "." << storage.dnsserver[1] << "." << storage.dnsserver[2] << "." << storage.dnsserver[3] << ", " << _HEX(storage.mac[0]) << "."  << _HEX(storage.mac[1]) << "." << _HEX(storage.mac[2]) << "." << _HEX(storage.mac[3]) << "." << _HEX(storage.mac[4]) << "." << _HEX(storage.mac[5]) << '\n';
   Serial << storage.ipConfiged << '\n';
-  Serial << storage.DST << '\n' << '\n';
+  Serial << storage.DST << '\n';
+  Serial << storage.uid << '\n' << '\n';
 
   return (storage.ConfigVersion == CONFIG_VERSION);
 }
 
 void saveConfig()
 {
+  //Generate MQTT UID
+  generateUID();
+
   //update function only writes to eeprom if the value is actually different. Increases the eeprom lifetime
   EEPROM.writeBlock(configAdress, storage);
 }
@@ -1592,7 +1619,7 @@ void ProcessCommand(String JSONCommand)
                     if (ChlPump.UpTimeError)
                       ChlPump.ClearErrors();
 
-                    MQTTClient.publish(PoolTopicError, "", true, LWMQTT_QOS1);
+                    MQTTClient.publish(_PoolTopicError, "", true, LWMQTT_QOS1);
 
                     //start filtration pump if within scheduled time slots
                     if (!EmergencyStopFiltPump && storage.AutoMode && (hour() >= storage.FiltrationStart) && (hour() < storage.FiltrationStop))
@@ -1676,6 +1703,24 @@ void ProcessCommand(String JSONCommand)
                       saveConfig();
                       PublishSettings();
                     }
+                    else
+                      //"SetMQTTBroker" command which is called to set IP and credentials of the MQTT Broker  {"SetMQTTBroker":["192.168.0.38",1883,"",""]}
+                      //First parameter is the broker IP address, second parameter is the port number, third and fourth are the login and password
+                      if (command.containsKey(F("SetMQTTBroker")))
+                      {
+                        MQTTClient.disconnect();
+                        strcpy (storage.BrokerIP, command[F("SetMQTTBroker")][0]);Serial << F("New Broker IP: ") << storage.BrokerIP << _endl;
+                        storage.BrokerPort = (unsigned long)command[F("SetMQTTBroker")][1];Serial << F("New BrokerPort: ") << storage.BrokerPort << _endl;
+                        strcpy (storage.MqttServerLogin, command[F("SetMQTTBroker")][2]);Serial << F("New MqttServerLogin: ") << storage.MqttServerLogin << _endl;
+                        strcpy (storage.MqttServerPwd, command[F("SetMQTTBroker")][3]);Serial << F("New MqttServerPwd: ") << storage.MqttServerPwd << _endl;
+                        saveConfig();
+                        MQTTClient.setOptions(60, false, 6000);
+                        MQTTClient.setWill(_PoolTopicStatus, "offline", true, LWMQTT_QOS1);
+                        MQTTClient.begin(storage.BrokerIP, storage.BrokerPort, net);
+                        MQTTClient.onMessage(messageReceived);
+                        MQTTConnect();
+                        PublishSettings();
+                      }
 
     //Publish/Update on the MQTT broker the status of our variables
     PublishDataCallback(NULL);
@@ -1761,4 +1806,17 @@ void simpLinReg(float * x, float * y, double & lrCoef0, double & lrCoef1, int n)
   // simple linear regression algorithm
   lrCoef0 = (xybar - xbar * ybar) / (xsqbar - xbar * xbar);
   lrCoef1 = ybar - lrCoef0 * xbar;
+}
+
+void generateUID()
+{
+  /* Change to allowable characters */
+  const char possible[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  randomSeed(analogRead(A0));
+  for (int i = 11; i < MAX_UID + 11; i++)
+  {
+    int r = random(0, strlen(possible));
+    storage.uid[i] = possible[r];
+  }
+  storage.uid[MAX_UID + 11] = '\0';
 }
