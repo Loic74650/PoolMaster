@@ -1,6 +1,6 @@
 #include "OneWire.h"
 
-//#define DEBUG           ->comment this line to prevent code from writing debug messages to serial port
+#define DEBUG           ->comment this line to prevent code from writing debug messages to serial port
 #define pHOrpBoard        //->comment this line if your setup is using the Phidget boards ((PoolMaster V5.0 and earlier) as interface to the pH and Orp probes instead of the default pHOrpBoard(https://github.com/Loic74650/pH_Orp_Board)
 
 #include "DebugUtils.h"

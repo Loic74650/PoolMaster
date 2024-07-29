@@ -148,7 +148,7 @@
 #include <ADS1115.h>
 
 // Firmware revision
-String Firmw = "6.0.1";
+String Firmw = "6.0.2";
 
 //Starting point address where to store the config data in EEPROM
 #define memoryBase 32
@@ -534,6 +534,9 @@ void GenericCallback(Task* me)
 
   //Update MQTT thread
   MQTTClient.loop();
+
+  //Check for any JSON command over the serial port
+  ReadSerial();
 
   //UPdate Nextion TFT
   UpdateTFT();
@@ -1178,6 +1181,17 @@ void saveConfig()
 {
   //update function only writes to eeprom if the value is actually different. Increases the eeprom lifetime
   EEPROM.writeBlock(configAdress, storage);
+}
+
+//read Serial port and if any command received, pass it onto the command parser
+void ReadSerial()
+{
+  if (Serial.available() > 0)//this call takes roughly 3µsec on the DUE
+  {
+    //Serial.println("S0 received chars...");
+    String JSONCommand = Serial.readStringUntil('\r'); // Until CR
+    ProcessCommand(JSONCommand);
+  }
 }
 
 void ProcessCommand(String JSONCommand)
