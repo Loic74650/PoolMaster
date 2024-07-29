@@ -28,9 +28,9 @@ Ethernet connectivity parameters can be set through a webpage accessible from th
 If an ethernet connection is available, the internal clock (RTC) is synchronized with a time-server every day at midnight.<br />
 
 An API function enables telling the system what the outside air temperature is. In case it is below -2.0°C, filtration is started until it rises back above +2.0°C<br />
-Communication with the system is performed using the MQTT protocol over an Ethernet connection to the local network/MQTT broker.<br /><br />
+Communication with the system is performed using an exhaustive API over the MQTT protocol over an Ethernet connection and MQTT broker or via the serial terminal.<br /><br />
 
-Every 30 seconds (by default), the system will publish on the "PoolTopicMeas1" and "PoolTopicMeas2"(see in code below) the following payloads in Json format:<br />
+Every 30 seconds (by default), the system will publish on the "_PoolTopicMeas1" and "_PoolTopicMeas2"(see in code) the following payloads in Json format:<br />
   {"Tmp":818,"pH":321,"PSI":56,"Orp":583,"FilUpT":8995,"PhUpT":0,"ChlUpT":0}<br />
   {"AcidF":100,"ChlF":100,"IO":11,"IO2":0}<br />
   Tmp: measured Water temperature value in °C x100 (8.18°C in the above example payload)<br />
@@ -127,6 +127,21 @@ So in my case I setlled for a safe one hour WINDOW SIZE (ie. 3600000ms) <br /><b
 
 <h4>MQTT API</h4>
 <p>
+By default, the system will connect to a public, cloud-based, MQTT broker (broker.hivemq.com). This is to ensure that an MQTT broker is always available, even if none is installed on your local LAN. PoolMaster will log into this broker with a unique Client ID which looks like "PoolMaster_FZXC0wg0";  the first part is always "PoolMaster_" and the second part is a random 8 character code which is created at first startup of the hardware and stored in the EEPROM. Even if the hardware is restarted it will remain the same. It is possible to generate a new unique Client ID by re-flashing the firmware with a different value for CONFIG_VERSION defined in the Config.h file (which will also restore all EEPROM content to its default values). The MQTT topics on which PoolMaster will publish its data all start with this unique Client ID. Here is the list:
+
+<ul>
+<li>PoolMaster_FZXC0wg0/Meas1 -> Measurement data</li>
+<li>PoolMaster_FZXC0wg0/Meas2 -> Measurement data</li>
+<li>PoolMaster_FZXC0wg0/Set1 -> Parameters data</li>
+<li>PoolMaster_FZXC0wg0/Set2 -> Parameters data</li>
+<li>PoolMaster_FZXC0wg0/Set3 -> Parameters data</li>
+<li>PoolMaster_FZXC0wg0/Set4 -> Parameters data</li>
+<li>PoolMaster_FZXC0wg0/Set5 -> Parameters data</li>
+<li>PoolMaster_FZXC0wg0/API -> Topic where to send API commands</li>
+<li>PoolMaster_FZXC0wg0/status -> Connection status</li>
+<li>PoolMaster_FZXC0wg0/Err -> Error messages</li>
+</ul><br />
+
 Below are the Payloads/commands to publish on the "_PoolTopicAPI" topic (see in code) or in the serial terminal in Json format in order to launch actions on the Arduino:<br />
 <ul>
 <li>{"Mode":1} or {"Mode":0}         -> set "Mode" to manual (0) or Auto (1). In Auto, filtration starts/stops at set times of the day and pH and Orp are regulated</li> 
@@ -164,8 +179,8 @@ Below are the Payloads/commands to publish on the "_PoolTopicAPI" topic (see in 
 <li>{"RstpHCal":1}                   -> call this command to reset the calibration coefficients of the pH probe</li>
 <li>{"RstOrpCal":1}                  -> call this command to reset the calibration coefficients of the Orp probe</li>
 <li>{"RstPSICal":1}                  -> call this command to reset the calibration coefficients of the pressure sensor</li>
-<li>{"SetMQTTBroker":["broker.hivemq.com",1883,"",""]} -> call this command to set the IP address, port, login and password of the MQTT broker<li>
-<li>{"SetMQTTBroker":["192.168.0.38",1883,"",""]} -> call this command to set the IP address, port, login and password of the MQTT broker<li>
+<li>{"SetMQTTBroker":["broker.hivemq.com",1883,"",""]} -> call this command to set the IP address, port, login and password of the MQTT broker</li>
+<li>{"SetMQTTBroker":["192.168.0.38",1883,"",""]} -> call this command to set the IP address, port, login and password of the MQTT broker</li>
 </ul>
 </p><br />
 
