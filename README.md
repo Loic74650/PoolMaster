@@ -127,20 +127,20 @@ So in my case I setlled for a safe one hour WINDOW SIZE (ie. 3600000ms) <br /><b
 
 <h4>MQTT API</h4>
 <p>
-By default, the system will connect to a public, cloud-based, MQTT broker (broker.hivemq.com). This is to ensure that an MQTT broker is always available, even if none is installed on your local LAN. PoolMaster will log into this broker with a unique Client ID which looks like "PoolMaster_FZXC0wg0";  the first part is always "PoolMaster_" and the second part is a random 8 character code which is created at first startup of the hardware and stored in the EEPROM. Even if the hardware is restarted it will remain the same. It is possible to generate a new unique Client ID by re-flashing the firmware with a different value for CONFIG_VERSION defined in the Config.h file (which will also restore all EEPROM content to its default values). The unique Client ID is displayed on the serial terminal at startup.<br /><br />
+By default, the system will connect to a public, cloud-based, MQTT broker (broker.hivemq.com). This is to ensure that an MQTT broker is always available, even if none is installed on your local LAN. PoolMaster will log into this broker with a unique Client ID which looks like "PoolMaster_3532313237161307";  the first part is always "PoolMaster_" and the second part is a unique 8 Hexadecimals code which corresponds to the serial number of the micro-processor. Even if the hardware is restarted it will remain the same. It is possible to generate a new unique Client ID by re-flashing the firmware with a different value for CONFIG_VERSION defined in the Config.h file (which will also restore all EEPROM content to its default values). The unique Client ID is displayed on the serial terminal at startup.<br /><br />
 The MQTT topics on which PoolMaster will publish its data all start with this unique Client ID (which will be different for each hardware). Here is the list:
 
 <ul>
-<li>PoolMaster_FZXC0wg0/Meas1 -> Measurement data</li>
-<li>PoolMaster_FZXC0wg0/Meas2 -> Measurement data</li>
-<li>PoolMaster_FZXC0wg0/Set1 -> Parameters data</li>
-<li>PoolMaster_FZXC0wg0/Set2 -> Parameters data</li>
-<li>PoolMaster_FZXC0wg0/Set3 -> Parameters data</li>
-<li>PoolMaster_FZXC0wg0/Set4 -> Parameters data</li>
-<li>PoolMaster_FZXC0wg0/Set5 -> Parameters data</li>
-<li>PoolMaster_FZXC0wg0/API -> Topic where to send API commands</li>
-<li>PoolMaster_FZXC0wg0/status -> Connection status</li>
-<li>PoolMaster_FZXC0wg0/Err -> Error messages</li>
+<li>PoolMaster_3532313237161307/Meas1 -> Measurement data</li>
+<li>PoolMaster_3532313237161307/Meas2 -> Measurement data</li>
+<li>PoolMaster_3532313237161307/Set1 -> Parameters data</li>
+<li>PoolMaster_3532313237161307/Set2 -> Parameters data</li>
+<li>PoolMaster_3532313237161307/Set3 -> Parameters data</li>
+<li>PoolMaster_3532313237161307/Set4 -> Parameters data</li>
+<li>PoolMaster_3532313237161307/Set5 -> Parameters data</li>
+<li>PoolMaster_3532313237161307/API -> Topic where to send API commands</li>
+<li>PoolMaster_3532313237161307/status -> Connection status</li>
+<li>PoolMaster_3532313237161307/Err -> Error messages</li>
 </ul>
 
 Below are the Payloads/commands to publish on the "_PoolTopicAPI" topic (see in code) or in the serial terminal in Json format in order to launch actions on the Arduino:<br />
@@ -154,6 +154,9 @@ Below are the Payloads/commands to publish on the "_PoolTopicAPI" topic (see in 
 <li>{"OrpPID":1} or {"OrpPID":0}     -> start/stop the Orp PID regulation loop</li>
 <li>{"PhCalib":[4.02,3.8,9.0,9.11]}  -> multi-point linear regression calibration (minimum 1 point-couple, 6 max.) in the form [ProbeReading_0, BufferRating_0, xx, xx, ProbeReading_n, BufferRating_n]
 <li>{"OrpCalib":[450,465,750,784]}   -> multi-point linear regression calibration (minimum 1 point-couple, 6 max.) in the form [ProbeReading_0, BufferRating_0, xx, xx, ProbeReading_n, BufferRating_n]
+<li>{"PhCalibCoeffs":[C0,C1]}        -> overwrite calibration coefficients  pHCalibCoeffs0, pHCalibCoeffs1</li>
+<li>{"OrpCalibCoeffs":[C0,C1]}       -> overwrite calibration coefficients  OrpCalibCoeffs0, OrpCalibCoeffs1</li>
+<li>{"PSICalibCoeffs":[C0,C1]}       -> overwrite calibration coefficients  PSICalibCoeffs0, PSICalibCoeffs1</li>
 <li>{"PhSetPoint":7.4}               -> set the Ph setpoint, 7.4 in this example</li>
 <li>{"OrpSetPoint":750.0}            -> set the Orp setpoint, 750mV in this example</li>
 <li>{"WSetPoint":27.0}               -> set the water temperature setpoint, 27.0deg in this example</li>

@@ -1,7 +1,7 @@
 /*
 
   Arduino/Controllino-Maxi/ATmega2560 based Ph/ORP regulator for home pool sysem
-  (c) Loic74 <loic74650@gmail.com> 2018-2023
+  (c) Loic74 <loic74650@gmail.com> 2018-2024
 
 ***how to compile***
   - select the target board type in the Arduino IDE (either "Arduino Mega 2560" or "Controllino Maxi")
@@ -74,6 +74,9 @@
   {"PhCalib":[4.02,3.8,9.0,9.11]}  -> multi-point linear regression calibration (minimum 1 point-couple, 6 max.) in the form [ProbeReading_0, BufferRating_0, xx, xx, ProbeReading_n, BufferRating_n]
   {"OrpCalib":[450,465,750,784]}   -> multi-point linear regression calibration (minimum 1 point-couple, 6 max.) in the form [ProbeReading_0, BufferRating_0, xx, xx, ProbeReading_n, BufferRating_n]
   {"PSICalib":[0,0,0.71,0.6]}      -> multi-point linear regression calibration (minimum 2 point-couple, 6 max.) in the form [ElectronicPressureSensorReading_0, MechanicalPressureSensorReading_0, xx, xx, ElectronicPressureSensorReading_n, MechanicalPressureSensorReading_n]. Mechanical pressure sensor is typically located on the sand filter
+  {"PhCalibCoeffs":[C0,C1]}        -> overwrite calibration coefficients  pHCalibCoeffs0, pHCalibCoeffs1
+  {"OrpCalibCoeffs":[C0,C1]}       -> overwrite calibration coefficients  OrpCalibCoeffs0, OrpCalibCoeffs1
+  {"PSICalibCoeffs":[C0,C1]}       -> overwrite calibration coefficients  PSICalibCoeffs0, PSICalibCoeffs1
   {"PhSetPoint":7.4}               -> set the Ph setpoint, 7.4 in this example
   {"OrpSetPoint":750.0}            -> set the Orp setpoint, 750mV in this example
   {"WSetPoint":27.0}               -> set the water temperature setpoint, 27.0deg in this example
@@ -145,6 +148,7 @@
 #include "Pump.h"
 #include "EasyNextionLibrary.h"  // Include EasyNextionLibrary
 #include <ADS1115.h>
+#include <ArduinoUniqueID.h>
 
 // Firmware revision
 String Firmw = "7.0.0";
@@ -163,6 +167,9 @@ ArduinoQueue<String> queueIn(QUEUE_SIZE_ITEMS, QUEUE_SIZE_BYTES);
 //buffers for MQTT string payload
 #define PayloadBufferLength 150
 char Payload[PayloadBufferLength];
+
+//Processor UID
+char UID[17] = "";
 
 //MQTT topics arrays
 const char _PoolTopicMeas1 [40];
@@ -278,8 +285,8 @@ time_t syncTimeRTC() {
 void setup()
 {
   //Serial port for debug info
-  Serial.begin(57600);
-  delay(200);
+  Serial.begin(19200);
+  delay(100);
 
   //Nextion TFT
   myNex.begin(9600);
@@ -319,7 +326,7 @@ void setup()
   if (! rtc.begin())
   {
     Serial << F("Couldn't find RTC") << endl;
-    //while (1);
+    while (1);
   }
   else
   {
@@ -405,17 +412,22 @@ void setup()
   if (storage.AutoMode && (hour() >= storage.FiltrationStart) && (hour() < storage.FiltrationStop))
     FiltrationPump.Start();
 
+  //Get processor unique ID and concatenate it with "PoolMaster_" header in order to create unique MQTT topic headers and client ID
+  GetProcUID(UID);
+  strcat (MqttServerClientID, UID);
+  Serial << F("MQTT Topic UID: ") << MqttServerClientID << _endl;
+
   //Create MQTT topics
-  strcpy (_PoolTopicMeas1, storage.uid); strcat (_PoolTopicMeas1, PoolTopicMeas1);
-  strcpy (_PoolTopicMeas2, storage.uid); strcat (_PoolTopicMeas2, PoolTopicMeas2);
-  strcpy (_PoolTopicSet1, storage.uid); strcat (_PoolTopicSet1, PoolTopicSet1);
-  strcpy (_PoolTopicSet2, storage.uid); strcat (_PoolTopicSet2, PoolTopicSet2);
-  strcpy (_PoolTopicSet3, storage.uid); strcat (_PoolTopicSet3, PoolTopicSet3);
-  strcpy (_PoolTopicSet4, storage.uid); strcat (_PoolTopicSet4, PoolTopicSet4);
-  strcpy (_PoolTopicSet5, storage.uid); strcat (_PoolTopicSet5, PoolTopicSet5);
-  strcpy (_PoolTopicAPI, storage.uid); strcat (_PoolTopicAPI, PoolTopicAPI);
-  strcpy (_PoolTopicStatus, storage.uid); strcat (_PoolTopicStatus, PoolTopicStatus);
-  strcpy (_PoolTopicError, storage.uid); strcat (_PoolTopicError, PoolTopicError);
+  strcpy (_PoolTopicMeas1, MqttServerClientID); strcat (_PoolTopicMeas1, PoolTopicMeas1);
+  strcpy (_PoolTopicMeas2, MqttServerClientID); strcat (_PoolTopicMeas2, PoolTopicMeas2);
+  strcpy (_PoolTopicSet1, MqttServerClientID); strcat (_PoolTopicSet1, PoolTopicSet1);
+  strcpy (_PoolTopicSet2, MqttServerClientID); strcat (_PoolTopicSet2, PoolTopicSet2);
+  strcpy (_PoolTopicSet3, MqttServerClientID); strcat (_PoolTopicSet3, PoolTopicSet3);
+  strcpy (_PoolTopicSet4, MqttServerClientID); strcat (_PoolTopicSet4, PoolTopicSet4);
+  strcpy (_PoolTopicSet5, MqttServerClientID); strcat (_PoolTopicSet5, PoolTopicSet5);
+  strcpy (_PoolTopicAPI, MqttServerClientID); strcat (_PoolTopicAPI, PoolTopicAPI);
+  strcpy (_PoolTopicStatus, MqttServerClientID); strcat (_PoolTopicStatus, PoolTopicStatus);
+  strcpy (_PoolTopicError, MqttServerClientID); strcat (_PoolTopicError, PoolTopicError);
 
   MQTTClient.setOptions(60, false, 6000);
   MQTTClient.setWill(_PoolTopicStatus, "offline", true, LWMQTT_QOS1);
@@ -500,13 +512,12 @@ void MQTTConnect()
   {
     MQTTConnection = true;
 
-    //String PoolTopicAPI = "Home/Pool/Api";
     //Topic to which send/publish API commands for the Pool controls
     MQTTClient.subscribe(_PoolTopicAPI);
 
     //tell status topic we are online
     if (MQTTClient.publish(_PoolTopicStatus, F("online"), true, LWMQTT_QOS1))
-      Serial << F("published: Home/Pool/status - online") << _endl;
+      Serial << F("published: ") << MqttServerClientID << ("/status - online") << _endl;
     else
     {
       Serial << F("Unable to publish on status topic; MQTTClient.lastError() returned: ") << MQTTClient.lastError() << F(" - MQTTClient.returnCode() returned: ") << MQTTClient.returnCode() << _endl;
@@ -1196,16 +1207,16 @@ bool loadConfig()
   Serial << storage.ip[0] << "." << storage.ip[1] << "." << storage.ip[2] << "." << storage.ip[3] << ", " << storage.subnet[0] << "." << storage.subnet[1] << "." << storage.subnet[2] << "." << storage.subnet[3] << ", " << storage.gateway[0] << "." << storage.gateway[1] << "." << storage.gateway[2] << "." << storage.gateway[3] << ", " << storage.dnsserver[0] << "." << storage.dnsserver[1] << "." << storage.dnsserver[2] << "." << storage.dnsserver[3] << ", " << _HEX(storage.mac[0]) << "."  << _HEX(storage.mac[1]) << "." << _HEX(storage.mac[2]) << "." << _HEX(storage.mac[3]) << "." << _HEX(storage.mac[4]) << "." << _HEX(storage.mac[5]) << '\n';
   Serial << storage.ipConfiged << '\n';
   Serial << storage.DST << '\n';
-  Serial << storage.uid << '\n' << '\n';
+  Serial << storage.BrokerIP << '\n';
+  Serial << storage.BrokerPort << '\n';
+  Serial << storage.MqttServerLogin << '\n';
+  Serial << storage.MqttServerPwd << '\n';
 
   return (storage.ConfigVersion == CONFIG_VERSION);
 }
 
 void saveConfig()
 {
-  //Generate MQTT UID
-  generateUID();
-
   //update function only writes to eeprom if the value is actually different. Increases the eeprom lifetime
   EEPROM.writeBlock(configAdress, storage);
 }
@@ -1684,15 +1695,25 @@ void ProcessCommand(String JSONCommand)
                     }
                     else if (command.containsKey(F("RstpHCal")))//"RstpHCal" reset the calibration coefficients of the pH probe
                     {
-                      storage.pHCalibCoeffs0 = 4.3;
-                      storage.pHCalibCoeffs1 = -2.63;
+#if defined(pHOrpBoard)//Digital board
+                      storage.pHCalibCoeffs0 = -2.22;
+                      storage.pHCalibCoeffs1 = 7.0;
+#else //Analog board
+                      storage.pHCalibCoeffs0 = -4.78;
+                      storage.pHCalibCoeffs1 = -2.54;
+#endif
                       saveConfig();
                       PublishSettings();
                     }
                     else if (command.containsKey(F("RstOrpCal")))//"RstOrpCal" reset the calibration coefficients of the Orp probe
                     {
-                      storage.OrpCalibCoeffs0 = -1189;
-                      storage.OrpCalibCoeffs1 = 2564;
+#if defined(pHOrpBoard)//Digital board
+                      storage.OrpCalibCoeffs0 = 431;
+                      storage.OrpCalibCoeffs1 = 0;
+#else //Analog board
+                      storage.OrpCalibCoeffs0 = -1291;
+                      storage.OrpCalibCoeffs1 = 2580;
+#endif
                       saveConfig();
                       PublishSettings();
                     }
@@ -1703,16 +1724,36 @@ void ProcessCommand(String JSONCommand)
                       saveConfig();
                       PublishSettings();
                     }
-                    else
+                    else if (command.containsKey(F("PhCalibCoeffs")))//overwrite calibration coefficients
+                    {
+                      storage.pHCalibCoeffs0 = (float)command[F("PhCalibCoeffs")][0];
+                      storage.pHCalibCoeffs1 = (float)command[F("PhCalibCoeffs")][1];
+                      saveConfig();
+                      PublishSettings();
+                    }
+                    else if (command.containsKey(F("OrpCalibCoeffs")))//overwrite calibration coefficients
+                    {
+                      storage.OrpCalibCoeffs0 = (float)command[F("OrpCalibCoeffs")][0];
+                      storage.OrpCalibCoeffs1 = (float)command[F("OrpCalibCoeffs")][1];
+                      saveConfig();
+                      PublishSettings();
+                    }
+                    else if (command.containsKey(F("PSICalibCoeffs")))//overwrite calibration coefficients
+                    {
+                      storage.PSICalibCoeffs0 = (float)command[F("PSICalibCoeffs")][0];
+                      storage.PSICalibCoeffs1 = (float)command[F("PSICalibCoeffs")][1];
+                      saveConfig();
+                      PublishSettings();
+                    } else
                       //"SetMQTTBroker" command which is called to set IP and credentials of the MQTT Broker  {"SetMQTTBroker":["192.168.0.38",1883,"",""]}
                       //First parameter is the broker IP address, second parameter is the port number, third and fourth are the login and password
                       if (command.containsKey(F("SetMQTTBroker")))
                       {
                         MQTTClient.disconnect();
-                        strcpy (storage.BrokerIP, command[F("SetMQTTBroker")][0]);Serial << F("New Broker IP: ") << storage.BrokerIP << _endl;
-                        storage.BrokerPort = (unsigned long)command[F("SetMQTTBroker")][1];Serial << F("New BrokerPort: ") << storage.BrokerPort << _endl;
-                        strcpy (storage.MqttServerLogin, command[F("SetMQTTBroker")][2]);Serial << F("New MqttServerLogin: ") << storage.MqttServerLogin << _endl;
-                        strcpy (storage.MqttServerPwd, command[F("SetMQTTBroker")][3]);Serial << F("New MqttServerPwd: ") << storage.MqttServerPwd << _endl;
+                        strcpy (storage.BrokerIP, command[F("SetMQTTBroker")][0]); Serial << F("New Broker IP: ") << storage.BrokerIP << _endl;
+                        storage.BrokerPort = (unsigned long)command[F("SetMQTTBroker")][1]; Serial << F("New BrokerPort: ") << storage.BrokerPort << _endl;
+                        strcpy (storage.MqttServerLogin, command[F("SetMQTTBroker")][2]); Serial << F("New MqttServerLogin: ") << storage.MqttServerLogin << _endl;
+                        strcpy (storage.MqttServerPwd, command[F("SetMQTTBroker")][3]); Serial << F("New MqttServerPwd: ") << storage.MqttServerPwd << _endl;
                         saveConfig();
                         MQTTClient.setOptions(60, false, 6000);
                         MQTTClient.setWill(_PoolTopicStatus, "offline", true, LWMQTT_QOS1);
@@ -1808,15 +1849,16 @@ void simpLinReg(float * x, float * y, double & lrCoef0, double & lrCoef1, int n)
   lrCoef1 = ybar - lrCoef0 * xbar;
 }
 
-void generateUID()
+
+void GetProcUID(char* Array)
 {
-  /* Change to allowable characters */
-  const char possible[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  randomSeed(analogRead(A0));
-  for (int i = 11; i < MAX_UID + 11; i++)
+  ArduinoUniqueID();
+  char hexadecimalnum [3];
+  Array[0] = '\0';
+
+  for (int i = 0; i < 8; i++)
   {
-    int r = random(0, strlen(possible));
-    storage.uid[i] = possible[r];
+    sprintf(hexadecimalnum, "%02X", UniqueID8[i]);
+    strcat (Array, hexadecimalnum);
   }
-  storage.uid[MAX_UID + 11] = '\0';
 }

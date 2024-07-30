@@ -1,6 +1,6 @@
 #include "OneWire.h"
 
-#define DEBUG           ->comment this line to prevent code from writing debug messages to serial port
+//#define DEBUG           ->comment this line to prevent code from writing debug messages to serial port
 #define pHOrpBoard        //->comment this line if your setup is using the Phidget boards ((PoolMaster V5.0 and earlier) as interface to the pH and Orp probes instead of the default pHOrpBoard(https://github.com/Loic74650/pH_Orp_Board)
 
 #include "DebugUtils.h"
@@ -102,13 +102,10 @@ String sArduinoMac;
 
 //Version of config stored in Eeprom
 //Random value. Change this value (to any other value) to revert the config to default values
-#define CONFIG_VERSION 126
+#define CONFIG_VERSION 121
 
 //interval (in miilisec) between MQTT publishes of measurement data
 #define PublishInterval 30000
-
-// Used for random string generator for unique MQTT broker user ID
-#define MAX_UID 8
 
 //Settings structure and its default values
 struct StoreStruct
@@ -124,7 +121,6 @@ struct StoreStruct
   byte ip[4], subnet[4], gateway[4], dnsserver[4], mac[6];
   bool ipConfiged;
   unsigned long DST;
-  char uid[MAX_UID + 12];
   char BrokerIP[40];
   unsigned long BrokerPort;
   char MqttServerLogin[10];
@@ -146,8 +142,7 @@ struct StoreStruct
   {192, 168, 0, 188}, {255, 255, 255, 0}, {192, 168, 0, 254}, {8, 8, 8, 8}, {0xA8, 0x61, 0x0A, 0xAE, 0x2C, 0x68},
   0,
   0,
-  "PoolMaster_12345678",//{'P', 'o', 'o', 'l', 'M', 'a', 's', 't', 'e', 'r', '_', '1', '2', '3', '4', '5', '6', '7', '8', '\0'},
-  "broker.hivemq.com",//{'b', 'r', 'o', 'k', 'e', 'r', '.', 'h', 'i', 'v', 'e', 'm', 'q', '.', 'c', 'o', 'm','\0'},
+  "broker.hivemq.com",
   1883,
   "",
   ""
@@ -160,7 +155,7 @@ byte mac[] = { 0xA8, 0x61, 0x0A, 0xAE, 0x65, 0x04}; //-> Mega2560 dev setup with
 MQTTClient MQTTClient;
 //const char* MqttServerIP = "192.168.0.38";
 //const char* MqttServerIP = "broker.hivemq.com";//cloud-based MQTT broker to test when node-red and MQTT broker are not installed locally (/!\ public and unsecure!)
-//const char* MqttServerClientID = storage.uid;
+char MqttServerClientID[30] = "PoolMaster_";
 //const char* MqttServerLogin = nullptr;  //replace by const char* MqttServerLogin = nullptr; in case broker does not require a login/pwd
 //const char* MqttServerPwd = nullptr; //replace by const char* MqttServerPwd = nullptr; in case broker does not require a login/pwd
 const char* PoolTopicMeas1 = "/Meas1";
