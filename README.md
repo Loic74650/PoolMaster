@@ -127,7 +127,7 @@ So in my case I setlled for a safe one hour WINDOW SIZE (ie. 3600000ms) <br /><b
 
 <h4>MQTT API</h4>
 <p>
-By default, the system will connect to a public, cloud-based, MQTT broker (broker.hivemq.com). This is to ensure that an MQTT broker is always available, even if none is installed on your local LAN. PoolMaster will log into this broker with a unique Client ID which looks like "PoolMaster_3532313237161307";  the first part is always "PoolMaster_" and the second part is a unique 8 Hexadecimals code which corresponds to the serial number of the micro-processor. Even if the hardware is restarted it will remain the same. It is possible to generate a new unique Client ID by re-flashing the firmware with a different value for CONFIG_VERSION defined in the Config.h file (which will also restore all EEPROM content to its default values). The unique Client ID is displayed on the serial terminal at startup.<br /><br />
+By default, the system will connect to a public, cloud-based, MQTT broker (broker.hivemq.com). This is to ensure that an MQTT broker is always available, even if none is installed on your local LAN. PoolMaster will log into this broker with a unique Client ID which looks like "PoolMaster_3532313237161307";  the first part is always "PoolMaster_" and the second part is a unique 8 Hexadecimals code which corresponds to the serial number of the micro-processor. The unique Client ID is displayed on the serial terminal at startup.<br /><br />
 The MQTT topics on which PoolMaster will publish its data all start with this unique Client ID (which will be different for each hardware). Here is the list:
 
 <ul>
@@ -143,7 +143,7 @@ The MQTT topics on which PoolMaster will publish its data all start with this un
 <li>PoolMaster_3532313237161307/Err -> Error messages</li>
 </ul>
 
-Below are the Payloads/commands to publish on the "_PoolTopicAPI" topic (see in code) or in the serial terminal in Json format in order to launch actions on the Arduino:<br />
+Below are the Payloads/commands to publish on the "PoolMaster_3532313237161307/API" topic (see in code) or in the serial terminal in Json format in order to launch actions on the Arduino:<br />
 <ul>
 <li>{"Mode":1} or {"Mode":0}         -> set "Mode" to manual (0) or Auto (1). In Auto, filtration starts/stops at set times of the day and pH and Orp are regulated</li> 
 <li>{"Heat":1} or {"Heat":0}         -> start/stop the regulation of the pool water temperature</li>
@@ -184,7 +184,7 @@ Below are the Payloads/commands to publish on the "_PoolTopicAPI" topic (see in 
 <li>{"RstOrpCal":1}                  -> call this command to reset the calibration coefficients of the Orp probe</li>
 <li>{"RstPSICal":1}                  -> call this command to reset the calibration coefficients of the pressure sensor</li>
 <li>{"SetMQTTBroker":["broker.hivemq.com",1883,"",""]} -> call this command to set the IP address, port, login and password of the MQTT broker</li>
-<li>{"SetMQTTBroker":["192.168.0.38",1883,"",""]} -> call this command to set the IP address, port, login and password of the MQTT broker</li>
+<li>{"SetMQTTBroker":["192.168.0.38",1883,"",""]} -> other command example to set the IP address, port, login and password of the MQTT broker</li>
 </ul>
 </p><br />
 
