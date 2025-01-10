@@ -106,19 +106,20 @@
   {"RstPSICal":1}                   -> call this command to reset the calibration coefficients of the pressure sensor
 
 ***Dependencies and respective revisions used to compile this project***
- https://github.com/256dpi/arduino-mqtt/releases (rev 2.4.3)
-  https://github.com/CONTROLLINO-PLC/CONTROLLINO_Library (rev 3.0.4)
-  https://github.com/PaulStoffregen/OneWire (rev 2.3.4)
-  https://github.com/milesburton/Arduino-Temperature-Control-Library (rev 3.7.2)
-  https://github.com/RobTillaart/Arduino/tree/master/libraries/RunningMedian (rev 0.1.15)
-  https://github.com/prampec/arduino-softtimer (rev 3.1.3)
-  https://github.com/bricofoy/yasm (rev 0.9.2)
-  https://github.com/br3ttb/Arduino-PID-Library (rev 1.2.0)
-  https://github.com/bblanchon/ArduinoJson (rev 5.13.4)
+  https://github.com/256dpi/arduino-mqtt/releases (rev 2.5.2)
+  https://github.com/CONTROLLINO-PLC/CONTROLLINO_Library (rev 3.0.10)
+  https://github.com/PaulStoffregen/OneWire (rev 2.3.8)
+  https://github.com/milesburton/Arduino-Temperature-Control-Library (rev 3.9.1)
+  https://github.com/RobTillaart/RunningMedian (rev 0.3.9)
+  https://github.com/prampec/arduino-softtimer (rev 3.3.0)
+  https://github.com/prampec/arduino-pcimanager/tree/master (rev 2.1.4)
+  https://github.com/bricofoy/yasm (rev 1.1.0)
+  https://github.com/br3ttb/Arduino-PID-Library (rev 1.2.1)
+  https://github.com/bblanchon/ArduinoJson (rev 7.3.0)
   https://github.com/thijse/Arduino-EEPROMEx (rev 1.0.0)
-  https://github.com/EinarArnason/ArduinoQueue
-  https://github.com/PaulStoffregen/Time (rev 1.5) -> /!\ Bug: in file "Time.cpp" "static const uint8_t monthDays[]={31,28,31,30,31,30,31,31,30,31,30,31};" must be replaced by "static volatile const uint8_t monthDays[]={31,28,31,30,31,30,31,31,30,31,30,31};"
-  https://github.com/adafruit/RTClib (rev 1.2.0)
+  https://github.com/EinarArnason/ArduinoQueue (rev 1.2.5)
+  https://github.com/PaulStoffregen/Time (rev 1.6.1) 
+  https://github.com/adafruit/RTClib (rev 2.1.4)
   https://github.com/TrippyLighting/EthernetBonjour
   https://github.com/Seithan/EasyNextionLibrary (rev 1.0.6)
   http://arduiniana.org/libraries/streaming/ (rev 5)
@@ -148,7 +149,7 @@
 #include <ADS1115.h>
 
 // Firmware revision
-String Firmw = "6.0.0";
+String Firmw = "7.0.0";
 
 //Starting point address where to store the config data in EEPROM
 #define memoryBase 32
@@ -677,43 +678,21 @@ void PublishDataCallback(Task* me)
 
   if (MQTTClient.connected())
   {
-    //send a JSON to MQTT broker. /!\ Split JSON if longer than 100 bytes
-    //Will publish something like {"Tmp":818,"pH":321,"PSI":56,"Orp":583,"FilUpT":8995,"PhUpT":0,"ChlUpT":0}
-    StaticJsonBuffer<200> jsonBuffer;
-    JsonObject& root = jsonBuffer.createObject();
+    //send a JSON to MQTT broker. /!\ Split JSON if longer than 192 bytes
+    const int capacity = JSON_OBJECT_SIZE(7); // value recommended by ArduinoJson Assistant with slack for the Firmw string
+    StaticJsonDocument<capacity> root;
 
-    root.set<int>(F("Tmp"), (int)(storage.TempValue * 100));
-    root.set<int>(F("pH"), (int)(storage.PhValue * 100));
-    root.set<int>(F("PSI"), (int)(storage.PSIValue * 100));
-    root.set<int>(F("Orp"), (int)storage.OrpValue);
-    root.set<unsigned long>(F("FilUpT"), FiltrationPump.UpTime / 1000);
-    root.set<unsigned long>(F("PhUpT"), PhPump.UpTime / 1000);
-    root.set<unsigned long>(F("ChlUpT"), ChlPump.UpTime / 1000);
+    root[F("Tmp")] =  (int)(storage.TempValue * 100);
+    root[F("pH")] =  (int)(storage.PhValue * 100);
+    root[F("PSI")] =  (int)(storage.PSIValue * 100);
+    root[F("Orp")] =  (int)storage.OrpValue;
+    root[F("FilUpT")] =  FiltrationPump.UpTime / 1000;
+    root[F("PhUpT")] =  PhPump.UpTime / 1000;
+    root[F("ChlUpT")] =  ChlPump.UpTime / 1000;
 
-    /*String tp = "Settings JSON buffer size is: ";
-      tp += jsonBuffer.size();
-      DEBUG_PRINT(tp);*/
+    serializeJson(root, Payload);
+    MQTTClient.publish(PoolTopicMeas1, Payload, strlen(Payload), true, LWMQTT_QOS1);
 
-    //char Payload[PayloadBufferLength];
-    if (jsonBuffer.size() < PayloadBufferLength)
-    {
-      root.printTo(Payload, PayloadBufferLength);
-      if (MQTTClient.publish(PoolTopicMeas1, Payload, strlen(Payload), true, LWMQTT_QOS1))
-      {
-        Serial << F("Payload: ") << Payload << F(" - ");
-        Serial << F("Payload size: ") << jsonBuffer.size() << _endl;
-      }
-      else
-      {
-        Serial << F("Unable to publish the following payload: ") << Payload << _endl;
-        Serial << F("MQTTClient.lastError() returned: ") << MQTTClient.lastError() << F(" - MQTTClient.returnCode() returned: ") << MQTTClient.returnCode() << _endl;
-      }
-    }
-    else
-    {
-      Serial << F("MQTT Payload buffer overflow! - ");
-      Serial << F("Payload size: ") << jsonBuffer.size() << _endl;
-    }
   }
   else
     Serial << F("Failed to connect to the MQTT broker") << _endl;
@@ -721,38 +700,19 @@ void PublishDataCallback(Task* me)
   //Second MQTT publish to limit size of payload at once
   if (MQTTClient.connected())
   {
-    //send a JSON to MQTT broker. /!\ Split JSON if longer than 100 bytes
-    //Will publish something like {"AcidF":100,"ChlF":100,"IO":11,"IO2":0}
-    StaticJsonBuffer<200> jsonBuffer;
-    JsonObject& root = jsonBuffer.createObject();
+    //send a JSON to MQTT broker. /!\ Split JSON if longer than 192 bytes
+    const int capacity = JSON_OBJECT_SIZE(6); // value recommended by ArduinoJson Assistant with slack for the Firmw string
+    StaticJsonDocument<capacity> root;
 
-    root.set<int>(F("AcidF"), (int)(storage.AcidFill - PhPump.GetTankUsage()));
-    root.set<int>(F("ChlF"), (int)(storage.ChlFill - ChlPump.GetTankUsage()));
-    root.set<uint8_t>(F("IO"), BitMap);
-    root.set<uint8_t>(F("IO2"), BitMap2);
-    root.set<int>(F("pH2"), (int)(storage.PhValue2 * 100));
-    root.set<int>(F("Orp2"), (int)storage.OrpValue2);
+    root[F("AcidF")] =  (int)(storage.AcidFill - PhPump.GetTankUsage());
+    root[F("ChlF")] =  (int)(storage.ChlFill - ChlPump.GetTankUsage());
+    root[F("IO")] =  BitMap;
+    root[F("IO2")] =  BitMap2;
+    root[F("pH2")] =  (int)(storage.PhValue2 * 100);
+    root[F("Orp2")] =  (int)storage.OrpValue2;
 
-    //char Payload[PayloadBufferLength];
-    if (jsonBuffer.size() < PayloadBufferLength)
-    {
-      root.printTo(Payload, PayloadBufferLength);
-      if (MQTTClient.publish(PoolTopicMeas2, Payload, strlen(Payload), true, LWMQTT_QOS1))
-      {
-        Serial << F("Payload: ") << Payload << F(" - ");
-        Serial << F("Payload size: ") << jsonBuffer.size() << _endl;
-      }
-      else
-      {
-        Serial << F("Unable to publish the following payload: ") << Payload << _endl;
-        Serial << F("MQTTClient.lastError() returned: ") << MQTTClient.lastError() << F(" - MQTTClient.returnCode() returned: ") << MQTTClient.returnCode() << _endl;
-      }
-    }
-    else
-    {
-      Serial << F("MQTT Payload buffer overflow! - ");
-      Serial << F("Payload size: ") << jsonBuffer.size() << _endl;
-    }
+    serializeJson(root, Payload);
+    MQTTClient.publish(PoolTopicMeas2, Payload, strlen(Payload), true, LWMQTT_QOS1);
   }
   else
     Serial << F("Failed to connect to the MQTT broker") << _endl;
@@ -773,39 +733,21 @@ void PublishSettings()
 
   if (MQTTClient.connected())
   {
-    //send a JSON to MQTT broker. /!\ Split JSON if longer than 100 bytes
-    StaticJsonBuffer<200> jsonBuffer;
-    JsonObject& root = jsonBuffer.createObject();
+    //send a JSON to MQTT broker. /!\ Split JSON if longer than 192 bytes
+    const int capacity = JSON_OBJECT_SIZE(8); // value recommended by ArduinoJson Assistant with slack for the Firmw string
+    StaticJsonDocument<capacity> root;
 
-    root.set<String>(F("Fw"), Firmw);//firmware revision
-    root.set<uint8_t>(F("FSta"), (uint8_t)storage.FiltrationStart);//Filtration start hour, in the morning (hours)
-    root.set<uint8_t>(F("FDu"), (uint8_t)storage.FiltrationDuration);//Computed filtration duration based on water temperature (hours)
-    root.set<uint8_t>(F("FStoM"), (uint8_t)storage.FiltrationStopMax);//Latest hour for the filtration to run. Whatever happens, filtration won't run later than this hour (hour)
-    root.set<uint8_t>(F("FSto"), (uint8_t)storage.FiltrationStop);//Computed filtration stop hour, equal to FSta + FDu (hour)
-    root.set<uint8_t>(F("Dpid"), (uint8_t)storage.DelayPIDs);//Delay from FSta for the water regulation/PIDs to start (mins)
-    root.set<uint8_t>(F("pHUTL"), (uint8_t)(storage.PhPumpUpTimeLimit / 60)); //Max allowed daily run time for the pH pump (/!\ mins)
-    root.set<uint8_t>(F("ChlUTL"), (uint8_t)(storage.ChlPumpUpTimeLimit / 60)); //Max allowed daily run time for the Chl pump (/!\ mins)
+    root[F("Fw")] = Firmw;//firmware revision
+    root[F( "FSta")] = (uint8_t)storage.FiltrationStart;//Filtration start hour, in the morning (hours)
+    root[F( "FDu")] = (uint8_t)storage.FiltrationDuration;//Computed filtration duration based on water temperature (hours)
+    root[F( "FStoM")] = (uint8_t)storage.FiltrationStopMax;//Latest hour for the filtration to run. Whatever happens, filtration won't run later than this hour (hour)
+    root[F( "FSto")] = (uint8_t)storage.FiltrationStop;//Computed filtration stop hour, equal to FSta + FDu (hour)
+    root[F( "Dpid")] = (uint8_t)storage.DelayPIDs;//Delay from FSta for the water regulation/PIDs to start (mins)
+    root[F( "pHUTL")] = (uint8_t)(storage.PhPumpUpTimeLimit / 60); //Max allowed daily run time for the pH pump (/!\ mins)
+    root[F( "ChlUTL")] = (uint8_t)(storage.ChlPumpUpTimeLimit / 60); //Max allowed daily run time for the Chl pump (/!\ mins)
 
-    //char Payload[PayloadBufferLength];
-    if (jsonBuffer.size() < PayloadBufferLength)
-    {
-      root.printTo(Payload, PayloadBufferLength);
-      if (MQTTClient.publish(PoolTopicSet1, Payload, strlen(Payload), true, LWMQTT_QOS1))
-      {
-        Serial << F("Payload: ") << Payload << F(" - ");
-        Serial << F("Payload size: ") << jsonBuffer.size() << _endl;
-      }
-      else
-      {
-        Serial << F("Unable to publish the following payload: ") << Payload << _endl;
-        Serial << F("MQTTClient.lastError() returned: ") << MQTTClient.lastError() << F(" - MQTTClient.returnCode() returned: ") << MQTTClient.returnCode() << _endl;
-      }
-    }
-    else
-    {
-      Serial << F("MQTT Payload buffer overflow! - ");
-      Serial << F("Payload size: ") << jsonBuffer.size() << _endl;
-    }
+    serializeJson(root, Payload);
+    MQTTClient.publish(PoolTopicSet1, Payload, strlen(Payload), true, LWMQTT_QOS1);
   }
   else
     Serial << F("Failed to connect to the MQTT broker") << _endl;
@@ -815,42 +757,21 @@ void PublishSettings()
 
   if (MQTTClient.connected())
   {
-    //send a JSON to MQTT broker. /!\ Split JSON if longer than 100 bytes
-    StaticJsonBuffer<200> jsonBuffer;
-    JsonObject& root = jsonBuffer.createObject();
+    //send a JSON to MQTT broker. /!\ Split JSON if longer than 192 bytes
+    const int capacity = JSON_OBJECT_SIZE(8); // value recommended by ArduinoJson Assistant with slack for the Firmw string
+    StaticJsonDocument<capacity> root;
 
-    root.set<int>(F("pHWS"), (uint8_t)(storage.PhPIDWindowSize / 1000 / 60)); //pH PID window size (/!\ mins)
-    root.set<int>(F("ChlWS"), (uint8_t)(storage.OrpPIDWindowSize / 1000 / 60)); //Orp PID window size (/!\ mins)
+    root[F("pHWS")] = (uint8_t)(storage.PhPIDWindowSize / 1000 / 60); //pH PID window size (/!\ mins)
+    root[F("ChlWS")] = (uint8_t)(storage.OrpPIDWindowSize / 1000 / 60); //Orp PID window size (/!\ mins)
+    root[F("pHSP")] = (int)(storage.Ph_SetPoint * 100); //pH setpoint (/!\ x100)
+    root[F("OrpSP")] = (int)(storage.Orp_SetPoint);//Orp setpoint
+    root[F("WSP")] = (int)(storage.WaterTemp_SetPoint * 100); //Water temperature setpoint (/!\ x100)
+    root[F("WLT")] = (int)(storage.WaterTempLowThreshold * 100); //Water temperature low threshold to activate anti-freeze mode (/!\ x100)
+    root[F("PSIHT")] = (uint8_t)(storage.PSI_HighThreshold * 100); //Water pressure high threshold to trigger error (/!\ x100)
+    root[F("PSIMT")] = (uint8_t)(storage.PSI_MedThreshold * 100); //Water pressure medium threshold (unused yet) (/!\ x100)
 
-    root.set<int>(F("pHSP"), (int)(storage.Ph_SetPoint * 100)); //pH setpoint (/!\ x100)
-    root.set<int>(F("OrpSP"), (int)(storage.Orp_SetPoint));//Orp setpoint
-
-    root.set<int>(F("WSP"), (int)(storage.WaterTemp_SetPoint * 100)); //Water temperature setpoint (/!\ x100)
-    root.set<int>(F("WLT"), (int)(storage.WaterTempLowThreshold * 100)); //Water temperature low threshold to activate anti-freeze mode (/!\ x100)
-
-    root.set<uint8_t>(F("PSIHT"), (uint8_t)(storage.PSI_HighThreshold * 100)); //Water pressure high threshold to trigger error (/!\ x100)
-    root.set<uint8_t>(F("PSIMT"), (uint8_t)(storage.PSI_MedThreshold * 100)); //Water pressure medium threshold (unused yet) (/!\ x100)
-
-    //char Payload[PayloadBufferLength];
-    if (jsonBuffer.size() < PayloadBufferLength)
-    {
-      root.printTo(Payload, PayloadBufferLength);
-      if (MQTTClient.publish(PoolTopicSet2, Payload, strlen(Payload), true, LWMQTT_QOS1))
-      {
-        Serial << F("Payload: ") << Payload << F(" - ");
-        Serial << F("Payload size: ") << jsonBuffer.size() << _endl;
-      }
-      else
-      {
-        Serial << F("Unable to publish the following payload: ") << Payload << _endl;
-        Serial << F("MQTTClient.lastError() returned: ") << MQTTClient.lastError() << F(" - MQTTClient.returnCode() returned: ") << MQTTClient.returnCode() << _endl;
-      }
-    }
-    else
-    {
-      Serial << F("MQTT Payload buffer overflow! - ");
-      Serial << F("Payload size: ") << jsonBuffer.size() << _endl;
-    }
+    serializeJson(root, Payload);
+    MQTTClient.publish(PoolTopicSet2, Payload, strlen(Payload), true, LWMQTT_QOS1);
   }
   else
     Serial << F("Failed to connect to the MQTT broker") << _endl;
@@ -860,39 +781,21 @@ void PublishSettings()
 
   if (MQTTClient.connected())
   {
-    //send a JSON to MQTT broker. /!\ Split JSON if longer than 100 bytes
-    StaticJsonBuffer<200> jsonBuffer;
-    JsonObject& root = jsonBuffer.createObject();
+    //send a JSON to MQTT broker. /!\ Split JSON if longer than 192 bytes
+    const int capacity = JSON_OBJECT_SIZE(7); // value recommended by ArduinoJson Assistant with slack for the Firmw string
+    StaticJsonDocument<capacity> root;
 
-    root.set<int>(F("TE"), (int)(storage.TempExternal * 100)); // /!\ x100
+    root[F("TE")] = (int)(storage.TempExternal * 100); // /!\ x100
+    root[F("pHC0")] = (float)(storage.pHCalibCoeffs0);//pH sensor calibration coefficient C0
+    root[F("pHC1")] = (float)(storage.pHCalibCoeffs1);//pH sensor calibration coefficient C1
+    root[F("OrpC0")] = (float)(storage.OrpCalibCoeffs0);//Orp sensor calibration coefficient C0
+    root[F("OrpC1")] = (float)(storage.OrpCalibCoeffs1);//Orp sensor calibration coefficient C1
+    root[F("PSIC0")] = (float)(storage.PSICalibCoeffs0);//Pressure sensor calibration coefficient C0
+    root[F("PSIC1")] = (float)(storage.PSICalibCoeffs1);//Pressure sensor calibration coefficient C1
 
-    root.set<float>(F("pHC0"), (float)(storage.pHCalibCoeffs0));//pH sensor calibration coefficient C0
-    root.set<float>(F("pHC1"), (float)(storage.pHCalibCoeffs1));//pH sensor calibration coefficient C1
-    root.set<float>(F("OrpC0"), (float)(storage.OrpCalibCoeffs0));//Orp sensor calibration coefficient C0
-    root.set<float>(F("OrpC1"), (float)(storage.OrpCalibCoeffs1));//Orp sensor calibration coefficient C1
-    root.set<float>(F("PSIC0"), (float)(storage.PSICalibCoeffs0));//Pressure sensor calibration coefficient C0
-    root.set<float>(F("PSIC1"), (float)(storage.PSICalibCoeffs1));//Pressure sensor calibration coefficient C1
+    serializeJson(root, Payload);
+    MQTTClient.publish(PoolTopicSet3, Payload, strlen(Payload), true, LWMQTT_QOS1);
 
-    //char Payload[PayloadBufferLength];
-    if (jsonBuffer.size() < PayloadBufferLength)
-    {
-      root.printTo(Payload, PayloadBufferLength);
-      if (MQTTClient.publish(PoolTopicSet3, Payload, strlen(Payload), true, LWMQTT_QOS1))
-      {
-        Serial << F("Payload: ") << Payload << F(" - ");
-        Serial << F("Payload size: ") << jsonBuffer.size() << _endl;
-      }
-      else
-      {
-        Serial << F("Unable to publish the following payload: ") << Payload << _endl;
-        Serial << F("MQTTClient.lastError() returned: ") << MQTTClient.lastError() << F(" - MQTTClient.returnCode() returned: ") << MQTTClient.returnCode() << _endl;
-      }
-    }
-    else
-    {
-      Serial << F("MQTT Payload buffer overflow! - ");
-      Serial << F("Payload size: ") << jsonBuffer.size() << _endl;
-    }
   }
   else
     Serial << F("Failed to connect to the MQTT broker") << _endl;
@@ -902,37 +805,20 @@ void PublishSettings()
 
   if (MQTTClient.connected())
   {
-    //send a JSON to MQTT broker. /!\ Split JSON if longer than 100 bytes
-    StaticJsonBuffer<200> jsonBuffer;
-    JsonObject& root = jsonBuffer.createObject();
+    //send a JSON to MQTT broker. /!\ Split JSON if longer than 192 bytes
+    const int capacity = JSON_OBJECT_SIZE(6); // value recommended by ArduinoJson Assistant with slack for the Firmw string
+    StaticJsonDocument<capacity> root;
 
-    root.set<float>(F("pHKp"), (float)(storage.Ph_Kp));//pH PID coeffcicient Kp
-    root.set<float>(F("pHKi"), (float)(storage.Ph_Ki));//pH PID coeffcicient Ki
-    root.set<float>(F("pHKd"), (float)(storage.Ph_Kd));//pH PID coeffcicient Kd
-    root.set<float>(F("OrpKp"), (float)(storage.Orp_Kp));//Orp PID coeffcicient Kp
-    root.set<float>(F("OrpKi"), (float)(storage.Orp_Ki));//Orp PID coeffcicient Ki
-    root.set<float>(F("OrpKd"), (float)(storage.Orp_Kd));//Orp PID coeffcicient Kd
+    root[F("pHKp")] = (float)(storage.Ph_Kp);//pH PID coeffcicient Kp
+    root[F( "pHKi")] = (float)(storage.Ph_Ki);//pH PID coeffcicient Ki
+    root[F( "pHKd")] = (float)(storage.Ph_Kd);//pH PID coeffcicient Kd
+    root[F( "OrpKp")] = (float)(storage.Orp_Kp);//Orp PID coeffcicient Kp
+    root[F( "OrpKi")] = (float)(storage.Orp_Ki);//Orp PID coeffcicient Ki
+    root[F( "OrpKd")] = (float)(storage.Orp_Kd);//Orp PID coeffcicient Kd
+    
+    serializeJson(root, Payload);
+    MQTTClient.publish(PoolTopicSet4, Payload, strlen(Payload), true, LWMQTT_QOS1);
 
-    //char Payload[PayloadBufferLength];
-    if (jsonBuffer.size() < PayloadBufferLength)
-    {
-      root.printTo(Payload, PayloadBufferLength);
-      if (MQTTClient.publish(PoolTopicSet4, Payload, strlen(Payload), true, LWMQTT_QOS1))
-      {
-        Serial << F("Payload: ") << Payload << F(" - ");
-        Serial << F("Payload size: ") << jsonBuffer.size() << _endl;
-      }
-      else
-      {
-        Serial << F("Unable to publish the following payload: ") << Payload << _endl;
-        Serial << F("MQTTClient.lastError() returned: ") << MQTTClient.lastError() << F(" - MQTTClient.returnCode() returned: ") << MQTTClient.returnCode() << _endl;
-      }
-    }
-    else
-    {
-      Serial << F("MQTT Payload buffer overflow! - ");
-      Serial << F("Payload size: ") << jsonBuffer.size() << _endl;
-    }
   }
   else
     Serial << F("Failed to connect to the MQTT broker") << _endl;
@@ -942,35 +828,17 @@ void PublishSettings()
 
   if (MQTTClient.connected())
   {
-    //send a JSON to MQTT broker. /!\ Split JSON if longer than 100 bytes
-    StaticJsonBuffer<200> jsonBuffer;
-    JsonObject& root = jsonBuffer.createObject();
+    //send a JSON to MQTT broker. /!\ Split JSON if longer than 192 bytes
+    const int capacity = JSON_OBJECT_SIZE(4); // value recommended by ArduinoJson Assistant with slack for the Firmw string
+    StaticJsonDocument<capacity> root;
 
-    root.set<uint8_t>(F("pHTV"), (uint8_t)storage.pHTankVol);//Acid tank nominal volume (Liters)
-    root.set<uint8_t>(F("ChlTV"), (uint8_t)storage.ChlTankVol);//Chl tank nominal volume (Liters)
-    root.set<float>(F("pHFR"), (float)(storage.pHPumpFR));//Acid pump flow rate (L/hour)
-    root.set<float>(F("OrpFR"), (float)(storage.ChlPumpFR));//Chl pump flow rate (L/hour)
+    root[F("pHTV")] = (uint8_t)storage.pHTankVol;//Acid tank nominal volume (Liters)
+    root[F("ChlTV")] = (uint8_t)storage.ChlTankVol;//Chl tank nominal volume (Liters)
+    root[F("pHFR")] = (float)(storage.pHPumpFR);//Acid pump flow rate (L/hour)
+    root[F("OrpFR")] = (float)(storage.ChlPumpFR);//Chl pump flow rate (L/hour)
 
-    //char Payload[PayloadBufferLength];
-    if (jsonBuffer.size() < PayloadBufferLength)
-    {
-      root.printTo(Payload, PayloadBufferLength);
-      if (MQTTClient.publish(PoolTopicSet5, Payload, strlen(Payload), true, LWMQTT_QOS1))
-      {
-        Serial << F("Payload: ") << Payload << F(" - ");
-        Serial << F("Payload size: ") << jsonBuffer.size() << _endl;
-      }
-      else
-      {
-        Serial << F("Unable to publish the following payload: ") << Payload << _endl;
-        Serial << F("MQTTClient.lastError() returned: ") << MQTTClient.lastError() << F(" - MQTTClient.returnCode() returned: ") << MQTTClient.returnCode() << _endl;
-      }
-    }
-    else
-    {
-      Serial << F("MQTT Payload buffer overflow! - ");
-      Serial << F("Payload size: ") << jsonBuffer.size() << _endl;
-    }
+    serializeJson(root, Payload);
+    MQTTClient.publish(PoolTopicSet5, Payload, strlen(Payload), true, LWMQTT_QOS1);
   }
   else
     Serial << F("Failed to connect to the MQTT broker") << _endl;
@@ -1149,14 +1017,14 @@ void getMeasures(DeviceAddress deviceAddress_0)
   storage.PhValue = (storage.pHCalibCoeffs0 * -ph_sensor_value) + storage.pHCalibCoeffs1;               //Calibrated sensor response based on multi-point linear regression
   samples_Ph.add(storage.PhValue);                                                                     // compute average of pH from last 5 measurements
   storage.PhValue = samples_Ph.getAverage(2);
-  Serial << F("Ph: ") << (2.5 - ph_sensor_value)*1000.0 << F("mV - ") << storage.PhValue  << _endl;
+  Serial << F("Ph: ") << (2.5 - ph_sensor_value) * 1000.0 << F("mV - ") << storage.PhValue  << _endl;
 
   //ORP
   float orp_sensor_value = adc.convert(ADS1115_CHANNEL01, ADS1115_RANGE_6144) * 6.144 / 16383.0;        // from 0.0 to 5.0 V
   storage.OrpValue = (storage.OrpCalibCoeffs0 * orp_sensor_value) + storage.OrpCalibCoeffs1;           //Calibrated sensor response based on multi-point linear regression
   samples_Orp.add(storage.OrpValue);                                                                   // compute average of ORP from last 5 measurements
   storage.OrpValue = samples_Orp.getAverage(2);
-  Serial << F("Orp: ") << (2.5 - orp_sensor_value)*1000.0 << F("mV - ") << storage.OrpValue << F("mV") << _endl;
+  Serial << F("Orp: ") << (2.5 - orp_sensor_value) * 1000.0 << F("mV - ") << storage.OrpValue << F("mV") << _endl;
 
 #else //using the Phidget analog boards (PoolMaster V5.0 and earlier)
 
@@ -1168,7 +1036,7 @@ void getMeasures(DeviceAddress deviceAddress_0)
   samples_Ph.add(storage.PhValue);                                                                      // compute average of pH from last 5 measurements
   storage.PhValue = samples_Ph.getAverage(10);
   Serial << F("Ph: ") << storage.PhValue << F(" - ");
-  
+
   //ORP
   float orp_sensor_value = analogRead(ORP_MEASURE) * 5.0 / 1023.0;                                      // from 0.0 to 5.0 V
   //storage.OrpValue = ((2.5 - orp_sensor_value) / 1.037) * 1000.0;                                     // from -2000 to 2000 mV where the positive values are for oxidizers and the negative values are for reducers
@@ -1214,14 +1082,14 @@ void saveConfig()
 
 void ProcessCommand(String JSONCommand)
 {
-  //Json buffer
-  StaticJsonBuffer<200> jsonBuffer;
+   StaticJsonDocument<200> command;
 
   //Parse Json object and find which command it is
-  JsonObject& command = jsonBuffer.parseObject(JSONCommand);
+  //JsonObject& command = doc.parseObject(JSONCommand);
+  DeserializationError error = deserializeJson(command, JSONCommand);
 
   // Test if parsing succeeds.
-  if (!command.success())
+  if (!error)
   {
     Serial << F("Json parseObject() failed");
     return;
@@ -1243,7 +1111,8 @@ void ProcessCommand(String JSONCommand)
       if (command.containsKey(F("PhCalib")))
       {
         float CalibPoints[12];//Max six calibration point-couples! Should be plenty enough
-        int NbPoints = command[F("PhCalib")].as<JsonArray>().copyTo(CalibPoints);
+        //int NbPoints = command[F("PhCalib")].as<JsonArray>().copyTo(CalibPoints);
+        int NbPoints = (int)copyArray(command[F("PhCalib")].as<JsonArray>(),CalibPoints); 
         Serial << F("PhCalib command - ") << NbPoints << F(" points received: ");
         for (int i = 0; i < NbPoints; i += 2)
           Serial << CalibPoints[i] << F(",") << CalibPoints[i + 1] << F(" - ");
@@ -1294,7 +1163,8 @@ void ProcessCommand(String JSONCommand)
         if (command.containsKey(F("OrpCalib")))
         {
           float CalibPoints[12];//Max six calibration point-couples! Should be plenty enough
-          int NbPoints = command[F("OrpCalib")].as<JsonArray>().copyTo(CalibPoints);
+          //int NbPoints = command[F("OrpCalib")].as<JsonArray>().copyTo(CalibPoints);
+          int NbPoints = (int)copyArray(command[F("OrpCalib")].as<JsonArray>(),CalibPoints);
           Serial << F("OrpCalib command - ") << NbPoints << F(" points received: ");
           for (int i = 0; i < NbPoints; i += 2)
             Serial << CalibPoints[i] << F(",") << CalibPoints[i + 1] << F(" - ");
@@ -1345,7 +1215,8 @@ void ProcessCommand(String JSONCommand)
           if (command.containsKey(F("PSICalib")))
           {
             float CalibPoints[12];//Max six calibration point-couples! Should be plenty enough, typically use two point-couples (filtration ON and filtration OFF)
-            int NbPoints = command[F("PSICalib")].as<JsonArray>().copyTo(CalibPoints);
+            //int NbPoints = command[F("PSICalib")].as<JsonArray>().copyTo(CalibPoints);
+            int NbPoints = (int)copyArray(command[F("PSICalib")].as<JsonArray>(),CalibPoints);
             Serial << F("PSICalib command - ") << NbPoints << F(" points received: ");
             for (int i = 0; i < NbPoints; i += 2)
               Serial << CalibPoints[i] << F(",") << CalibPoints[i + 1] << F(" - ");
