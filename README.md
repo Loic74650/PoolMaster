@@ -1,4 +1,4 @@
-<h2>PoolMaster 6.0.0</h2>
+<h2>PoolMaster 7.0.0</h2>
 <h2>Ph/Orp (Chlorine) regulation system for home pools</h2>
 
 <br />
