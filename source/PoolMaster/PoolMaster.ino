@@ -1089,9 +1089,9 @@ void ProcessCommand(String JSONCommand)
   DeserializationError error = deserializeJson(command, JSONCommand);
 
   // Test if parsing succeeds.
-  if (!error)
+  if (error)
   {
-    Serial << F("Json parseObject() failed");
+    Serial << F("Json parseObject() failed: ") << error.f_str() << endl;
     return;
   }
   else
