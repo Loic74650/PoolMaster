@@ -209,7 +209,7 @@ unsigned long PublishPeriod = 30000;
 
 #if defined(pHOrpBoard) //using the I2C pHOrpBoard as interface to the pH and Orp probes
 //Instance of ADC library to measure pH and Orp using the pH_Orp_Board
-ADS1115 adc;
+ADS1115 adc(ADS1115ADDRESS+1);
 #endif
 
 //Signal filtering library. Only used in this case to compute the average
