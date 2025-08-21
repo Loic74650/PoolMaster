@@ -1,6 +1,6 @@
 #include "OneWire.h"
 
-//#define DEBUG           ->comment this line to prevent code from writing debug messages to serial port
+#define DEBUG           ->comment this line to prevent code from writing debug messages to serial port
 #define pHOrpBoard        //->comment this line if your setup is using the Phidget boards ((PoolMaster V5.0 and earlier) as interface to the pH and Orp probes instead of the default pHOrpBoard(https://github.com/Loic74650/pH_Orp_Board)
 
 #include "DebugUtils.h"
@@ -141,16 +141,16 @@ byte mac[] = { 0xA8, 0x61, 0x0A, 0xAE, 0x65, 0x04}; //-> Mega2560 dev setup with
 MQTTClient MQTTClient;
 const char* MqttServerIP = "192.168.0.38";
 //const char* MqttServerIP = "broker.mqttdashboard.com";//cloud-based MQTT broker to test when node-red and MQTT broker are not installed locally (/!\ public and unsecure!)
-const char* MqttServerClientID = "ArduinoPool2"; // /!\ choose a client ID which is unique to this Arduino board
+const char* MqttServerClientID = "ArduinoPool4"; // /!\ choose a client ID which is unique to this Arduino board
 const char* MqttServerLogin = nullptr;  //replace by const char* MqttServerLogin = nullptr; in case broker does not require a login/pwd
 const char* MqttServerPwd = nullptr; //replace by const char* MqttServerPwd = nullptr; in case broker does not require a login/pwd
-const char* PoolTopicMeas1 = "Home/Pool/Meas1";
-const char* PoolTopicMeas2 = "Home/Pool/Meas2";
-const char* PoolTopicSet1 = "Home/Pool/Set1";
-const char* PoolTopicSet2 = "Home/Pool/Set2";
-const char* PoolTopicSet3 = "Home/Pool/Set3";
-const char* PoolTopicSet4 = "Home/Pool/Set4";
-const char* PoolTopicSet5 = "Home/Pool/Set5";
-const char* PoolTopicAPI = "Home/Pool/API";
-const char* PoolTopicStatus = "Home/Pool/status";
-const char* PoolTopicError = "Home/Pool/Err";
+const char* PoolTopicMeas1 = "PoolMaster_3532313237161307/Meas1";
+const char* PoolTopicMeas2 = "PoolMaster_3532313237161307/Meas2";
+const char* PoolTopicSet1 = "PoolMaster_3532313237161307/Set1";
+const char* PoolTopicSet2 = "PoolMaster_3532313237161307/Set2";
+const char* PoolTopicSet3 = "PoolMaster_3532313237161307/Set3";
+const char* PoolTopicSet4 = "PoolMaster_3532313237161307/Set4";
+const char* PoolTopicSet5 = "PoolMaster_3532313237161307/Set5";
+const char* PoolTopicAPI = "PoolMaster_3532313237161307/API";
+const char* PoolTopicStatus = "PoolMaster_3532313237161307/status";
+const char* PoolTopicError = "PoolMaster_3532313237161307/Err";

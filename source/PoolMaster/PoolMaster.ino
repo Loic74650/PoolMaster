@@ -118,7 +118,7 @@
   https://github.com/bblanchon/ArduinoJson (rev 7.3.0)
   https://github.com/thijse/Arduino-EEPROMEx (rev 1.0.0)
   https://github.com/EinarArnason/ArduinoQueue (rev 1.2.5)
-  https://github.com/PaulStoffregen/Time (rev 1.6.1) 
+  https://github.com/PaulStoffregen/Time (rev 1.6.1)
   https://github.com/adafruit/RTClib (rev 2.1.4)
   https://github.com/TrippyLighting/EthernetBonjour
   https://github.com/Seithan/EasyNextionLibrary (rev 1.0.6)
@@ -209,7 +209,7 @@ unsigned long PublishPeriod = 30000;
 
 #if defined(pHOrpBoard) //using the I2C pHOrpBoard as interface to the pH and Orp probes
 //Instance of ADC library to measure pH and Orp using the pH_Orp_Board
-ADS1115 adc(ADS1115ADDRESS+1);
+ADS1115 adc(ADS1115ADDRESS + 1);
 #endif
 
 //Signal filtering library. Only used in this case to compute the average
@@ -397,11 +397,13 @@ void setup()
     FiltrationPump.Start();
 
   //Init MQTT
-  MQTTClient.setOptions(60, false, 6000);
+
+  MQTTClient.begin(MqttServerIP, net);  
+  MQTTClient.onMessage(messageReceived);  
   MQTTClient.setWill(PoolTopicStatus, "offline", true, LWMQTT_QOS1);
-  MQTTClient.begin(MqttServerIP, net);
+  MQTTClient.setOptions(100, false, 6000);
   // MQTTClient.setHost(MqttServerIP, 21883);
-  MQTTClient.onMessage(messageReceived);
+
   MQTTConnect();
 
   PublishSettings();
@@ -465,38 +467,30 @@ void setup()
 //"status" will switch to "offline". Very useful to check that the Arduino is alive and functional
 void MQTTConnect()
 {
+  Serial.print("connecting to MQTT broker...");
   //MQTTClient.connect(MqttServerClientID);
-  MQTTClient.connect(MqttServerClientID, MqttServerLogin, MqttServerPwd);
-  /*  int8_t Count=0;
-    while (!MQTTClient.connect(MqttServerClientID, MqttServerLogin, MqttServerPwd) && (Count<4))
-    {
-      Serial<<F(".")<<_endl;
-      delay(500);
-      Count++;
-    }
-  */
-  if (MQTTClient.connected())
+  //MQTTClient.connect(MqttServerClientID, MqttServerLogin, MqttServerPwd);
+  int8_t Count = 0;
+  //while (!MQTTClient.connect(MqttServerClientID, MqttServerLogin, MqttServerPwd) && (Count<4))
+  while (!MQTTClient.connect(MqttServerClientID, MqttServerLogin, MqttServerPwd))
   {
-    MQTTConnection = true;
-
-    //String PoolTopicAPI = "Home/Pool/Api";
-    //Topic to which send/publish API commands for the Pool controls
-    MQTTClient.subscribe(PoolTopicAPI);
-
-    //tell status topic we are online
-    if (MQTTClient.publish(PoolTopicStatus, F("online"), true, LWMQTT_QOS1))
-      Serial << F("published: Home/Pool/status - online") << _endl;
-    else
-    {
-      Serial << F("Unable to publish on status topic; MQTTClient.lastError() returned: ") << MQTTClient.lastError() << F(" - MQTTClient.returnCode() returned: ") << MQTTClient.returnCode() << _endl;
-    }
+    Serial << F(".") << _endl;
+    delay(1000);
+    //      Count++;
   }
+  Serial.println("\nconnected!");
+  
+  //String PoolTopicAPI = "Home/Pool/Api";
+  //Topic to which send/publish API commands for the Pool controls
+  MQTTClient.subscribe(PoolTopicAPI);
+
+  //tell status topic we are online
+  if (MQTTClient.publish(PoolTopicStatus, F("online"), true, LWMQTT_QOS1))
+    Serial << F("published: Home/Pool/status - online") << _endl;
   else
   {
-    Serial << F("Failed to connect to the MQTT broker") << _endl;
-    MQTTConnection = false;
+    Serial << F("Unable to publish on status topic; MQTTClient.lastError() returned: ") << MQTTClient.lastError() << F(" - MQTTClient.returnCode() returned: ") << MQTTClient.returnCode() << _endl;
   }
-
 }
 
 //MQTT callback
@@ -536,6 +530,10 @@ void GenericCallback(Task* me)
 
   //Update MQTT thread
   MQTTClient.loop();
+
+  if (!MQTTClient.connected()) {
+    MQTTConnect();
+  }
 
   //UPdate Nextion TFT
   UpdateTFT();
@@ -815,7 +813,7 @@ void PublishSettings()
     root[F( "OrpKp")] = (float)(storage.Orp_Kp);//Orp PID coeffcicient Kp
     root[F( "OrpKi")] = (float)(storage.Orp_Ki);//Orp PID coeffcicient Ki
     root[F( "OrpKd")] = (float)(storage.Orp_Kd);//Orp PID coeffcicient Kd
-    
+
     serializeJson(root, Payload);
     MQTTClient.publish(PoolTopicSet4, Payload, strlen(Payload), true, LWMQTT_QOS1);
 
@@ -1082,7 +1080,7 @@ void saveConfig()
 
 void ProcessCommand(String JSONCommand)
 {
-   StaticJsonDocument<200> command;
+  StaticJsonDocument<200> command;
 
   //Parse Json object and find which command it is
   //JsonObject& command = doc.parseObject(JSONCommand);
@@ -1112,7 +1110,7 @@ void ProcessCommand(String JSONCommand)
       {
         float CalibPoints[12];//Max six calibration point-couples! Should be plenty enough
         //int NbPoints = command[F("PhCalib")].as<JsonArray>().copyTo(CalibPoints);
-        int NbPoints = (int)copyArray(command[F("PhCalib")].as<JsonArray>(),CalibPoints); 
+        int NbPoints = (int)copyArray(command[F("PhCalib")].as<JsonArray>(), CalibPoints);
         Serial << F("PhCalib command - ") << NbPoints << F(" points received: ");
         for (int i = 0; i < NbPoints; i += 2)
           Serial << CalibPoints[i] << F(",") << CalibPoints[i + 1] << F(" - ");
@@ -1164,7 +1162,7 @@ void ProcessCommand(String JSONCommand)
         {
           float CalibPoints[12];//Max six calibration point-couples! Should be plenty enough
           //int NbPoints = command[F("OrpCalib")].as<JsonArray>().copyTo(CalibPoints);
-          int NbPoints = (int)copyArray(command[F("OrpCalib")].as<JsonArray>(),CalibPoints);
+          int NbPoints = (int)copyArray(command[F("OrpCalib")].as<JsonArray>(), CalibPoints);
           Serial << F("OrpCalib command - ") << NbPoints << F(" points received: ");
           for (int i = 0; i < NbPoints; i += 2)
             Serial << CalibPoints[i] << F(",") << CalibPoints[i + 1] << F(" - ");
@@ -1216,7 +1214,7 @@ void ProcessCommand(String JSONCommand)
           {
             float CalibPoints[12];//Max six calibration point-couples! Should be plenty enough, typically use two point-couples (filtration ON and filtration OFF)
             //int NbPoints = command[F("PSICalib")].as<JsonArray>().copyTo(CalibPoints);
-            int NbPoints = (int)copyArray(command[F("PSICalib")].as<JsonArray>(),CalibPoints);
+            int NbPoints = (int)copyArray(command[F("PSICalib")].as<JsonArray>(), CalibPoints);
             Serial << F("PSICalib command - ") << NbPoints << F(" points received: ");
             for (int i = 0; i < NbPoints; i += 2)
               Serial << CalibPoints[i] << F(",") << CalibPoints[i + 1] << F(" - ");
