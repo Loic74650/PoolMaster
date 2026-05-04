@@ -1,7 +1,7 @@
 /*
 
   Arduino/Controllino-Maxi/ATmega2560 based Ph/ORP regulator for home pool sysem
-  (c) Loic74 <loic74650@gmail.com> 2018-2024
+  (c) Loic74 <loic74650@gmail.com> 2018-2026
 
 ***how to compile***
   - select the target board type in the Arduino IDE (either "Arduino Mega 2560" or "Controllino Maxi")

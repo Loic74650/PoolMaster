@@ -16,3 +16,4 @@
   http://arduiniana.org/libraries/streaming/ (rev 5)
   https://github.com/tardate/TextFinder
   https://lygte-info.dk/pic/Projects/ADS1115Library/ADS1115.zip (rev 1.0.0)  -> documentation here: https://lygte-info.dk/project/ADS1115Library%20UK.html
+  
