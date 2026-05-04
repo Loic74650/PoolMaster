@@ -151,7 +151,7 @@
 #include <ArduinoUniqueID.h>
 
 // Firmware revision
-String Firmw = "7.0.0";
+String Firmw = "7.1.0";
 
 //Starting point address where to store the config data in EEPROM
 #define memoryBase 32
@@ -208,6 +208,8 @@ bool ChlLevelError = 0;
 
 //Status of connection to broker
 bool MQTTConnection = false;
+bool EthernetReady = false;
+unsigned long lastMqttReconnectAttempt = 0;
 
 //PIDs instances
 //Specify the links and initial tuning parameters
@@ -312,6 +314,8 @@ void setup()
     saveConfig();//First time use. Save default values to eeprom
   }
 
+  CheckIPConfig();
+
   //Initialize pump objects with stored config data
   PhPump.SetFlowRate(storage.pHPumpFR);
   PhPump.SetTankVolume(storage.pHTankVol);
@@ -358,46 +362,64 @@ void setup()
 
   // initialize Ethernet device
   // if the ip config is the default one, use DHCP to allocate an ip otherwise use the eeprom-stored config
+  EthernetReady = false;
+
   if (!storage.ipConfiged)
   {
-    if (!Ethernet.begin(storage.mac)) //DHCP
+    Serial << F("Starting Ethernet DHCP...") << _endl;
+
+    if (Ethernet.begin(storage.mac) == 0)
     {
-      Serial << F("Failed to open ethernet connection through DHCP") << _endl;
+      Serial << F("DHCP failed. Continuing without Ethernet.") << _endl;
+      EthernetReady = false;
+    }
+    else
+    {
+      Serial << F("Ethernet DHCP OK. IP: ") << Ethernet.localIP() << _endl;
+      EthernetReady = true;
     }
   }
   else
   {
+    Serial << F("Starting Ethernet with static IP...") << _endl;
+
     Ethernet.begin(storage.mac, storage.ip, storage.dnsserver, storage.gateway, storage.subnet);
+
+    Serial << F("Static Ethernet configured. IP: ") << Ethernet.localIP() << _endl;
+    EthernetReady = true;
   }
   delay(1500);
 
   //8 seconds watchdog timer to reset system in case it freezes for more than 8 seconds
   wdt_enable(WDTO_8S);
 
-  // start to listen for clients
-  server.begin();
+  if (EthernetReady)
+  {
+    // start to listen for clients
+    server.begin();
 
-  // Initialize the Bonjour/MDNS library. You can now reach or ping this
-  // hardware via the host name "PoolMaster.local", provided that your operating
-  // system is Bonjour-enabled (such as MacOS X).
-  EthernetBonjour.begin("PoolMaster");
+    // Initialize the Bonjour/MDNS library. You can now reach or ping this
+    // hardware via the host name "PoolMaster.local", provided that your operating
+    // system is Bonjour-enabled (such as MacOS X).
+    EthernetBonjour.begin("PoolMaster");
 
-  // Now let's register the service we're offering (a web service) via Bonjour!
-  // To do so, we call the addServiceRecord() method. The first argument is the
-  // name of our service instance and its type, separated by a dot. In this
-  // case, the service type is _http. There are many other service types, use
-  // google to look up some common ones, but you can also invent your own
-  // service type, like _mycoolservice - As long as your clients know what to
-  // look for, you're good to go.
-  // The second argument is the port on which the service is running. This is
-  // port 80 here, the standard HTTP port.
-  // The last argument is the protocol type of the service, either TCP or UDP.
-  // Of course, our service is a TCP service.
-  // With the service registered, it will show up in a Bonjour-enabled web
-  // browser. As an example, if you are using Apple's Safari, you will now see
-  // the service under Bookmarks -> Bonjour (Provided that you have enabled
-  // Bonjour in the "Bookmarks" preferences in Safari).
-  EthernetBonjour.addServiceRecord("PoolMaster Bonjour Webserver._http", 80, MDNSServiceTCP);
+    // Now let's register the service we're offering (a web service) via Bonjour!
+    // To do so, we call the addServiceRecord() method. The first argument is the
+    // name of our service instance and its type, separated by a dot. In this
+    // case, the service type is _http. There are many other service types, use
+    // google to look up some common ones, but you can also invent your own
+    // service type, like _mycoolservice - As long as your clients know what to
+    // look for, you're good to go.
+    // The second argument is the port on which the service is running. This is
+    // port 80 here, the standard HTTP port.
+    // The last argument is the protocol type of the service, either TCP or UDP.
+    // Of course, our service is a TCP service.
+    // With the service registered, it will show up in a Bonjour-enabled web
+    // browser. As an example, if you are using Apple's Safari, you will now see
+    // the service under Bookmarks -> Bonjour (Provided that you have enabled
+    // Bonjour in the "Bookmarks" preferences in Safari).
+    EthernetBonjour.addServiceRecord("PoolMaster Bonjour Webserver._http", 80, MDNSServiceTCP);
+  }
 
   //Start temperature measurement state machine
   gettemp.next(gettemp_start);
@@ -412,6 +434,7 @@ void setup()
   if (storage.AutoMode && (hour() >= storage.FiltrationStart) && (hour() < storage.FiltrationStop))
     FiltrationPump.Start();
 
+<<<<<<< Updated upstream
   //Get processor unique ID and concatenate it with "PoolMaster_" header in order to create unique MQTT topic headers and client ID
   GetProcUID(UID);
   strcat (MqttServerClientID, UID);
@@ -437,7 +460,21 @@ void setup()
   MQTTConnect();
 
   PublishSettings();
+=======
+  //Init MQTT
+  MQTTClient.begin(MqttServerIP, net);
+  MQTTClient.onMessage(messageReceived);
+  MQTTClient.setWill(PoolTopicStatus, "offline", true, LWMQTT_QOS1);
+  MQTTClient.setOptions(100, false, 6000);
+>>>>>>> Stashed changes
 
+  if (EthernetReady)
+  {
+    if (MQTTConnect())
+    {
+      PublishSettings();
+    }
+  }
   //Initialize PIDs
   storage.PhPIDwindowStartTime = millis();
   storage.OrpPIDwindowStartTime = millis();
@@ -491,12 +528,12 @@ void setup()
 
 }
 
-
 //Connect to MQTT broker and subscribe to the PoolTopicAPI topic in order to receive future commands
 //then publish the "online" message on the "status" topic. If Ethernet connection is ever lost
 //"status" will switch to "offline". Very useful to check that the Arduino is alive and functional
-void MQTTConnect()
+bool MQTTConnect()
 {
+<<<<<<< Updated upstream
   //MQTTClient.connect(MqttServerClientID);
   //MQTTClient.connect(MqttServerClientID, storage.MqttServerLogin, storage.MqttServerPwd);
   MQTTClient.connect(storage.BrokerIP, storage.MqttServerLogin, storage.MqttServerPwd);
@@ -527,6 +564,105 @@ void MQTTConnect()
   {
     Serial << F("Failed to connect to the MQTT broker") << _endl;
     MQTTConnection = false;
+=======
+  Serial.print("connecting to MQTT broker...");
+
+  for (uint8_t i = 0; i < 1; i++)
+  {
+    if (MQTTClient.connect(MqttServerClientID, MqttServerLogin, MqttServerPwd))
+    {
+      Serial.println("\nconnected!");
+      MQTTConnection = true;
+
+      MQTTClient.subscribe(PoolTopicAPI);
+      MQTTClient.publish(PoolTopicStatus, "online", true, LWMQTT_QOS1);
+
+      return true;
+    }
+
+    Serial.println(".");
+    //delay(1000);
+  }
+
+  MQTTConnection = false;
+  Serial.println("MQTT connect failed");
+  return false;
+}
+
+bool EthernetReconnect()
+{
+  net.stop();
+
+  if (!storage.ipConfiged)
+  {
+    Serial << F("Retrying Ethernet via DHCP...") << _endl;
+
+    if (Ethernet.begin(storage.mac) == 0)
+      return false;
+  }
+  else
+  {
+    Serial << F("Restoring Ethernet with static IP...") << _endl;
+
+    Ethernet.begin(
+      storage.mac,
+      storage.ip,
+      storage.dnsserver,
+      storage.gateway,
+      storage.subnet
+    );
+  }
+
+  Serial << F("Ethernet OK. IP: ") << Ethernet.localIP() << _endl;
+
+  EthernetReady = true;
+
+  server.begin();
+
+  EthernetBonjour.begin("PoolMaster");
+  EthernetBonjour.addServiceRecord(
+    "PoolMaster Bonjour Webserver._http",
+    80,
+    MDNSServiceTCP
+  );
+
+  return true;
+}
+
+void CheckEthernetAndMQTT()
+{
+  if (!EthernetReady)
+  {
+    static unsigned long lastRetry = 0;
+
+    if (millis() - lastRetry > 30000)
+    {
+      lastRetry = millis();
+
+      if (!EthernetReconnect())
+      {
+        Serial << F("Ethernet still unavailable") << _endl;
+        return;
+      }
+    }
+  }
+
+  MQTTClient.loop();
+
+  if (!MQTTClient.connected())
+  {
+    MQTTConnection = false;
+
+    if (millis() - lastMqttReconnectAttempt > 10000)
+    {
+      lastMqttReconnectAttempt = millis();
+
+      MQTTClient.disconnect();
+      net.stop();
+
+      MQTTConnect();
+    }
+>>>>>>> Stashed changes
   }
 
 }
@@ -566,11 +702,15 @@ void GenericCallback(Task* me)
   //request temp reading
   gettemp.run();
 
+<<<<<<< Updated upstream
   //Update MQTT thread
   MQTTClient.loop();
 
   //Check for any JSON command over the serial port
   ReadSerial();
+=======
+  CheckEthernetAndMQTT();
+>>>>>>> Stashed changes
 
   //UPdate Nextion TFT
   UpdateTFT();
@@ -704,13 +844,13 @@ void PublishDataCallback(Task* me)
 {
   //Store the GPIO states in one Byte (more efficient over MQTT)
   EncodeBitmap();
-
-  if (!MQTTClient.connected())
-  {
-    MQTTConnect();
-    //Serial.println("MQTT reconnecting...");
-  }
-
+  
+    if (!MQTTClient.connected())
+    {
+      MQTTConnect();
+      //Serial.println("MQTT reconnecting...");
+    }
+  
   if (MQTTClient.connected())
   {
     //send a JSON to MQTT broker. /!\ Split JSON if longer than 100 bytes
@@ -801,12 +941,12 @@ void PublishDataCallback(Task* me)
 //Publishes system settings to MQTT broker
 void PublishSettings()
 {
-  if (!MQTTClient.connected())
-  {
-    MQTTConnect();
-    //Serial.println("MQTT reconnecting...");
-  }
-
+    if (!MQTTClient.connected())
+    {
+      MQTTConnect();
+      //Serial.println("MQTT reconnecting...");
+    }
+  
   if (MQTTClient.connected())
   {
     //send a JSON to MQTT broker. /!\ Split JSON if longer than 100 bytes
@@ -1849,6 +1989,7 @@ void simpLinReg(float * x, float * y, double & lrCoef0, double & lrCoef1, int n)
   lrCoef1 = ybar - lrCoef0 * xbar;
 }
 
+<<<<<<< Updated upstream
 
 void GetProcUID(char* Array)
 {
@@ -1861,4 +2002,71 @@ void GetProcUID(char* Array)
     sprintf(hexadecimalnum, "%02X", UniqueID8[i]);
     strcat (Array, hexadecimalnum);
   }
+=======
+bool isValidIP(const byte ip[4])
+{
+  // Reject 0.0.0.0
+  bool allZero = true;
+  bool allFF = true;
+
+  for (int i = 0; i < 4; i++)
+  {
+    if (ip[i] != 0x00) allZero = false;
+    if (ip[i] != 0xFF) allFF = false;
+  }
+
+  return (!allZero && !allFF);
+}
+
+bool isValidSubnet(const byte subnet[4])
+{
+  // Reject 0.0.0.0
+  uint32_t mask =
+    ((uint32_t)subnet[0] << 24) |
+    ((uint32_t)subnet[1] << 16) |
+    ((uint32_t)subnet[2] << 8)  |
+    ((uint32_t)subnet[3]);
+
+  if (mask == 0)
+    return false;
+
+  // Check contiguous mask (111...1100...00)
+  bool zeroFound = false;
+
+  for (int i = 31; i >= 0; i--)
+  {
+    bool bit = (mask >> i) & 1;
+
+    if (!bit)
+      zeroFound = true;
+    else if (zeroFound)
+      return false; // 1 after 0 => invalid
+  }
+
+  return true;
+}
+
+bool isValidMAC(const byte mac[6])
+{
+  bool allZero = true;
+  bool allFF = true;
+
+  for (int i = 0; i < 6; i++)
+  {
+    if (mac[i] != 0x00) allZero = false;
+    if (mac[i] != 0xFF) allFF = false;
+  }
+
+  return (!allZero && !allFF);
+}
+
+void CheckIPConfig()
+{
+  storage.ipConfiged =
+    isValidIP(storage.ip) &&
+    isValidSubnet(storage.subnet) &&
+    isValidIP(storage.gateway) &&
+    isValidIP(storage.dnsserver) &&
+    isValidMAC(storage.mac);
+>>>>>>> Stashed changes
 }
