@@ -108,19 +108,20 @@
   {"SetMQTTBroker":["192.168.0.38",1883,"",""]} -> call this command to set the IP and credentials of the MQTT broker
 
 ***Dependencies and respective revisions used to compile this project***
-  https://github.com/256dpi/arduino-mqtt/releases (rev 2.4.3)
-  https://github.com/CONTROLLINO-PLC/CONTROLLINO_Library (rev 3.0.4)
-  https://github.com/PaulStoffregen/OneWire (rev 2.3.4)
-  https://github.com/milesburton/Arduino-Temperature-Control-Library (rev 3.7.2)
-  https://github.com/RobTillaart/Arduino/tree/master/libraries/RunningMedian (rev 0.1.15)
+  https://github.com/256dpi/arduino-mqtt/releases (rev 2.5.2)
+  https://github.com/CONTROLLINO-PLC/CONTROLLINO_Library (rev 3.0.10)
+  https://github.com/PaulStoffregen/OneWire (rev 2.3.8)
+  https://github.com/milesburton/Arduino-Temperature-Control-Library (rev 3.9.1)
+  https://github.com/RobTillaart/RunningMedian (rev 0.3.9)
   https://github.com/prampec/arduino-softtimer (rev 3.3.0)
-  https://github.com/bricofoy/yasm (rev 0.9.2)
-  https://github.com/br3ttb/Arduino-PID-Library (rev 1.2.0)
-  https://github.com/bblanchon/ArduinoJson (rev 5.13.4)
+  https://github.com/prampec/arduino-pcimanager/tree/master (rev 2.1.4)
+  https://github.com/bricofoy/yasm (rev 1.1.0)
+  https://github.com/br3ttb/Arduino-PID-Library (rev 1.2.1)
+  https://github.com/bblanchon/ArduinoJson (rev 7.3.0)
   https://github.com/thijse/Arduino-EEPROMEx (rev 1.0.0)
-  https://github.com/EinarArnason/ArduinoQueue
-  https://github.com/PaulStoffregen/Time (rev 1.5) -> /!\ Bug: in file "Time.cpp" "static const uint8_t monthDays[]={31,28,31,30,31,30,31,31,30,31,30,31};" must be replaced by "static volatile const uint8_t monthDays[]={31,28,31,30,31,30,31,31,30,31,30,31};"
-  https://github.com/adafruit/RTClib (rev 1.2.0)
+  https://github.com/EinarArnason/ArduinoQueue (rev 1.2.5)
+  https://github.com/PaulStoffregen/Time (rev 1.6.1)
+  https://github.com/adafruit/RTClib (rev 2.1.4)
   https://github.com/TrippyLighting/EthernetBonjour
   https://github.com/Seithan/EasyNextionLibrary (rev 1.0.6)
   http://arduiniana.org/libraries/streaming/ (rev 5)
@@ -434,7 +435,6 @@ void setup()
   if (storage.AutoMode && (hour() >= storage.FiltrationStart) && (hour() < storage.FiltrationStop))
     FiltrationPump.Start();
 
-<<<<<<< Updated upstream
   //Get processor unique ID and concatenate it with "PoolMaster_" header in order to create unique MQTT topic headers and client ID
   GetProcUID(UID);
   strcat (MqttServerClientID, UID);
@@ -460,13 +460,6 @@ void setup()
   MQTTConnect();
 
   PublishSettings();
-=======
-  //Init MQTT
-  MQTTClient.begin(MqttServerIP, net);
-  MQTTClient.onMessage(messageReceived);
-  MQTTClient.setWill(PoolTopicStatus, "offline", true, LWMQTT_QOS1);
-  MQTTClient.setOptions(100, false, 6000);
->>>>>>> Stashed changes
 
   if (EthernetReady)
   {
@@ -533,43 +526,11 @@ void setup()
 //"status" will switch to "offline". Very useful to check that the Arduino is alive and functional
 bool MQTTConnect()
 {
-<<<<<<< Updated upstream
-  //MQTTClient.connect(MqttServerClientID);
-  //MQTTClient.connect(MqttServerClientID, storage.MqttServerLogin, storage.MqttServerPwd);
-  MQTTClient.connect(storage.BrokerIP, storage.MqttServerLogin, storage.MqttServerPwd);
-  /*  int8_t Count=0;
-    while (!MQTTClient.connect(MqttServerClientID, storage.MqttServerLogin, storage.MqttServerPwd) && (Count<4))
-    {
-      Serial<<F(".")<<_endl;
-      delay(500);
-      Count++;
-    }
-  */
-  if (MQTTClient.connected())
-  {
-    MQTTConnection = true;
-
-    //Topic to which send/publish API commands for the Pool controls
-    MQTTClient.subscribe(_PoolTopicAPI);
-
-    //tell status topic we are online
-    if (MQTTClient.publish(_PoolTopicStatus, F("online"), true, LWMQTT_QOS1))
-      Serial << F("published: ") << MqttServerClientID << ("/status - online") << _endl;
-    else
-    {
-      Serial << F("Unable to publish on status topic; MQTTClient.lastError() returned: ") << MQTTClient.lastError() << F(" - MQTTClient.returnCode() returned: ") << MQTTClient.returnCode() << _endl;
-    }
-  }
-  else
-  {
-    Serial << F("Failed to connect to the MQTT broker") << _endl;
-    MQTTConnection = false;
-=======
   Serial.print("connecting to MQTT broker...");
 
   for (uint8_t i = 0; i < 1; i++)
   {
-    if (MQTTClient.connect(MqttServerClientID, MqttServerLogin, MqttServerPwd))
+    if (MQTTClient.connect(MqttServerClientID, storage.MqttServerLogin, storage.MqttServerPwd))
     {
       Serial.println("\nconnected!");
       MQTTConnection = true;
@@ -584,8 +545,11 @@ bool MQTTConnect()
     //delay(1000);
   }
 
+  Serial.println("\nMQTT connect failed");
   MQTTConnection = false;
-  Serial.println("MQTT connect failed");
+
+  MQTTClient.disconnect();
+  net.stop();
   return false;
 }
 
@@ -662,9 +626,7 @@ void CheckEthernetAndMQTT()
 
       MQTTConnect();
     }
->>>>>>> Stashed changes
   }
-
 }
 
 //MQTT callback
@@ -702,15 +664,10 @@ void GenericCallback(Task* me)
   //request temp reading
   gettemp.run();
 
-<<<<<<< Updated upstream
-  //Update MQTT thread
-  MQTTClient.loop();
-
   //Check for any JSON command over the serial port
   ReadSerial();
-=======
+
   CheckEthernetAndMQTT();
->>>>>>> Stashed changes
 
   //UPdate Nextion TFT
   UpdateTFT();
@@ -844,13 +801,13 @@ void PublishDataCallback(Task* me)
 {
   //Store the GPIO states in one Byte (more efficient over MQTT)
   EncodeBitmap();
-  
-    if (!MQTTClient.connected())
-    {
-      MQTTConnect();
-      //Serial.println("MQTT reconnecting...");
-    }
-  
+
+  if (!MQTTClient.connected())
+  {
+    MQTTConnect();
+    //Serial.println("MQTT reconnecting...");
+  }
+
   if (MQTTClient.connected())
   {
     //send a JSON to MQTT broker. /!\ Split JSON if longer than 100 bytes
@@ -941,12 +898,12 @@ void PublishDataCallback(Task* me)
 //Publishes system settings to MQTT broker
 void PublishSettings()
 {
-    if (!MQTTClient.connected())
-    {
-      MQTTConnect();
-      //Serial.println("MQTT reconnecting...");
-    }
-  
+  if (!MQTTClient.connected())
+  {
+    MQTTConnect();
+    //Serial.println("MQTT reconnecting...");
+  }
+
   if (MQTTClient.connected())
   {
     //send a JSON to MQTT broker. /!\ Split JSON if longer than 100 bytes
@@ -1989,8 +1946,6 @@ void simpLinReg(float * x, float * y, double & lrCoef0, double & lrCoef1, int n)
   lrCoef1 = ybar - lrCoef0 * xbar;
 }
 
-<<<<<<< Updated upstream
-
 void GetProcUID(char* Array)
 {
   ArduinoUniqueID();
@@ -2002,7 +1957,8 @@ void GetProcUID(char* Array)
     sprintf(hexadecimalnum, "%02X", UniqueID8[i]);
     strcat (Array, hexadecimalnum);
   }
-=======
+}
+
 bool isValidIP(const byte ip[4])
 {
   // Reject 0.0.0.0
@@ -2068,5 +2024,4 @@ void CheckIPConfig()
     isValidIP(storage.gateway) &&
     isValidIP(storage.dnsserver) &&
     isValidMAC(storage.mac);
->>>>>>> Stashed changes
 }
